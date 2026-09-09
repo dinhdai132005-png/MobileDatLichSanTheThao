@@ -190,8 +190,8 @@ export const LICH_SU_DAT_SAN = [
 ];
 
 export const THONG_TIN_NGUOI_DUNG = {
-  hoTen: 'Nguyễn Văn Minh',
-  email: 'minhnguyenvn@gmail.com',
+  hoTen: 'Đinh Ngọc Đại',
+  email: 'dinhngocdai@gmail.com',
   soDienThoai: '0912 345 678',
   ngayThamGia: '01/2024',
   tongLuotDat: 24,

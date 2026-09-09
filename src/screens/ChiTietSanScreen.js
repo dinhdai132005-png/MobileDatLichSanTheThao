@@ -63,7 +63,8 @@ export default function ChiTietSanScreen({ navigation, route }) {
           <Ionicons name="arrow-back" size={20} color={MAU.chu} />
         </TouchableOpacity>
         <Text style={styles.tieuDe} numberOfLines={1}>{san.tenSan}</Text>
-        <View style={{ width: 36 }} /> {/* Khối trống để căn giữa tiêu đề */}
+        {/* Khối trống để căn giữa tiêu đề */}
+        <View style={{ width: 36 }} />
       </SafeAreaView>
 
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -163,7 +164,8 @@ export default function ChiTietSanScreen({ navigation, route }) {
             ))}
           </View>
 
-          <View style={{ height: 110 }} /> {/* Đệm khoảng trống cuối trang cho Footer */}
+          {/* Đệm khoảng trống cuối trang cho Footer */}
+          <View style={{ height: 110 }} />
         </View>
       </ScrollView>
 
@@ -172,7 +174,7 @@ export default function ChiTietSanScreen({ navigation, route }) {
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 12, color: MAU.phu }}>Giờ đã chọn</Text>
           <Text style={{ fontSize: 18, fontWeight: '700', color: MAU.chu }}>
-            {gioChon ?? '--:--'} {/* Hiển thị '--:--' nếu chưa chọn giờ */}
+            {gioChon ?? '--:--'}
           </Text>
         </View>
         <TouchableOpacity

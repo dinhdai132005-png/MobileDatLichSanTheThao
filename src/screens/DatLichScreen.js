@@ -76,7 +76,8 @@ export default function DatLichScreen({ navigation, route }) {
           <Ionicons name="arrow-back" size={20} color={MAU.chu} />
         </TouchableOpacity>
         <Text style={styles.tieuDe}>Xác nhận đặt sân</Text>
-        <View style={{ width: 36 }} /> {/* Dùng để căn giữa text */}
+        {/* Dùng để căn giữa text */}
+        <View style={{ width: 36 }} />
       </SafeAreaView>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16 }}>
