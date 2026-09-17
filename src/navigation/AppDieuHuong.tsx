@@ -1,3 +1,7 @@
+// ============================================================
+// APP ĐIỀU HƯỚNG - RECT NAVIGATION BOTTOM TABS & STACK (TypeScript)
+// ============================================================
+
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -10,9 +14,10 @@ import DanhSachSanScreen from '../screens/DanhSachSanScreen';
 import ChiTietSanScreen from '../screens/ChiTietSanScreen';
 import DatLichScreen from '../screens/DatLichScreen';
 import HoSoScreen from '../screens/HoSoScreen';
+import { RootStackParamList } from '../types';
 
 const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const MAU_SAC = {
   chinh: '#00B884',
@@ -20,24 +25,22 @@ const MAU_SAC = {
   chuMo: '#9CA3AF',
 };
 
-// Stack điều hướng từ Trang chủ tới Chi tiết sân và Đặt sân
 function LuongTrangChu() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="TrangChuMain" component={TrangChuScreen} />
-      <Stack.Screen name="ChiTietSan" component={ChiTietSanScreen} />
-      <Stack.Screen name="DatLich" component={DatLichScreen} />
+      <Stack.Screen name="ChiTietSan" component={ChiTietSanScreen as any} />
+      <Stack.Screen name="DatLich" component={DatLichScreen as any} />
     </Stack.Navigator>
   );
 }
 
-// Stack điều hướng từ Danh sách sân tới Chi tiết sân và Đặt sân
 function LuongDanhSachSan() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="DanhSachSanMain" component={DanhSachSanScreen} />
-      <Stack.Screen name="ChiTietSan" component={ChiTietSanScreen} />
-      <Stack.Screen name="DatLich" component={DatLichScreen} />
+      <Stack.Screen name="ChiTietSan" component={ChiTietSanScreen as any} />
+      <Stack.Screen name="DatLich" component={DatLichScreen as any} />
     </Stack.Navigator>
   );
 }
@@ -53,7 +56,7 @@ export default function AppDieuHuong() {
           tabBarInactiveTintColor: MAU_SAC.chuMo,
           tabBarLabelStyle: styles.nhanTab,
           tabBarIcon: ({ focused, color, size }) => {
-            let bieuTuong;
+            let bieuTuong: any;
             if (route.name === 'TrangChuTab') {
               bieuTuong = focused ? 'home' : 'home-outline';
             } else if (route.name === 'DanhSachSanTab') {

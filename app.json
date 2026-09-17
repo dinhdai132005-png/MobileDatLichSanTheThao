@@ -5,16 +5,15 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "package": "com.datlichsan.thethao"
     },
-    "sdkVersion": "57.0.0",
     "plugins": [
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-font"
     ]
   }
 }
