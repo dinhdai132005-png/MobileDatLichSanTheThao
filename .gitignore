@@ -1,3 +1,7 @@
 node_modules/
 .expo/
 dist/
+
+# Tệp nội bộ - không đưa lên GitHub
+AGENTS.md
+.agents/
