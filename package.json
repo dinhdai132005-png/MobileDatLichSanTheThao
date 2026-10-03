@@ -6,7 +6,9 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "npm --prefix backend test",
+    "test:fullstack": "npm --prefix backend run test:fullstack"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

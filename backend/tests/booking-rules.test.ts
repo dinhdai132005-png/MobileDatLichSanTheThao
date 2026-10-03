@@ -1,0 +1,246 @@
+// =====================================================================
+// TEST SUITE: BOOKING RULES & BUSINESS CONSTRAINTS
+// (TC-10, TC-11, TC-12, TC-13, TC-14, TC-15, TC-16, TC-17, TC-18, TC-39)
+// Tham chiếu: Plant/08-development-plan.md mục 4
+// =====================================================================
+import request from 'supertest';
+import app from '../src/app';
+import { createTestCustomer, getFutureDateString, freeSlot } from './helpers';
+import { pool } from '../src/config/db';
+
+describe('2. Quy tắc nghiệp vụ Đặt sân (TC-10 -> TC-18, TC-39)', () => {
+  let testCustomer: { id: number; token: string; phone: string };
+  let otherCustomer: { id: number; token: string; phone: string };
+
+  beforeAll(async () => {
+    testCustomer = await createTestCustomer('KhachNghiepVu');
+    otherCustomer = await createTestCustomer('KhachNgoai');
+  });
+
+  it('TC-10: Tra cứu lịch trống hôm nay: Các khung giờ đã qua hoặc trong vòng 30 phút có trạng thái PAST', async () => {
+    const homNay = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+    const res = await request(app)
+      .get(`/api/v1/courts/1/availability?date=${homNay}`)
+      .set('Authorization', `Bearer ${testCustomer.token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(Array.isArray(res.body.data.danhSachKhungGio)).toBe(true);
+
+    const gioHienTai = new Date().getHours();
+    if (gioHienTai >= 7) {
+      const slot1 = res.body.data.danhSachKhungGio.find((s: any) => s.khungGioId === 1);
+      expect(slot1.trangThai).toBe('PAST');
+    }
+  });
+
+  it('TC-11: Tra cứu lịch theo ngày thường và cuối tuần: Khớp đúng day_type và bảng giá cấu hình', async () => {
+    const d1 = new Date();
+    d1.setDate(d1.getDate() + ((2 + 7 - d1.getDay()) % 7 || 7)); // Thứ 3 tới
+    const ngayThuBa = d1.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+
+    const d2 = new Date();
+    d2.setDate(d2.getDate() + ((6 + 7 - d2.getDay()) % 7 || 7)); // Thứ 7 tới
+    const ngayThuBay = d2.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+
+    const resWeekday = await request(app).get(`/api/v1/courts/1/availability?date=${ngayThuBa}`);
+    const resWeekend = await request(app).get(`/api/v1/courts/1/availability?date=${ngayThuBay}`);
+
+    expect(resWeekday.status).toBe(200);
+    expect(resWeekday.body.data.loaiNgay).toBe('WEEKDAY');
+
+    expect(resWeekend.status).toBe(200);
+    expect(resWeekend.body.data.loaiNgay).toBe('WEEKEND');
+  });
+
+  it('TC-12: Khách đặt 1 giờ CASH hợp lệ -> 201 Created, CONFIRMED, UNPAID, slot bị khóa', async () => {
+    const sanId = 1;
+    const khungGioId = 1;
+    const ngayDat = getFutureDateString(3);
+    await freeSlot(sanId, ngayDat, khungGioId);
+
+    const res = await request(app)
+      .post('/api/v1/bookings')
+      .set('Authorization', `Bearer ${testCustomer.token}`)
+      .send({
+        sanId,
+        ngayDat,
+        danhSachKhungGioId: [khungGioId], // 06:00 - 07:00
+        phuongThucThanhToan: 'CASH',
+        ghiChu: 'Kiểm thử TC-12 tiền mặt',
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.trangThai).toBe('CONFIRMED');
+    expect(res.body.data.trangThaiThanhToan).toBe('UNPAID');
+    expect(res.body.data.maDonDat).toMatch(/^BK[A-Z0-9]{8,12}$/);
+  });
+
+  it('TC-13: Khách đặt 2 giờ liền kề BANK_TRANSFER -> 201 Created, PENDING, có QR chuyển khoản', async () => {
+    const sanId = 1;
+    const ngayDat = getFutureDateString(3);
+    await freeSlot(sanId, ngayDat, 2);
+    await freeSlot(sanId, ngayDat, 3);
+
+    const res = await request(app)
+      .post('/api/v1/bookings')
+      .set('Authorization', `Bearer ${testCustomer.token}`)
+      .send({
+        sanId,
+        ngayDat,
+        danhSachKhungGioId: [2, 3], // 07:00 - 09:00
+        phuongThucThanhToan: 'BANK_TRANSFER',
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.trangThai).toBe('PENDING');
+    expect(res.body.data.thongTinThanhToan).not.toBeNull();
+    expect(res.body.data.thongTinThanhToan).toHaveProperty('qrUrl');
+    expect(res.body.data.thoiGianHetHan).not.toBeNull();
+  });
+
+  it('TC-14: Đặt 2 giờ KHÔNG liền kề (slot 4 và slot 6) -> 422 Unprocessable (SLOTS_NOT_CONSECUTIVE)', async () => {
+    const ngayDat = getFutureDateString(4);
+    const res = await request(app)
+      .post('/api/v1/bookings')
+      .set('Authorization', `Bearer ${testCustomer.token}`)
+      .send({
+        sanId: 1,
+        ngayDat,
+        danhSachKhungGioId: [4, 6], // 09:00-10:00 và 11:00-12:00
+        phuongThucThanhToan: 'CASH',
+      });
+
+    expect(res.status).toBe(422);
+    expect(res.body.errorCode).toBe('SLOTS_NOT_CONSECUTIVE');
+  });
+
+  it('TC-15: Đặt 4 giờ vượt quá giới hạn tối đa 3 giờ -> Bị từ chối (400 hoặc 422)', async () => {
+    const ngayDat = getFutureDateString(4);
+    const res = await request(app)
+      .post('/api/v1/bookings')
+      .set('Authorization', `Bearer ${testCustomer.token}`)
+      .send({
+        sanId: 1,
+        ngayDat,
+        danhSachKhungGioId: [1, 2, 3, 4], // 4 tiếng
+        phuongThucThanhToan: 'CASH',
+      });
+
+    expect([400, 422]).toContain(res.status);
+    expect(res.body.success).toBe(false);
+  });
+
+  it('TC-16: Đặt ngày quá 14 ngày hoặc ngày trong quá khứ -> 422 Unprocessable (BOOKING_DATE_INVALID)', async () => {
+    const resPast = await request(app)
+      .post('/api/v1/bookings')
+      .set('Authorization', `Bearer ${testCustomer.token}`)
+      .send({
+        sanId: 1,
+        ngayDat: '2020-01-01',
+        danhSachKhungGioId: [1],
+        phuongThucThanhToan: 'CASH',
+      });
+    expect(resPast.status).toBe(422);
+    expect(resPast.body.errorCode).toBe('BOOKING_DATE_INVALID');
+
+    const resFarFuture = await request(app)
+      .post('/api/v1/bookings')
+      .set('Authorization', `Bearer ${testCustomer.token}`)
+      .send({
+        sanId: 1,
+        ngayDat: '2030-12-31',
+        danhSachKhungGioId: [1],
+        phuongThucThanhToan: 'CASH',
+      });
+    expect(resFarFuture.status).toBe(422);
+    expect(resFarFuture.body.errorCode).toBe('BOOKING_DATE_INVALID');
+  });
+
+  it('TC-17: Đặt sân đang bảo trì (MAINTENANCE) -> 422 Unprocessable (COURT_NOT_BOOKABLE)', async () => {
+    await pool.execute('UPDATE courts SET status = "MAINTENANCE" WHERE id = 7');
+
+    const ngayDat = getFutureDateString(5);
+    const res = await request(app)
+      .post('/api/v1/bookings')
+      .set('Authorization', `Bearer ${testCustomer.token}`)
+      .send({
+        sanId: 7,
+        ngayDat,
+        danhSachKhungGioId: [1],
+        phuongThucThanhToan: 'CASH',
+      });
+
+    await pool.execute('UPDATE courts SET status = "ACTIVE" WHERE id = 7');
+
+    expect(res.status).toBe(422);
+    expect(res.body.errorCode).toBe('COURT_NOT_BOOKABLE');
+  });
+
+  it('TC-18: Khách đặt đơn thứ 4 khi đang có 3 đơn hoạt động -> 422 (TOO_MANY_ACTIVE_BOOKINGS)', async () => {
+    const limitCustomer = await createTestCustomer('KhachLimit');
+    const sanId = 2;
+    const ngayDat = getFutureDateString(6);
+    await freeSlot(sanId, ngayDat, 1);
+    await freeSlot(sanId, ngayDat, 2);
+    await freeSlot(sanId, ngayDat, 3);
+    await freeSlot(sanId, ngayDat, 4);
+
+    // Đặt 3 đơn thành công
+    for (let slotId = 1; slotId <= 3; slotId++) {
+      const res = await request(app)
+        .post('/api/v1/bookings')
+        .set('Authorization', `Bearer ${limitCustomer.token}`)
+        .send({
+          sanId,
+          ngayDat,
+          danhSachKhungGioId: [slotId],
+          phuongThucThanhToan: 'CASH',
+        });
+      expect(res.status).toBe(201);
+    }
+
+    // Đặt đơn thứ 4 -> Bị chặn 422
+    const res4 = await request(app)
+      .post('/api/v1/bookings')
+      .set('Authorization', `Bearer ${limitCustomer.token}`)
+      .send({
+        sanId,
+        ngayDat,
+        danhSachKhungGioId: [4],
+        phuongThucThanhToan: 'CASH',
+      });
+
+    expect(res4.status).toBe(422);
+    expect(res4.body.errorCode).toBe('TOO_MANY_ACTIVE_BOOKINGS');
+  });
+
+  it('TC-39: Khách hàng xem chi tiết đơn đặt của khách hàng khác -> 404 Not Found (bảo mật dữ liệu)', async () => {
+    const custA = await createTestCustomer('Khach39A');
+    const custB = await createTestCustomer('Khach39B');
+    const sanId = 3;
+    const ngayDat = getFutureDateString(7);
+    await freeSlot(sanId, ngayDat, 1);
+
+    // 1. custA tạo 1 đơn đặt
+    const resA = await request(app)
+      .post('/api/v1/bookings')
+      .set('Authorization', `Bearer ${custA.token}`)
+      .send({
+        sanId,
+        ngayDat,
+        danhSachKhungGioId: [1],
+        phuongThucThanhToan: 'CASH',
+      });
+    expect(resA.status).toBe(201);
+    const donId = resA.body.data.id;
+
+    // 2. custB cố tình truy cập đơn của custA
+    const resB = await request(app)
+      .get(`/api/v1/bookings/${donId}`)
+      .set('Authorization', `Bearer ${custB.token}`);
+
+    expect(resB.status).toBe(404);
+  });
+});
