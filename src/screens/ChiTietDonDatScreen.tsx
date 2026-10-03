@@ -14,11 +14,11 @@ import {
   Image,
   Alert,
   ActivityIndicator,
-  SafeAreaView,
   StatusBar,
   Modal,
   TextInput,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { DonDat } from '../types';
 import { donDatService } from '../services/donDatService';
