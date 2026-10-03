@@ -9,7 +9,7 @@ export const authService = {
   /** Lấy thông tin người dùng hiện tại từ Backend qua /auth/me */
   async getThongTinNguoiDung(): Promise<NguoiDung> {
     if (!getAuthToken()) {
-      await this.dangNhap('0911111111', '123456');
+      throw new Error('Vui lòng đăng nhập tài khoản');
     }
 
     const nguoiDungData = await requestApi<any>(

@@ -21,6 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DonDat, NguoiDung } from '../types';
 import { donDatService } from '../services/donDatService';
 import { authService } from '../services/authService';
+import { useAuth } from '../context/AuthContext';
 
 const MAU = {
   nen: '#F4F6F9',
@@ -40,6 +41,7 @@ const TRANG_THAI = {
 };
 
 export default function HoSoScreen({ navigation }: { navigation?: any }) {
+  const { dangXuat } = useAuth();
   const [tab, setTab] = useState<number>(0);
   const [nguoiDung, setNguoiDung] = useState<NguoiDung | null>(null);
   const [lichSu, setLichSu] = useState<DonDat[]>([]);
@@ -283,10 +285,8 @@ export default function HoSoScreen({ navigation }: { navigation?: any }) {
                 <TouchableOpacity
                   style={[styles.nutHanhDong, { borderColor: '#FECACA' }]}
                   onPress={() => {
-                    authService.dangXuat();
-                    Alert.alert('Đăng xuất', 'Bạn đã đăng xuất tài khoản.');
-                    setCheDoAuth('dangNhap');
-                    setHienModalAuth(true);
+                    dangXuat();
+                    Alert.alert('Đăng xuất', 'Bạn đã đăng xuất thành công.');
                   }}
                 >
                   <Ionicons name="log-out-outline" size={18} color={MAU.nguyHiem} />

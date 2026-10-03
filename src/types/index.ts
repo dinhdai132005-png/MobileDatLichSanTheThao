@@ -4,6 +4,7 @@
 
 /** Parameter list cho React Navigation Stack */
 export type RootStackParamList = {
+  DangNhap: undefined;
   TrangChuMain: undefined;
   DanhSachSanMain: undefined;
   ChiTietSan: { san: San };

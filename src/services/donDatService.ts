@@ -67,7 +67,7 @@ export const donDatService = {
   /** Lấy danh sách lịch sử đặt sân của người dùng từ MySQL Backend (CUS-08) */
   async getLichSuDatSan(): Promise<DonDat[]> {
     if (!getAuthToken()) {
-      await authService.dangNhap('0911111111', '123456');
+      return [];
     }
 
     const danhSachRaw = await requestApi<any[]>(
@@ -80,7 +80,7 @@ export const donDatService = {
   /** Lấy chi tiết đơn đặt sân (CUS-07) */
   async getChiTietDonDat(donDatId: string): Promise<DonDat> {
     if (!getAuthToken()) {
-      await authService.dangNhap('0911111111', '123456');
+      throw new Error('Vui lòng đăng nhập để xem chi tiết');
     }
 
     const data = await requestApi<any>(
@@ -92,7 +92,7 @@ export const donDatService = {
   /** Tạo đơn đặt sân mới trên Backend MySQL (CUS-06) */
   async taoDonDatSan(donDatData: Partial<DonDat> & { danhSachKhungGioId?: number[] }): Promise<DonDat> {
     if (!getAuthToken()) {
-      await authService.dangNhap('0911111111', '123456');
+      throw new Error('Vui lòng đăng nhập để thực hiện đặt sân');
     }
 
     const sanIdSo = Number(donDatData.sanId) || 1;

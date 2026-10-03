@@ -67,41 +67,59 @@ function LuongHoSo() {
   );
 }
 
+import { AuthProvider, useAuth } from '../context/AuthContext';
+import DangNhapScreen from '../screens/DangNhapScreen';
+
+function DieuHuongGoc() {
+  const { isAuthenticated } = useAuth();
+
+  // Khi quét QR mở ứng dụng, nếu chưa đăng nhập thì hiển thị màn hình Đăng Nhập / Đăng Ký
+  if (!isAuthenticated) {
+    return <DangNhapScreen />;
+  }
+
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarStyle: styles.thanhTab,
+        tabBarActiveTintColor: MAU_SAC.chinh,
+        tabBarInactiveTintColor: MAU_SAC.chuMo,
+        tabBarLabelStyle: styles.nhanTab,
+        tabBarIcon: ({ focused, color, size }) => {
+          let bieuTuong: any;
+          if (route.name === 'TrangChuTab') {
+            bieuTuong = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'DanhSachSanTab') {
+            bieuTuong = focused ? 'location' : 'location-outline';
+          } else if (route.name === 'LichDatTab') {
+            bieuTuong = focused ? 'calendar' : 'calendar-outline';
+          } else if (route.name === 'HoSoTab') {
+            bieuTuong = focused ? 'person' : 'person-outline';
+          }
+          return (
+            <View style={focused ? styles.tabKichHoat : null}>
+              <Ionicons name={bieuTuong} size={size} color={color} />
+            </View>
+          );
+        },
+      })}
+    >
+      <Tab.Screen name="TrangChuTab" component={LuongTrangChu} options={{ title: 'Trang Chủ' }} />
+      <Tab.Screen name="DanhSachSanTab" component={LuongDanhSachSan} options={{ title: 'Sân Thể Thao' }} />
+      <Tab.Screen name="LichDatTab" component={LuongLichDat} options={{ title: 'Lịch Đặt' }} />
+      <Tab.Screen name="HoSoTab" component={LuongHoSo} options={{ title: 'Hồ Sơ' }} />
+    </Tab.Navigator>
+  );
+}
+
 export default function AppDieuHuong() {
   return (
-    <NavigationContainer>
-      <Tab.Navigator
-        screenOptions={({ route }) => ({
-          headerShown: false,
-          tabBarStyle: styles.thanhTab,
-          tabBarActiveTintColor: MAU_SAC.chinh,
-          tabBarInactiveTintColor: MAU_SAC.chuMo,
-          tabBarLabelStyle: styles.nhanTab,
-          tabBarIcon: ({ focused, color, size }) => {
-            let bieuTuong: any;
-            if (route.name === 'TrangChuTab') {
-              bieuTuong = focused ? 'home' : 'home-outline';
-            } else if (route.name === 'DanhSachSanTab') {
-              bieuTuong = focused ? 'location' : 'location-outline';
-            } else if (route.name === 'LichDatTab') {
-              bieuTuong = focused ? 'calendar' : 'calendar-outline';
-            } else if (route.name === 'HoSoTab') {
-              bieuTuong = focused ? 'person' : 'person-outline';
-            }
-            return (
-              <View style={focused ? styles.tabKichHoat : null}>
-                <Ionicons name={bieuTuong} size={size} color={color} />
-              </View>
-            );
-          },
-        })}
-      >
-        <Tab.Screen name="TrangChuTab" component={LuongTrangChu} options={{ title: 'Trang Chủ' }} />
-        <Tab.Screen name="DanhSachSanTab" component={LuongDanhSachSan} options={{ title: 'Sân Thể Thao' }} />
-        <Tab.Screen name="LichDatTab" component={LuongLichDat} options={{ title: 'Lịch Đặt' }} />
-        <Tab.Screen name="HoSoTab" component={LuongHoSo} options={{ title: 'Hồ Sơ' }} />
-      </Tab.Navigator>
-    </NavigationContainer>
+    <AuthProvider>
+      <NavigationContainer>
+        <DieuHuongGoc />
+      </NavigationContainer>
+    </AuthProvider>
   );
 }
 
