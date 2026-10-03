@@ -64,7 +64,7 @@ export default function TrangChuScreen({ navigation }: Props) {
       <SafeAreaView edges={['top']} style={styles.header}>
         <View>
           <Text style={styles.tenApp}>Đặt Lịch Sân</Text>
-          <Text style={styles.moTaApp}>Thể thao dễ dàng mỗi ngày (TS & Axios)</Text>
+          <Text style={styles.moTaApp}>Rèn luyện sức khỏe & thi đấu mỗi ngày</Text>
         </View>
         <TouchableOpacity
           style={styles.nutTimSan}
@@ -78,7 +78,7 @@ export default function TrangChuScreen({ navigation }: Props) {
       {loading ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color={MAU.chinh} />
-          <Text style={{ marginTop: 10, color: MAU.phu, fontSize: 13 }}>Đang tải dữ liệu API...</Text>
+          <Text style={{ marginTop: 10, color: MAU.phu, fontSize: 13 }}>Đang cập nhật danh sách sân...</Text>
         </View>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false}>

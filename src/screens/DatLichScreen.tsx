@@ -21,6 +21,7 @@ import { San, DonDat, PhuongThucThanhToan } from '../types';
 import { donDatService } from '../services/donDatService';
 import { socketService } from '../services/socketService';
 import VietQRCodeModal from '../components/VietQRCodeModal';
+import { useAuth } from '../context/AuthContext';
 
 type RootStackParamList = {
   DatLich: { san: San; ngay: string; gio: string };
@@ -39,15 +40,16 @@ const MAU = {
   vien: '#E8EAED',
 };
 
-const DANH_SACH_SO_GIO = [1, 1.5, 2, 3];
+const DANH_SACH_SO_GIO = [1, 2, 3];
 
 export default function DatLichScreen({ navigation, route }: Props) {
   const { san, ngay, gio } = route.params;
+  const { currentUser } = useAuth();
 
-  // State Form
+  // State Form: lấy trực tiếp thông tin người dùng đang đăng nhập
   const [soGio, setSoGio] = useState<number>(1);
-  const [hoTen, setHoTen] = useState<string>('Đinh Ngọc Đại');
-  const [soDT, setSoDT] = useState<string>('0912 345 678');
+  const [hoTen, setHoTen] = useState<string>(currentUser?.hoTen || 'Khách Hàng');
+  const [soDT, setSoDT] = useState<string>(currentUser?.soDienThoai || '0911111111');
   const [ghiChu, setGhiChu] = useState<string>('');
   const [thanhToan, setThanhToan] = useState<PhuongThucThanhToan>('tienMat');
 
@@ -167,7 +169,7 @@ export default function DatLichScreen({ navigation, route }: Props) {
         </View>
 
         {/* FORM THÔNG TIN LIÊN HỆ */}
-        <Text style={styles.tieuDeMuc}>Thông tin liên hệ (Axios DTO)</Text>
+        <Text style={styles.tieuDeMuc}>Thông tin người đặt sân</Text>
         <View style={styles.khungForm}>
           <Text style={styles.nhanInput}>Họ và tên</Text>
           <View style={styles.oInput}>

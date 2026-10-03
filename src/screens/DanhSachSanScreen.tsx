@@ -121,7 +121,7 @@ export default function DanhSachSanScreen({ navigation }: Props) {
       {/* HEADER */}
       <SafeAreaView edges={['top']} style={styles.header}>
         <Text style={styles.tieuDe}>Tìm Sân Thể Thao</Text>
-        <Text style={styles.soKetQua}>{danhSachHienThi.length} sân tìm thấy (Axios API)</Text>
+        <Text style={styles.soKetQua}>{danhSachHienThi.length} sân đang phục vụ</Text>
 
         {/* Ô TÌM KIẾM */}
         <View style={styles.oTimKiem}>

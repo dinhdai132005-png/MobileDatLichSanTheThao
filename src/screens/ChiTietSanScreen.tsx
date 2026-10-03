@@ -3,7 +3,7 @@
 // Tính năng: TypeScript, Chọn lịch, Socket.io live slot update, VietQR Quick Access
 // ============================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -92,28 +92,25 @@ export default function ChiTietSanScreen({ navigation, route }: Props) {
   }, [san.id]);
 
   // Tải danh sách khung giờ thực tế từ MySQL Backend theo ngày chọn
-  useEffect(() => {
-    let isMounted = true;
-    async function loadRealSlots() {
-      try {
-        const slots = await sanService.getSlotsTheoNgay(san.id, ngayChon);
-        if (isMounted && slots && slots.length > 0) {
-          setKhungGioList(
-            slots.map((s) => ({
-              gio: s.gio,
-              conTrong: s.conTrong && !s.dangGiuCho && !s.daQua,
-            }))
-          );
-        }
-      } catch (err) {
-        console.log('Chuyển sang fallback khung giờ local:', err);
+  const loadRealSlots = useCallback(async () => {
+    try {
+      const slots = await sanService.getSlotsTheoNgay(san.id, ngayChon);
+      if (slots && slots.length > 0) {
+        setKhungGioList(
+          slots.map((s) => ({
+            gio: s.gio,
+            conTrong: s.conTrong && !s.dangGiuCho && !s.daQua,
+          }))
+        );
       }
+    } catch (err) {
+      console.log('Chuyển sang fallback khung giờ local:', err);
     }
-    loadRealSlots();
-    return () => {
-      isMounted = false;
-    };
   }, [san.id, ngayChon]);
+
+  useEffect(() => {
+    loadRealSlots();
+  }, [loadRealSlots]);
 
   // T29 & CUS-10: Tải đánh giá của sân
   const [danhSachDanhGia, setDanhSachDanhGia] = useState<any[]>([]);
@@ -130,17 +127,6 @@ export default function ChiTietSanScreen({ navigation, route }: Props) {
     }
     loadReviews();
   }, [san.id]);
-
-  // Hàm test giả lập Socket event
-  const handleTestSocketSimulation = () => {
-    const availableSlots = khungGioList.filter((k) => k.conTrong);
-    if (availableSlots.length > 0) {
-      const targetSlot = availableSlots[Math.floor(Math.random() * availableSlots.length)];
-      socketService.simulateIncomingSlotUpdate(san.id, targetSlot.gio, false);
-    } else {
-      socketService.simulateIncomingSlotUpdate(san.id, '19:00', true);
-    }
-  };
 
   return (
     <View style={styles.container}>
@@ -246,10 +232,10 @@ export default function ChiTietSanScreen({ navigation, route }: Props) {
 
           {/* CHỌN KHUNG GIỜ REAL-TIME */}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 20, marginBottom: 10 }}>
-            <Text style={styles.tieuDeMucNoMargin}>Chọn khung giờ (Socket Live)</Text>
-            <TouchableOpacity style={styles.btnSimulate} onPress={handleTestSocketSimulation}>
-              <Ionicons name="refresh-circle-outline" size={14} color="#3B82F6" />
-              <Text style={styles.textSimulate}>Giả lập Socket</Text>
+            <Text style={styles.tieuDeMucNoMargin}>Chọn khung giờ</Text>
+            <TouchableOpacity style={styles.btnSimulate} onPress={loadRealSlots}>
+              <Ionicons name="refresh-outline" size={14} color="#00B884" />
+              <Text style={[styles.textSimulate, { color: '#00B884' }]}>Làm mới</Text>
             </TouchableOpacity>
           </View>
 
