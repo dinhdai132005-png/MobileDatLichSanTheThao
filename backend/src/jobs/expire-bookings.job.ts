@@ -30,7 +30,8 @@ export async function processExpiredBookings(): Promise<number> {
       `SELECT bs.court_id AS sanId, ts.start_time AS gioBatDau, bs.slot_date AS ngayDat
        FROM booking_slots bs
        JOIN time_slots ts ON ts.id = bs.time_slot_id
-       WHERE bs.booking_id IN (${chuoiHoiCham})`
+       WHERE bs.booking_id IN (${chuoiHoiCham})`,
+      danhSachDonDatId
     );
     danhSachKhungNha = dsKhung.map((k) => ({
       sanId: k.sanId,

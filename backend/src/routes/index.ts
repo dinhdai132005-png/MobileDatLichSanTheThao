@@ -7,6 +7,7 @@ import catalogRoutes from './catalog.routes';
 import bookingRoutes from './booking.routes';
 import staffRoutes from './staff.routes';
 import adminRoutes from './admin.routes';
+import paymentRoutes from './payment.routes';
 
 const apiV1Router = Router();
 
@@ -16,5 +17,6 @@ apiV1Router.use('/bookings', bookingRoutes);
 apiV1Router.use('/don-dat', bookingRoutes);
 apiV1Router.use('/staff', staffRoutes);
 apiV1Router.use('/admin', adminRoutes);
+apiV1Router.use('/payments', paymentRoutes);
 
 export default apiV1Router;

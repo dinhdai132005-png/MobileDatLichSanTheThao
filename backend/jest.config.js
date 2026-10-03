@@ -5,4 +5,6 @@ module.exports = {
   testTimeout: 30000,
   verbose: true,
   forceExit: true,
+  setupFiles: ['./tests/setup.ts'],
 };
+

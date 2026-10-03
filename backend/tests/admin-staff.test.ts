@@ -1,12 +1,12 @@
 // =====================================================================
-// TEST SUITE: ADMIN & STAFF OPERATIONS
-// (TC-32, TC-33, TC-34, TC-36, TC-37, TC-38)
+// TEST SUITE 5: ADMIN & STAFF OPERATIONS (TC-32 -> TC-38)
 // Tham chiếu: Plant/08-development-plan.md mục 4
 // =====================================================================
 import request from 'supertest';
 import app from '../src/app';
-import { getAdminToken, getStaffToken, createTestCustomer, getFutureDateString } from './helpers';
+import { getAdminToken, getStaffToken, createTestCustomer, getFutureDateString, freeSlot } from './helpers';
 import { pool } from '../src/config/db';
+import { RowDataPacket } from 'mysql2/promise';
 
 describe('5. Nghiệp vụ Quản trị & Vận hành Quầy (TC-32 -> TC-38)', () => {
   let adminToken: string;
@@ -17,17 +17,10 @@ describe('5. Nghiệp vụ Quản trị & Vận hành Quầy (TC-32 -> TC-38)', 
     staffToken = await getStaffToken();
   });
 
-  async function freeSlot(sanId: number, ngayDat: string, khungGioId: number) {
-    await pool.execute(
-      'UPDATE booking_slots SET is_locked = NULL WHERE court_id = ? AND slot_date = ? AND time_slot_id = ?',
-      [sanId, ngayDat, khungGioId]
-    );
-  }
-
   it('TC-32: Nhân viên đặt tại quầy cho khách vãng lai, thu tiền ngay -> 201, CONFIRMED, PAID, source=STAFF', async () => {
     const ngayDat = getFutureDateString(3);
     const sanId = 1;
-    const khungGioId = 11; // 16:00 - 17:00
+    const khungGioId = 11;
     await freeSlot(sanId, ngayDat, khungGioId);
 
     const res = await request(app)
@@ -68,7 +61,7 @@ describe('5. Nghiệp vụ Quản trị & Vận hành Quầy (TC-32 -> TC-38)', 
   });
 
   it('TC-34: Admin chuyển sân sang bảo trì khi đang có đơn tương lai -> 409 Conflict (COURT_HAS_FUTURE_BOOKINGS)', async () => {
-    // Sân 1 hiện tại chắc chắn có các đơn đặt tương lai vừa tạo ở các test trước
+    // Sân 1 có đơn tương lai vừa tạo ở các test trước
     const res = await request(app)
       .patch('/api/v1/admin/courts/1/status')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -78,8 +71,81 @@ describe('5. Nghiệp vụ Quản trị & Vận hành Quầy (TC-32 -> TC-38)', 
     expect(res.body.errorCode).toBe('COURT_HAS_FUTURE_BOOKINGS');
   });
 
+  it('TC-35: Admin cập nhật bảng giá ma trận -> Đơn cũ giữ nguyên giá snapshot, đơn mới nhận giá mới', async () => {
+    const cust1 = await createTestCustomer('KhachTC35A');
+    const cust2 = await createTestCustomer('KhachTC35B');
+
+    // Tìm một ngày thứ 4 tuần tới (WEEKDAY)
+    const d = new Date();
+    d.setDate(d.getDate() + ((3 + 7 - d.getDay()) % 7 || 7));
+    const ngayThuTu = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+
+    const sanId = 2; // Loại sân 1
+    const khungGioId = 14; // 19:00 - 20:00
+    await freeSlot(sanId, ngayThuTu, khungGioId);
+
+    // 1. Lấy giá hiện tại trong DB
+    const [pricesBefore] = await pool.execute<RowDataPacket[]>(
+      'SELECT price FROM slot_prices WHERE court_type_id = 1 AND day_type = "WEEKDAY" AND time_slot_id = ?',
+      [khungGioId]
+    );
+    const giaGoc = Number(pricesBefore[0].price);
+
+    // 2. cust1 đặt đơn trước khi đổi giá
+    const bookRes1 = await request(app)
+      .post('/api/v1/bookings')
+      .set('Authorization', `Bearer ${cust1.token}`)
+      .send({ sanId, ngayDat: ngayThuTu, danhSachKhungGioId: [khungGioId], phuongThucThanhToan: 'CASH' });
+    expect(bookRes1.status).toBe(201);
+    const donIdCu = bookRes1.body.data.id;
+
+    // 3. Admin cập nhật giá mới (tăng thêm 50,000)
+    const giaMoi = giaGoc + 50000;
+    const updatePriceRes = await request(app)
+      .put('/api/v1/admin/slot-prices')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        danhSachGia: [
+          {
+            loaiSanId: 1,
+            khungGioId,
+            loaiNgay: 'WEEKDAY',
+            giaTien: giaMoi,
+          },
+        ],
+      });
+    expect(updatePriceRes.status).toBe(200);
+
+    // 4. Nhả slot để cust2 đặt tiếp cùng slot đó
+    await freeSlot(sanId, ngayThuTu, khungGioId);
+    const bookRes2 = await request(app)
+      .post('/api/v1/bookings')
+      .set('Authorization', `Bearer ${cust2.token}`)
+      .send({ sanId, ngayDat: ngayThuTu, danhSachKhungGioId: [khungGioId], phuongThucThanhToan: 'CASH' });
+    expect(bookRes2.status).toBe(201);
+    const donIdMoi = bookRes2.body.data.id;
+
+    // 5. Kiểm chứng tính toàn vẹn: Đơn cũ giữ nguyên snapshot giaGoc, đơn mới theo giaMoi
+    const [slotCu] = await pool.execute<RowDataPacket[]>(
+      'SELECT price FROM booking_slots WHERE booking_id = ?',
+      [donIdCu]
+    );
+    const [slotMoi] = await pool.execute<RowDataPacket[]>(
+      'SELECT price FROM booking_slots WHERE booking_id = ?',
+      [donIdMoi]
+    );
+
+    expect(Number(slotCu[0].price)).toBe(giaGoc);
+    expect(Number(slotMoi[0].price)).toBe(giaMoi);
+
+    // Khôi phục giá gốc
+    await pool.execute(
+      'UPDATE slot_prices SET price = ? WHERE court_type_id = 1 AND day_type = "WEEKDAY" AND time_slot_id = ?',
+      [giaGoc, khungGioId]
+    );
+  });
+
   it('TC-36: Admin tự khóa tài khoản chính mình hoặc khóa tài khoản admin cuối -> 409 Conflict (CANNOT_LOCK_SELF)', async () => {
-    // Admin 1 gọi API khóa chính tài khoản ID = 1
     const res = await request(app)
       .patch('/api/v1/admin/staff/1/status')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -99,11 +165,11 @@ describe('5. Nghiệp vụ Quản trị & Vận hành Quầy (TC-32 -> TC-38)', 
         soDienThoai: phone,
         email: `${phone}@nv.vn`,
         matKhau: '123456',
-        role: 'ADMIN', // Cố tình gửi role ADMIN
+        role: 'ADMIN',
       });
 
     expect(res.status).toBe(201);
-    expect(res.body.data.role).toBe('STAFF'); // Hệ thống bắt buộc ép về STAFF
+    expect(res.body.data.role).toBe('STAFF');
   });
 
   it('TC-38: Khách đánh giá đơn chưa hoàn thành (COMPLETED) -> 422 (BOOKING_NOT_COMPLETED)', async () => {
@@ -113,7 +179,6 @@ describe('5. Nghiệp vụ Quản trị & Vận hành Quầy (TC-32 -> TC-38)', 
     const khungGioId = 13;
     await freeSlot(sanId, ngayDat, khungGioId);
 
-    // Khách tạo 1 đơn đặt CONFIRMED
     const bookRes = await request(app)
       .post('/api/v1/bookings')
       .set('Authorization', `Bearer ${cust.token}`)
@@ -126,7 +191,6 @@ describe('5. Nghiệp vụ Quản trị & Vận hành Quầy (TC-32 -> TC-38)', 
     expect(bookRes.status).toBe(201);
     const donId = bookRes.body.data.id;
 
-    // Cố tình đánh giá khi đơn chưa COMPLETED
     const reviewRes = await request(app)
       .post(`/api/v1/bookings/${donId}/review`)
       .set('Authorization', `Bearer ${cust.token}`)

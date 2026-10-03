@@ -1,14 +1,15 @@
 // =====================================================================
-// TEST SUITE: BOOKING RULES & BUSINESS CONSTRAINTS
-// (TC-10, TC-11, TC-12, TC-13, TC-14, TC-15, TC-16, TC-17, TC-18, TC-39)
+// TEST SUITE 2: BOOKING RULES & BOUNDARY VALUE ANALYSIS
+// (TC-10, TC-11, TC-12, TC-13, TC-14, TC-15, TC-16, TC-17, TC-18, TC-19, TC-39)
 // Tham chiếu: Plant/08-development-plan.md mục 4
 // =====================================================================
 import request from 'supertest';
 import app from '../src/app';
 import { createTestCustomer, getFutureDateString, freeSlot } from './helpers';
 import { pool } from '../src/config/db';
+import { ResultSetHeader } from 'mysql2/promise';
 
-describe('2. Quy tắc nghiệp vụ Đặt sân (TC-10 -> TC-18, TC-39)', () => {
+describe('2. Quy tắc nghiệp vụ & Phân tích Giá trị Biên (TC-10 -> TC-19, TC-39)', () => {
   let testCustomer: { id: number; token: string; phone: string };
   let otherCustomer: { id: number; token: string; phone: string };
 
@@ -65,7 +66,7 @@ describe('2. Quy tắc nghiệp vụ Đặt sân (TC-10 -> TC-18, TC-39)', () =>
       .send({
         sanId,
         ngayDat,
-        danhSachKhungGioId: [khungGioId], // 06:00 - 07:00
+        danhSachKhungGioId: [khungGioId],
         phuongThucThanhToan: 'CASH',
         ghiChu: 'Kiểm thử TC-12 tiền mặt',
       });
@@ -89,7 +90,7 @@ describe('2. Quy tắc nghiệp vụ Đặt sân (TC-10 -> TC-18, TC-39)', () =>
       .send({
         sanId,
         ngayDat,
-        danhSachKhungGioId: [2, 3], // 07:00 - 09:00
+        danhSachKhungGioId: [2, 3],
         phuongThucThanhToan: 'BANK_TRANSFER',
       });
 
@@ -108,7 +109,7 @@ describe('2. Quy tắc nghiệp vụ Đặt sân (TC-10 -> TC-18, TC-39)', () =>
       .send({
         sanId: 1,
         ngayDat,
-        danhSachKhungGioId: [4, 6], // 09:00-10:00 và 11:00-12:00
+        danhSachKhungGioId: [4, 6],
         phuongThucThanhToan: 'CASH',
       });
 
@@ -116,7 +117,7 @@ describe('2. Quy tắc nghiệp vụ Đặt sân (TC-10 -> TC-18, TC-39)', () =>
     expect(res.body.errorCode).toBe('SLOTS_NOT_CONSECUTIVE');
   });
 
-  it('TC-15: Đặt 4 giờ vượt quá giới hạn tối đa 3 giờ -> Bị từ chối (400 hoặc 422)', async () => {
+  it('TC-15: Đặt 4 giờ vượt quá giới hạn tối đa 3 giờ -> 400 Validation Error (VALIDATION_ERROR)', async () => {
     const ngayDat = getFutureDateString(4);
     const res = await request(app)
       .post('/api/v1/bookings')
@@ -124,38 +125,65 @@ describe('2. Quy tắc nghiệp vụ Đặt sân (TC-10 -> TC-18, TC-39)', () =>
       .send({
         sanId: 1,
         ngayDat,
-        danhSachKhungGioId: [1, 2, 3, 4], // 4 tiếng
+        danhSachKhungGioId: [1, 2, 3, 4],
         phuongThucThanhToan: 'CASH',
       });
 
-    expect([400, 422]).toContain(res.status);
-    expect(res.body.success).toBe(false);
+    // Siết chặt chính xác 1 status 400 do Zod schema reject ngay tại tầng middleware
+    expect(res.status).toBe(400);
+    expect(res.body.errorCode).toBe('VALIDATION_ERROR');
   });
 
-  it('TC-16: Đặt ngày quá 14 ngày hoặc ngày trong quá khứ -> 422 Unprocessable (BOOKING_DATE_INVALID)', async () => {
-    const resPast = await request(app)
-      .post('/api/v1/bookings')
-      .set('Authorization', `Bearer ${testCustomer.token}`)
-      .send({
-        sanId: 1,
-        ngayDat: '2020-01-01',
-        danhSachKhungGioId: [1],
-        phuongThucThanhToan: 'CASH',
-      });
-    expect(resPast.status).toBe(422);
-    expect(resPast.body.errorCode).toBe('BOOKING_DATE_INVALID');
+  describe('Phân tích Giá trị Biên Ngày đặt (Boundary Value Analysis: Ngày 14 vs Ngày 15)', () => {
+    it('TC-16A (Biên đạt): Đặt trước đúng ngày thứ 14 -> 201 Created', async () => {
+      const cust14 = await createTestCustomer('Khach14');
+      const ngayThu14 = getFutureDateString(14);
+      await freeSlot(1, ngayThu14, 1);
 
-    const resFarFuture = await request(app)
-      .post('/api/v1/bookings')
-      .set('Authorization', `Bearer ${testCustomer.token}`)
-      .send({
-        sanId: 1,
-        ngayDat: '2030-12-31',
-        danhSachKhungGioId: [1],
-        phuongThucThanhToan: 'CASH',
-      });
-    expect(resFarFuture.status).toBe(422);
-    expect(resFarFuture.body.errorCode).toBe('BOOKING_DATE_INVALID');
+      const res = await request(app)
+        .post('/api/v1/bookings')
+        .set('Authorization', `Bearer ${cust14.token}`)
+        .send({
+          sanId: 1,
+          ngayDat: ngayThu14,
+          danhSachKhungGioId: [1],
+          phuongThucThanhToan: 'CASH',
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+    });
+
+    it('TC-16B (Biên vượt): Đặt trước vào ngày thứ 15 (> 14 ngày) -> 422 (BOOKING_DATE_INVALID)', async () => {
+      const ngayThu15 = getFutureDateString(15);
+      const res = await request(app)
+        .post('/api/v1/bookings')
+        .set('Authorization', `Bearer ${testCustomer.token}`)
+        .send({
+          sanId: 1,
+          ngayDat: ngayThu15,
+          danhSachKhungGioId: [1],
+          phuongThucThanhToan: 'CASH',
+        });
+
+      expect(res.status).toBe(422);
+      expect(res.body.errorCode).toBe('BOOKING_DATE_INVALID');
+    });
+
+    it('TC-16C: Đặt ngày trong quá khứ -> 422 Unprocessable (BOOKING_DATE_INVALID)', async () => {
+      const resPast = await request(app)
+        .post('/api/v1/bookings')
+        .set('Authorization', `Bearer ${testCustomer.token}`)
+        .send({
+          sanId: 1,
+          ngayDat: '2020-01-01',
+          danhSachKhungGioId: [1],
+          phuongThucThanhToan: 'CASH',
+        });
+
+      expect(resPast.status).toBe(422);
+      expect(resPast.body.errorCode).toBe('BOOKING_DATE_INVALID');
+    });
   });
 
   it('TC-17: Đặt sân đang bảo trì (MAINTENANCE) -> 422 Unprocessable (COURT_NOT_BOOKABLE)', async () => {
@@ -214,6 +242,33 @@ describe('2. Quy tắc nghiệp vụ Đặt sân (TC-10 -> TC-18, TC-39)', () =>
 
     expect(res4.status).toBe(422);
     expect(res4.body.errorCode).toBe('TOO_MANY_ACTIVE_BOOKINGS');
+  });
+
+  it('TC-19: Đặt khung giờ chưa được cấu hình bảng giá -> 422 Unprocessable (PRICE_NOT_CONFIGURED)', async () => {
+    // 1. Tạo 1 khung giờ chưa có giá trong slot_prices
+    const [insertSlot] = await pool.execute<ResultSetHeader>(
+      'INSERT INTO time_slots (start_time, end_time, is_active) VALUES ("23:00:00", "23:59:00", 1)'
+    );
+    const slotIdMoi = insertSlot.insertId;
+
+    try {
+      const ngayDat = getFutureDateString(5);
+      const res = await request(app)
+        .post('/api/v1/bookings')
+        .set('Authorization', `Bearer ${testCustomer.token}`)
+        .send({
+          sanId: 1,
+          ngayDat,
+          danhSachKhungGioId: [slotIdMoi],
+          phuongThucThanhToan: 'CASH',
+        });
+
+      expect(res.status).toBe(422);
+      expect(res.body.errorCode).toBe('PRICE_NOT_CONFIGURED');
+    } finally {
+      // Dọn dẹp khung giờ tạm
+      await pool.execute('DELETE FROM time_slots WHERE id = ?', [slotIdMoi]);
+    }
   });
 
   it('TC-39: Khách hàng xem chi tiết đơn đặt của khách hàng khác -> 404 Not Found (bảo mật dữ liệu)', async () => {
