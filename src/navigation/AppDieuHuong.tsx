@@ -7,7 +7,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 
 import TrangChuScreen from '../screens/TrangChuScreen';
 import DanhSachSanScreen from '../screens/DanhSachSanScreen';
@@ -71,9 +71,17 @@ import { AuthProvider, useAuth } from '../context/AuthContext';
 import DangNhapScreen from '../screens/DangNhapScreen';
 
 function DieuHuongGoc() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoadingSession } = useAuth();
 
-  // Khi quét QR mở ứng dụng, nếu chưa đăng nhập thì hiển thị màn hình Đăng Nhập / Đăng Ký
+  if (isLoadingSession) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8FAFC' }}>
+        <ActivityIndicator size="large" color="#00B884" />
+      </View>
+    );
+  }
+
+  // Khi chưa đăng nhập (hoặc sau khi đăng xuất) -> hiển thị màn hình Đăng Nhập
   if (!isAuthenticated) {
     return <DangNhapScreen />;
   }

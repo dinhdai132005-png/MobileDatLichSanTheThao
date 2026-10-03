@@ -342,17 +342,26 @@ export default function ChiTietDonDatScreen({ route, navigation }: ChiTietDonDat
                 </Text>
               </View>
             </View>
+
+            {/* Nút xác nhận đã chuyển khoản / kiểm tra trạng thái */}
+            <TouchableOpacity
+              style={styles.nutXacNhanChuyenKhoan}
+              onPress={taiChiTiet}
+            >
+              <Ionicons name="sync-outline" size={18} color="#FFFFFF" />
+              <Text style={styles.chuNutXacNhanCK}>Tôi đã chuyển khoản xong • Kiểm tra trạng thái</Text>
+            </TouchableOpacity>
           </View>
         )}
 
-        {/* NÚT ĐÁNH GIÁ (NẾU ĐƠN COMPLETED & CHƯA ĐÁNH GIÁ - T29) */}
+        {/* NÚT ĐÁNH GIÁ (NẾU ĐƠN COMPLETED & CHƯA ĐÁNH GIÁ) */}
         {isCompleted && !donDat?.daDanhGia && (
           <TouchableOpacity
             style={styles.nutDanhGia}
             onPress={() => setHienModalDanhGia(true)}
           >
             <Ionicons name="star" size={20} color="#F59E0B" />
-            <Text style={styles.chuNutDanhGia}>Đánh giá trải nghiệm sân (T29 / CUS-10)</Text>
+            <Text style={styles.chuNutDanhGia}>Đánh giá trải nghiệm sân</Text>
           </TouchableOpacity>
         )}
 
@@ -688,6 +697,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#B45309',
+  },
+  nutXacNhanChuyenKhoan: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: MAU_SAC.chinh,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 14,
+  },
+  chuNutXacNhanCK: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 14,
   },
   nutHuyDon: {
     flexDirection: 'row',
