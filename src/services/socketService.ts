@@ -5,8 +5,9 @@
 
 import { io, Socket } from 'socket.io-client';
 import { SocketSlotUpdatePayload, SocketNewBookingPayload } from '../types';
+import { SERVER_BASE_URL } from './config';
 
-export const SOCKET_SERVER_URL = 'http://10.0.2.2:5000';
+export const SOCKET_SERVER_URL = SERVER_BASE_URL;
 
 class SocketService {
   private socket: Socket | null = null;
@@ -15,7 +16,7 @@ class SocketService {
   private newBookingListeners: Array<(payload: SocketNewBookingPayload) => void> = [];
 
   /** Khởi tạo kết nối Socket.io Client an toàn */
-  public connect(url: string = SOCKET_SERVER_URL): Socket | null {
+  public connect(url: string = SERVER_BASE_URL): Socket | null {
     if (this.socket && this.socket.connected) {
       console.log('⚡ [Socket.io] Đã kết nối sẵn sàng:', this.socket.id);
       return this.socket;

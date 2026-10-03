@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hệ Thống Quản Trị & Vận Hành — Đặt Sân Thể Thao</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏟️</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #10B981;
+      --primary-dark: #059669;
+      --primary-light: #D1FAE5;
+      --accent: #3B82F6;
+      --bg: #0B1329;
+      --surface: #151F38;
+      --surface-card: #1C2849;
+      --surface-hover: #26355E;
+      --border: #2D3D66;
+      --text: #F8FAFC;
+      --text-muted: #94A3B8;
+      --danger: #EF4444;
+      --warning: #F59E0B;
+      --success: #10B981;
+      --info: #38BDF8;
+      --purple: #8B5CF6;
+      --radius: 12px;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    header {
+      background: rgba(21, 31, 56, 0.85);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .brand-logo {
+      font-size: 28px;
+      background: linear-gradient(135deg, #10B981, #3B82F6);
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    .brand-title {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #FFFFFF;
+    }
+    .brand-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .user-pill {
+      background: var(--surface-card);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .role-tag {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .role-ADMIN { background: rgba(239, 68, 68, 0.2); color: #F87171; border: 1px solid #EF4444; }
+    .role-STAFF { background: rgba(59, 130, 246, 0.2); color: #60A5FA; border: 1px solid #3B82F6; }
+
+    .btn-logout {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-logout:hover {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: var(--danger);
+      color: #FCA5A5;
+    }
+
+    /* Layout */
+    .app-container {
+      display: flex;
+      flex: 1;
+    }
+
+    aside {
+      width: 240px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 20px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .nav-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 11px 14px;
+      border-radius: 10px;
+      font-size: 13.5px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+      width: 100%;
+    }
+    .nav-btn:hover {
+      background: var(--surface-hover);
+      color: #FFFFFF;
+    }
+    .nav-btn.active {
+      background: var(--primary);
+      color: #FFFFFF;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+    }
+    .nav-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 10px 4px;
+    }
+    .nav-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 6px 12px 2px;
+    }
+
+    main {
+      flex: 1;
+      padding: 24px 32px;
+      overflow-y: auto;
+      max-width: 1440px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Common Components */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .section-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #FFFFFF;
+    }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-outline:hover { background: var(--surface-hover); }
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid var(--danger);
+      color: #FCA5A5;
+    }
+    .btn-danger:hover { background: var(--danger); color: white; }
+
+    /* KPI Cards */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .kpi-card {
+      background: var(--surface-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      box-shadow: var(--shadow);
+    }
+    .kpi-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .kpi-value {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .kpi-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Tables */
+    .table-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+    th {
+      background: var(--surface-card);
+      color: var(--text-muted);
+      font-weight: 700;
+      text-align: left;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 11.5px;
+      font-weight: 700;
+      gap: 4px;
+    }
+    .badge-PENDING { background: rgba(245, 158, 11, 0.15); color: #FBBF24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-CONFIRMED { background: rgba(59, 130, 246, 0.15); color: #60A5FA; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .badge-COMPLETED { background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-CANCELLED { background: rgba(107, 114, 128, 0.2); color: #9CA3AF; border: 1px solid rgba(107, 114, 128, 0.3); }
+    .badge-EXPIRED { background: rgba(139, 92, 246, 0.15); color: #A78BFA; border: 1px solid rgba(139, 92, 246, 0.3); }
+    .badge-NO_SHOW { background: rgba(239, 68, 68, 0.15); color: #F87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    .badge-PAID { background: rgba(16, 185, 129, 0.2); color: #34D399; }
+    .badge-UNPAID { background: rgba(245, 158, 11, 0.2); color: #FBBF24; }
+    .badge-REFUNDED { background: rgba(139, 92, 246, 0.2); color: #A78BFA; }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 16px;
+    }
+    .modal-card {
+      background: var(--surface-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 600px;
+      padding: 24px 28px;
+      box-shadow: var(--shadow);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-title {
+      font-size: 18px;
+      font-weight: 800;
+    }
+    .btn-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    /* Forms */
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 10px 14px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--primary);
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    /* Schedule Grid */
+    .schedule-wrapper {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      overflow-x: auto;
+    }
+    .schedule-table {
+      min-width: 1000px;
+    }
+    .schedule-table th, .schedule-table td {
+      text-align: center;
+      padding: 10px 6px;
+      font-size: 12px;
+    }
+    .schedule-cell {
+      border-radius: 6px;
+      padding: 8px 4px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      min-height: 48px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 2px;
+    }
+    .cell-available {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: #34D399;
+    }
+    .cell-available:hover {
+      background: rgba(16, 185, 129, 0.25);
+    }
+    .cell-booked {
+      background: rgba(59, 130, 246, 0.2);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      color: #93C5FD;
+    }
+    .cell-pending {
+      background: rgba(245, 158, 11, 0.2);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #FCD34D;
+    }
+
+    /* Login Modal Overlay */
+    #login-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(11, 19, 41, 0.95);
+      backdrop-filter: blur(16px);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .login-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 420px;
+      padding: 32px 36px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    }
+    .login-logo {
+      font-size: 40px;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    .login-title {
+      font-size: 22px;
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 4px;
+    }
+    .login-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .quick-acc {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .quick-btn {
+      flex: 1;
+      padding: 8px;
+      background: var(--surface-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+    }
+    .quick-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--surface-card);
+      border: 1px solid var(--border);
+      padding: 12px 20px;
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      z-index: 999;
+      font-size: 13.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      animation: slideUp 0.3s ease-out;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- MÀN HÌNH ĐĂNG NHẬP -->
+  <div id="login-overlay" style="display: none;">
+    <div class="login-box">
+      <div class="login-logo">🏟️</div>
+      <h2 class="login-title">Đăng Nhập Quản Trị</h2>
+      <p class="login-desc">Hệ thống Vận Hành Sân Thể Thao (STAFF / ADMIN)</p>
+      <form id="form-login" onsubmit="handleLogin(event)">
+        <div id="login-msg" style="display:none; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 14px;"></div>
+        <div class="form-group">
+          <label class="form-label">Số điện thoại</label>
+          <input type="text" id="login-phone" class="form-input" placeholder="0900000001" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mật khẩu</label>
+          <input type="password" id="login-password" class="form-input" placeholder="••••••••" required />
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px;">
+          Đăng Nhập Vào Hệ Thống
+        </button>
+      </form>
+      <div style="margin-top: 20px; font-size: 12px; color: var(--text-muted); text-align: center;">Tài khoản kiểm thử nhanh:</div>
+      <div class="quick-acc">
+        <button class="quick-btn" onclick="fillQuickLogin('0900000001', 'admin123456')">👑 Admin</button>
+        <button class="quick-btn" onclick="fillQuickLogin('0911111111', '123456')">❌ Khách (Thử chặn BR-18)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <header>
+    <div class="brand">
+      <div class="brand-logo">🏸</div>
+      <div>
+        <div class="brand-title">HỆ THỐNG VẬN HÀNH SÂN THỂ THAO</div>
+        <div class="brand-subtitle">Bộ điều khiển Nhân viên & Quản trị viên (Chuẩn Plant/06-api.md)</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="user-pill">
+        <span>👤</span>
+        <span id="user-display">Đang tải...</span>
+        <span id="role-display" class="role-tag role-STAFF">STAFF</span>
+      </div>
+      <button class="btn-logout" onclick="logout()">🚪 Đăng xuất</button>
+    </div>
+  </header>
+
+  <!-- BODY -->
+  <div class="app-container">
+    <!-- ASIDE -->
+    <aside>
+      <div class="nav-label">VẬN HÀNH (STAFF)</div>
+      <button class="nav-btn active" onclick="switchTab('dashboard')">📊 Dashboard Hôm Nay</button>
+      <button class="nav-btn" onclick="switchTab('schedule')">📅 Lịch Sân Theo Ngày</button>
+      <button class="nav-btn" onclick="switchTab('bookings')">📋 Danh Sách Đơn Đặt</button>
+      <button class="nav-btn" onclick="switchTab('walkin')">⚡ Đặt Sân Tại Quầy</button>
+      <button class="nav-btn" onclick="switchTab('refunds')">💸 Xử Lý Hoàn Tiền</button>
+      <button class="nav-btn" onclick="switchTab('customers')">🧑‍🤝‍🧑 Khách Hàng</button>
+
+      <div class="nav-divider"></div>
+      <div class="nav-label admin-only">QUẢN TRỊ (ADMIN)</div>
+      <button class="nav-btn admin-only" onclick="switchTab('courts')">🏟️ Loại Sân & Sân</button>
+      <button class="nav-btn admin-only" onclick="switchTab('timeslots')">🕒 Khung Giờ</button>
+      <button class="nav-btn admin-only" onclick="switchTab('prices')">🏷️ Bảng Giá Ma Trận</button>
+      <button class="nav-btn admin-only" onclick="switchTab('staff')">👥 Tài Khoản Nhân Viên</button>
+      <button class="nav-btn admin-only" onclick="switchTab('reports')">📈 Báo Cáo & Tỷ Lệ</button>
+    </aside>
+
+    <!-- MAIN -->
+    <main>
+      <!-- TAB 1: DASHBOARD -->
+      <section id="tab-dashboard" class="tab-content active">
+        <div class="section-header">
+          <h1 class="section-title">Tổng Quan Hôm Nay</h1>
+          <button class="btn btn-outline" onclick="loadDashboard()">🔄 Tải Lại Dữ Liệu</button>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <span class="kpi-label">Tổng đơn hôm nay</span>
+            <span class="kpi-value" id="kpi-total">0</span>
+            <span class="kpi-sub">Bao gồm tất cả trạng thái</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Đơn đã xác nhận</span>
+            <span class="kpi-value" id="kpi-confirmed" style="color: var(--accent);">0</span>
+            <span class="kpi-sub">Sẵn sàng phục vụ giờ chơi</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Đã hoàn thành</span>
+            <span class="kpi-value" id="kpi-completed" style="color: var(--primary);">0</span>
+            <span class="kpi-sub">Khách đã hoàn tất lịch chơi</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Doanh thu thực hôm nay</span>
+            <span class="kpi-value" id="kpi-revenue" style="color: #34D399;">0 ₫</span>
+            <span class="kpi-sub">Đã trừ các khoản hoàn tiền</span>
+          </div>
+          <div class="kpi-card" style="border-color: rgba(245, 158, 11, 0.4);">
+            <span class="kpi-label">Đang giữ chỗ chờ CK</span>
+            <span class="kpi-value" id="kpi-pending-hold" style="color: var(--warning);">0</span>
+            <span class="kpi-sub">Hết hạn sau 30 phút (BR-07)</span>
+          </div>
+          <div class="kpi-card" style="border-color: rgba(139, 92, 246, 0.4);">
+            <span class="kpi-label">Chờ hoàn tiền</span>
+            <span class="kpi-value" id="kpi-pending-refund" style="color: var(--purple);">0</span>
+            <span class="kpi-sub">Cần nhân viên chuyển khoản</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: SCHEDULE GRID -->
+      <section id="tab-schedule" class="tab-content">
+        <div class="section-header">
+          <h1 class="section-title">Lịch Lưới Sân Theo Ngày (Sân × Khung Giờ)</h1>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="date" id="schedule-date" class="form-input" style="width: 170px;" onchange="loadSchedule()" />
+            <button class="btn btn-outline" onclick="loadSchedule()">🔄 Làm mới</button>
+          </div>
+        </div>
+        <div class="schedule-wrapper">
+          <table class="schedule-table" id="schedule-table">
+            <thead>
+              <tr id="schedule-th-row">
+                <th style="width: 140px;">Sân Thể Thao</th>
+              </tr>
+            </thead>
+            <tbody id="schedule-tbody">
+              <!-- Render via JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 3: BOOKINGS LIST -->
+      <section id="tab-bookings" class="tab-content">
+        <div class="section-header">
+          <h1 class="section-title">Danh Sách Đơn Đặt Sân</h1>
+          <button class="btn btn-primary" onclick="switchTab('walkin')">➕ Đặt Tại Quầy</button>
+        </div>
+        <!-- Bộ lọc -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) 100px; gap: 10px; margin-bottom: 16px;">
+          <input type="date" id="filter-date" class="form-input" onchange="loadBookings()" />
+          <select id="filter-status" class="form-select" onchange="loadBookings()">
+            <option value="">Tất cả trạng thái</option>
+            <option value="PENDING">PENDING (Chờ giữ chỗ)</option>
+            <option value="CONFIRMED">CONFIRMED (Đã xác nhận)</option>
+            <option value="COMPLETED">COMPLETED (Hoàn thành)</option>
+            <option value="CANCELLED">CANCELLED (Đã hủy)</option>
+            <option value="EXPIRED">EXPIRED (Hết hạn)</option>
+            <option value="NO_SHOW">NO_SHOW (Vắng mặt)</option>
+          </select>
+          <select id="filter-payment" class="form-select" onchange="loadBookings()">
+            <option value="">Thanh toán (Tất cả)</option>
+            <option value="UNPAID">Chưa thanh toán</option>
+            <option value="PAID">Đã thanh toán</option>
+            <option value="REFUNDED">Đã hoàn tiền</option>
+          </select>
+          <input type="text" id="filter-keyword" class="form-input" placeholder="Mã đơn / Tên / SĐT..." onkeyup="if(event.key==='Enter') loadBookings()" />
+          <button class="btn btn-outline" onclick="loadBookings()">Lọc</button>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Mã Đơn</th>
+                <th>Khách Hàng</th>
+                <th>Sân & Loại</th>
+                <th>Ngày & Giờ</th>
+                <th>Tổng Tiền</th>
+                <th>Trạng Thái</th>
+                <th>Thanh Toán</th>
+                <th>Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody id="bookings-tbody">
+              <!-- Render via JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 4: WALKIN BOOKING -->
+      <section id="tab-walkin" class="tab-content">
+        <div class="section-header">
+          <h1 class="section-title">Đặt Sân Trực Tiếp Tại Quầy (Nhân Viên Đặt Hộ)</h1>
+        </div>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; max-width: 700px;">
+          <form onsubmit="handleCreateWalkIn(event)">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Chọn Sân</label>
+                <select id="walkin-court" class="form-select" required onchange="onWalkinCourtChange()"></select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Ngày Đặt Sân</label>
+                <input type="date" id="walkin-date" class="form-input" required onchange="onWalkinCourtChange()" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Chọn Khung Giờ (Tối đa 3 giờ liền kề — BR-02)</label>
+              <div id="walkin-slots" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 6px;">
+                <!-- Slots render -->
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Họ Tên Khách Vãng Lai</label>
+                <input type="text" id="walkin-name" class="form-input" placeholder="Nguyễn Văn A" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Số Điện Thoại</label>
+                <input type="text" id="walkin-phone" class="form-input" placeholder="0912345678" required />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Hình Thức Thanh Toán</label>
+                <select id="walkin-payment-method" class="form-select">
+                  <option value="CASH">Tiền mặt tại quầy</option>
+                  <option value="BANK_TRANSFER">Chuyển khoản</option>
+                </select>
+              </div>
+              <div class="form-group" style="display: flex; align-items: center; margin-top: 24px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                  <input type="checkbox" id="walkin-paynow" checked />
+                  <span style="font-size: 13.5px; font-weight: 600;">Khách thanh toán luôn (Đánh dấu PAID ngay)</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Ghi Chú</label>
+              <input type="text" id="walkin-note" class="form-input" placeholder="Ghi chú thêm nếu có..." />
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="padding: 12px 24px; width: 100%; justify-content: center;">
+              Tạo Đơn Đặt Sân Ngay
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <!-- TAB 5: REFUNDS -->
+      <section id="tab-refunds" class="tab-content">
+        <div class="section-header">
+          <h1 class="section-title">Danh Sách Yêu Cầu Hoàn Tiền (REFUND PENDING)</h1>
+          <button class="btn btn-outline" onclick="loadRefunds()">🔄 Tải Lại</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Mã Đơn</th>
+                <th>Khách Hàng</th>
+                <th>SĐT</th>
+                <th>Số Tiền Hoàn</th>
+                <th>Thời Điểm Hủy</th>
+                <th>Lý Do</th>
+                <th>Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody id="refunds-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 6: COURTS & TYPES (ADMIN) -->
+      <section id="tab-courts" class="tab-content">
+        <div class="section-header">
+          <h1 class="section-title">Loại Sân & Sân Thể Thao</h1>
+        </div>
+
+        <h3 style="margin: 8px 0;">Loại sân</h3>
+        <form onsubmit="taoLoaiSan(event)" style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
+          <input id="loai-san-ten" class="form-input" style="width:220px;" placeholder="Tên loại sân mới" required />
+          <input id="loai-san-mota" class="form-input" style="width:280px;" placeholder="Mô tả (tùy chọn)" />
+          <button class="btn btn-primary" type="submit">➕ Thêm loại sân</button>
+        </form>
+        <div class="table-container" style="margin-bottom:24px;">
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Tên Loại Sân</th><th>Mô Tả</th><th>Trạng Thái</th><th>Thao Tác</th></tr>
+            </thead>
+            <tbody id="loai-san-tbody"></tbody>
+          </table>
+        </div>
+
+        <h3 style="margin: 8px 0;">Sân (đổi trạng thái kèm kiểm tra BR-05)</h3>
+        <form onsubmit="taoSan(event)" style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
+          <select id="san-loai-chon" class="form-select" style="width:220px;" required></select>
+          <input id="san-ten" class="form-input" style="width:200px;" placeholder="Tên sân mới" required />
+          <input id="san-mota" class="form-input" style="width:280px;" placeholder="Mô tả (tùy chọn)" />
+          <button class="btn btn-primary" type="submit">➕ Thêm sân</button>
+        </form>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Tên Sân</th>
+                <th>Loại Sân</th>
+                <th>Mô Tả</th>
+                <th>Trạng Thái</th>
+                <th>Đổi Trạng Thái (Kèm BR-05)</th>
+              </tr>
+            </thead>
+            <tbody id="courts-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 7: PRICING MATRIX (ADMIN) -->
+      <section id="tab-prices" class="tab-content">
+        <div class="section-header">
+          <h1 class="section-title">Bảng Giá Ma Trận (Loại Sân × Khung Giờ × Ngày Thường/Cuối Tuần)</h1>
+          <select id="price-court-type-select" class="form-select" style="width: 240px;" onchange="loadPricingMatrix()"></select>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Khung Giờ</th>
+                <th>Giá Ngày Thường (Thứ 2 - Thứ 6)</th>
+                <th>Giá Cuối Tuần (Thứ 7 - CN)</th>
+              </tr>
+            </thead>
+            <tbody id="prices-tbody"></tbody>
+          </table>
+        </div>
+        <div style="margin-top:14px;">
+          <button class="btn btn-primary" onclick="luuBangGia()">💾 Lưu Bảng Giá Đã Sửa</button>
+        </div>
+      </section>
+
+      <!-- TAB 8: STAFF ACCOUNTS (ADMIN) -->
+      <section id="tab-staff" class="tab-content">
+        <div class="section-header">
+          <h1 class="section-title">Quản Lý Tài Khoản Nhân Viên (Role: STAFF)</h1>
+        </div>
+        <form onsubmit="taoNhanVien(event)" style="display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+          <input id="nv-ho-ten" class="form-input" style="width:190px;" placeholder="Họ tên" required />
+          <input id="nv-so-dien-thoai" class="form-input" style="width:150px;" placeholder="Số điện thoại" required />
+          <input id="nv-email" class="form-input" style="width:190px;" placeholder="Email (tùy chọn)" />
+          <input id="nv-mat-khau" type="password" class="form-input" style="width:160px;" placeholder="Mật khẩu (≥ 6 ký tự)" required />
+          <button class="btn btn-primary" type="submit">➕ Tạo nhân viên</button>
+        </form>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Họ Tên</th>
+                <th>Số Điện Thoại</th>
+                <th>Email</th>
+                <th>Trạng Thái</th>
+                <th>Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody id="staff-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 9: REPORTS (ADMIN) -->
+      <section id="tab-reports" class="tab-content">
+        <div class="section-header">
+          <h1 class="section-title">Báo Cáo Doanh Thu & Tỷ Lệ Lấp Đầy Sân</h1>
+          <div style="display: flex; gap: 10px;">
+            <input type="date" id="rep-from" class="form-input" style="width: 160px;" />
+            <input type="date" id="rep-to" class="form-input" style="width: 160px;" />
+            <button class="btn btn-primary" onclick="loadReports()">Xem Báo Cáo</button>
+          </div>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <span class="kpi-label">Tỷ lệ lấp đầy sân</span>
+            <span class="kpi-value" id="rep-occupancy" style="color: var(--primary);">0%</span>
+            <span class="kpi-sub" id="rep-slots-info">Số slot đặt / Tổng slot</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Tổng doanh thu kỳ báo cáo</span>
+            <span class="kpi-value" id="rep-revenue" style="color: #34D399;">0 ₫</span>
+            <span class="kpi-sub">Thu thực tế trừ hoàn tiền</span>
+          </div>
+        </div>
+        <div class="table-container" style="margin-top: 16px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Ngày</th>
+                <th>Tiền Thu</th>
+                <th>Tiền Hoàn</th>
+                <th>Doanh Thu Thực</th>
+              </tr>
+            </thead>
+            <tbody id="rep-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 10: CUSTOMERS (STAFF + ADMIN) -->
+      <section id="tab-customers" class="tab-content">
+        <div class="section-header">
+          <h1 class="section-title">Tra Cứu Khách Hàng</h1>
+          <div style="display:flex; gap:10px;">
+            <input id="khach-tu-khoa" class="form-input" style="width:240px;" placeholder="Tên / SĐT / Email..." onkeyup="if(event.key==='Enter') taiDanhSachKhachHang()" />
+            <button class="btn btn-outline" onclick="taiDanhSachKhachHang()">Tìm</button>
+          </div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Họ Tên</th><th>Số Điện Thoại</th><th>Email</th><th>Số Đơn</th><th>Trạng Thái</th><th>Thao Tác</th></tr>
+            </thead>
+            <tbody id="khach-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 11: TIME SLOTS (ADMIN) -->
+      <section id="tab-timeslots" class="tab-content">
+        <div class="section-header">
+          <h1 class="section-title">Quản Lý Khung Giờ</h1>
+        </div>
+        <form onsubmit="taoKhungGio(event)" style="display:flex; gap:10px; margin-bottom:14px; align-items:center;">
+          <input type="time" id="kg-gio-bat-dau" class="form-input" style="width:140px;" required />
+          <span>→</span>
+          <input type="time" id="kg-gio-ket-thuc" class="form-input" style="width:140px;" required />
+          <button class="btn btn-primary" type="submit">➕ Thêm khung giờ</button>
+        </form>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Khung Giờ</th><th>Trạng Thái</th><th>Thao Tác</th></tr>
+            </thead>
+            <tbody id="kg-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL: CHI TIẾT ĐƠN ĐẶT -->
+  <div class="modal-overlay" id="modal-detail">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Chi Tiết Đơn Đặt Sân</h3>
+        <button class="btn-close" onclick="closeModal('modal-detail')">&times;</button>
+      </div>
+      <div id="modal-detail-content"></div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="toast" style="display: none;">
+    <span id="toast-icon">✅</span>
+    <span id="toast-text">Thông báo</span>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>

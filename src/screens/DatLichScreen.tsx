@@ -17,13 +17,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { San, PhuongThucThanhToan } from '../types';
+import { San, DonDat, PhuongThucThanhToan } from '../types';
 import { donDatService } from '../services/donDatService';
 import { socketService } from '../services/socketService';
 import VietQRCodeModal from '../components/VietQRCodeModal';
 
 type RootStackParamList = {
   DatLich: { san: San; ngay: string; gio: string };
+  ChiTietDonDat: { donDatId: string; donDat?: DonDat };
   TrangChuTab: undefined;
 };
 
@@ -100,19 +101,24 @@ export default function DatLichScreen({ navigation, route }: Props) {
 
       setShowVietQRModal(false);
 
-      // 3. Thông báo thành công
+      // 3. Thông báo thành công & Điều hướng sang Chi Tiết Đơn
       Alert.alert(
         'Đặt sân thành công! 🎉',
-        `Mã đơn: ${donDat.id}\nSân: ${san.tenSan}\nThời gian: ${gio} (${soGio}h) ngày ${ngay}\nTổng tiền: ${tongTien.toLocaleString('vi-VN')}đ\n\nSMS/Zalo xác nhận đã gửi đến ${soDT}.`,
+        `Mã đơn: ${donDat.id}\nSân: ${san.tenSan}\nThời gian: ${gio} (${soGio}h) ngày ${ngay}\nTổng tiền: ${tongTien.toLocaleString('vi-VN')}đ`,
         [
           {
             text: 'Về trang chủ',
             onPress: () => navigation.navigate('TrangChuTab'),
+            style: 'cancel',
+          },
+          {
+            text: 'Xem chi tiết đơn',
+            onPress: () => navigation.navigate('ChiTietDonDat', { donDatId: donDat.id, donDat }),
           },
         ]
       );
-    } catch (error) {
-      Alert.alert('Lỗi đặt sân', 'Không thể hoàn tất đơn đặt. Vui lòng thử lại.');
+    } catch (error: any) {
+      Alert.alert('Lỗi đặt sân', error?.message || 'Không thể hoàn tất đơn đặt. Vui lòng thử lại.');
     } finally {
       setIsSubmitting(false);
     }

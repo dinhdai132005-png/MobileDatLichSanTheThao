@@ -1,0 +1,656 @@
+{
+  "info": {
+    "name": "Đặt Lịch Sân Thể Thao - API Collection",
+    "_postman_id": "datlich-santhethao-2026",
+    "description": "Bộ test API đầy đủ cho hệ thống Đặt Lịch Sân Thể Thao.\n\n**Backend:** Node.js + Express + Prisma ORM + MySQL\n**Port:** http://localhost:5000\n**Auth:** JWT Bearer Token\n\n**Hướng dẫn sử dụng:**\n1. Chạy lệnh `npm run dev` trong thư mục `backend/`\n2. Đăng nhập để lấy JWT Token (POST /api/auth/login)\n3. Token tự động lưu vào biến `{{jwt_token}}`\n4. Chạy các request tiếp theo",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "san_id",
+      "value": "san-cau-long-phu-tho",
+      "type": "string"
+    },
+    {
+      "key": "don_dat_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Auth — Xác Thực",
+      "item": [
+        {
+          "name": "Đăng ký tài khoản mới",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hoTen\": \"Đinh Ngọc Đại\",\n  \"email\": \"dinhdai@gmail.com\",\n  \"soDienThoai\": \"0912345678\",\n  \"matKhau\": \"Abc@123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Đăng nhập (Lấy JWT Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data.token) {",
+                  "  pm.collectionVariables.set('jwt_token', res.data.token);",
+                  "  console.log('✅ JWT Token đã lưu:', res.data.token.substring(0, 30) + '...');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"taiKhoan\": \"khachhang@gmail.com\",\n  \"matKhau\": \"Abc@123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Đăng nhập Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data.token) {",
+                  "  pm.collectionVariables.set('jwt_token', res.data.token);",
+                  "  console.log('✅ Admin Token đã lưu');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"taiKhoan\": \"admin@santhethao.vn\",\n  \"matKhau\": \"Admin@123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Lấy thông tin tài khoản hiện tại (GET /me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "me"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🏟️ Sân — Quản Lý Sân Thể Thao",
+      "item": [
+        {
+          "name": "Lấy danh sách tất cả sân",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/san",
+              "host": ["{{base_url}}"],
+              "path": ["san"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Tìm sân theo môn thể thao",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/san?monTheThao=Cầu Lông",
+              "host": ["{{base_url}}"],
+              "path": ["san"],
+              "query": [
+                { "key": "monTheThao", "value": "Cầu Lông" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Tìm sân theo tên (tuKhoa)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/san?tuKhoa=Phú Thọ",
+              "host": ["{{base_url}}"],
+              "path": ["san"],
+              "query": [
+                { "key": "tuKhoa", "value": "Phú Thọ" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Sắp xếp sân theo giá thấp nhất",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/san?sapXep=giaTien",
+              "host": ["{{base_url}}"],
+              "path": ["san"],
+              "query": [
+                { "key": "sapXep", "value": "giaTien" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Sắp xếp sân theo đánh giá cao nhất",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/san?sapXep=danhGia",
+              "host": ["{{base_url}}"],
+              "path": ["san"],
+              "query": [
+                { "key": "sapXep", "value": "danhGia" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Lấy danh sách loại sân (môn thể thao)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/san/loai-san",
+              "host": ["{{base_url}}"],
+              "path": ["san", "loai-san"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Lấy chi tiết 1 sân",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/san/{{san_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["san", "{{san_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Lấy slot khả dụng theo ngày",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/san/{{san_id}}/slots?ngay=2026-09-30",
+              "host": ["{{base_url}}"],
+              "path": ["san", "{{san_id}}", "slots"],
+              "query": [
+                { "key": "ngay", "value": "2026-09-30" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[Admin] Thêm sân mới",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenSan\": \"Sân Cầu Lông Tân Bình\",\n  \"loaiSanId\": \"loai-cau-long\",\n  \"diaChi\": \"123 Lê Văn Sỹ, Q.Tân Bình, TP.HCM\",\n  \"gioMoCua\": \"06:00\",\n  \"gioDongCua\": \"22:00\",\n  \"giaTienThapDiem\": 80000,\n  \"giaTienCaoDiem\": 120000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/san",
+              "host": ["{{base_url}}"],
+              "path": ["san"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📋 Đơn Đặt Sân — Booking",
+      "item": [
+        {
+          "name": "Tạo đơn đặt sân mới (Tiền mặt)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data.id) {",
+                  "  pm.collectionVariables.set('don_dat_id', res.data.id);",
+                  "  console.log('✅ Mã đơn:', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sanId\": \"{{san_id}}\",\n  \"tenKhach\": \"Đinh Ngọc Đại\",\n  \"soDienThoaiKhach\": \"0912345678\",\n  \"ghiChu\": \"Cần mượn 2 vợt\",\n  \"ngayDat\": \"2026-09-30\",\n  \"gioKhoa\": \"09:00\",\n  \"soGioThue\": 1.5,\n  \"phuongThucThanhToan\": \"TIEN_MAT\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/don-dat",
+              "host": ["{{base_url}}"],
+              "path": ["don-dat"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Tạo đơn đặt sân (Chuyển khoản VietQR)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sanId\": \"{{san_id}}\",\n  \"tenKhach\": \"Nguyễn Văn Test\",\n  \"soDienThoaiKhach\": \"0987654321\",\n  \"ngayDat\": \"2026-09-30\",\n  \"gioKhoa\": \"15:00\",\n  \"soGioThue\": 2,\n  \"phuongThucThanhToan\": \"CHUYEN_KHOAN\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/don-dat",
+              "host": ["{{base_url}}"],
+              "path": ["don-dat"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Tạo đơn đặt sân (MoMo)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sanId\": \"{{san_id}}\",\n  \"tenKhach\": \"Trần Thị MoMo\",\n  \"soDienThoaiKhach\": \"0911111111\",\n  \"ngayDat\": \"2026-09-30\",\n  \"gioKhoa\": \"17:00\",\n  \"soGioThue\": 1,\n  \"phuongThucThanhToan\": \"MOMO\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/don-dat",
+              "host": ["{{base_url}}"],
+              "path": ["don-dat"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Test chống Double-Booking (đặt trùng slot)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sanId\": \"{{san_id}}\",\n  \"tenKhach\": \"Kẻ Đặt Trùng\",\n  \"soDienThoaiKhach\": \"0922222222\",\n  \"ngayDat\": \"2026-09-30\",\n  \"gioKhoa\": \"09:00\",\n  \"soGioThue\": 1,\n  \"phuongThucThanhToan\": \"TIEN_MAT\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/don-dat",
+              "host": ["{{base_url}}"],
+              "path": ["don-dat"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Lấy lịch sử đặt sân của tôi",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/don-dat/cua-toi",
+              "host": ["{{base_url}}"],
+              "path": ["don-dat", "cua-toi"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Lọc lịch sử theo trạng thái (CHO_XAC_NHAN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/don-dat/cua-toi?trangThai=CHO_XAC_NHAN",
+              "host": ["{{base_url}}"],
+              "path": ["don-dat", "cua-toi"],
+              "query": [
+                { "key": "trangThai", "value": "CHO_XAC_NHAN" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Lấy chi tiết 1 đơn đặt",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/don-dat/{{don_dat_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["don-dat", "{{don_dat_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[Staff] Xác nhận đơn đặt",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/don-dat/{{don_dat_id}}/xac-nhan",
+              "host": ["{{base_url}}"],
+              "path": ["don-dat", "{{don_dat_id}}", "xac-nhan"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[Staff] Từ chối đơn đặt",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lyDo\": \"Sân đang bảo trì đột xuất\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/don-dat/{{don_dat_id}}/tu-choi",
+              "host": ["{{base_url}}"],
+              "path": ["don-dat", "{{don_dat_id}}", "tu-choi"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[Staff] Check-in khách hàng",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/don-dat/{{don_dat_id}}/check-in",
+              "host": ["{{base_url}}"],
+              "path": ["don-dat", "{{don_dat_id}}", "check-in"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[Khách] Hủy đơn đặt",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lyDo\": \"Khách bận việc đột xuất\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/don-dat/{{don_dat_id}}/huy",
+              "host": ["{{base_url}}"],
+              "path": ["don-dat", "{{don_dat_id}}", "huy"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🥤 Đồ Uống — F&B",
+      "item": [
+        {
+          "name": "Lấy danh sách đồ uống đang bán",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/do-uong",
+              "host": ["{{base_url}}"],
+              "path": ["do-uong"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[Admin] Thêm sản phẩm đồ uống mới",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ten\": \"Nước suối Lavie 500ml\",\n  \"danhMuc\": \"NUOC_UONG\",\n  \"giaBan\": 10000,\n  \"tonKho\": 100,\n  \"donVi\": \"chai\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/do-uong",
+              "host": ["{{base_url}}"],
+              "path": ["do-uong"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[Admin] Nhập kho đồ uống",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"soLuong\": 50\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/do-uong/:id/nhap-kho",
+              "host": ["{{base_url}}"],
+              "path": ["do-uong", ":id", "nhap-kho"],
+              "variable": [
+                { "key": "id", "value": "do-uong-001" }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "⭐ Đánh Giá — Reviews",
+      "item": [
+        {
+          "name": "Lấy danh sách đánh giá của sân",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/danh-gia?sanId={{san_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["danh-gia"],
+              "query": [
+                { "key": "sanId", "value": "{{san_id}}" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Gửi đánh giá sau khi chơi",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"donDatId\": \"{{don_dat_id}}\",\n  \"soSao\": 5,\n  \"noiDung\": \"Sân đẹp, sạch sẽ, nhân viên nhiệt tình. Sẽ quay lại!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/danh-gia",
+              "host": ["{{base_url}}"],
+              "path": ["danh-gia"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🔒 Test Bảo Mật & Phân Quyền",
+      "item": [
+        {
+          "name": "Truy cập không có token (401 expected)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/don-dat/cua-toi",
+              "host": ["{{base_url}}"],
+              "path": ["don-dat", "cua-toi"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Khách dùng route Staff/Admin (403 expected)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/don-dat/{{don_dat_id}}/xac-nhan",
+              "host": ["{{base_url}}"],
+              "path": ["don-dat", "{{don_dat_id}}", "xac-nhan"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Validation sai (400 expected — SĐT không hợp lệ)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sanId\": \"{{san_id}}\",\n  \"tenKhach\": \"Test\",\n  \"soDienThoaiKhach\": \"12345\",\n  \"ngayDat\": \"2026-09-30\",\n  \"gioKhoa\": \"10:00\",\n  \"soGioThue\": 1,\n  \"phuongThucThanhToan\": \"TIEN_MAT\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/don-dat",
+              "host": ["{{base_url}}"],
+              "path": ["don-dat"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

@@ -18,6 +18,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { San, KhungGio } from '../types';
 import { socketService } from '../services/socketService';
+import { sanService } from '../services/sanService';
+import { apiClient } from '../services/apiClient';
 
 type RootStackParamList = {
   ChiTietSan: { san: San };
@@ -87,6 +89,46 @@ export default function ChiTietSanScreen({ navigation, route }: Props) {
     return () => {
       unsubscribe();
     };
+  }, [san.id]);
+
+  // Tải danh sách khung giờ thực tế từ MySQL Backend theo ngày chọn
+  useEffect(() => {
+    let isMounted = true;
+    async function loadRealSlots() {
+      try {
+        const slots = await sanService.getSlotsTheoNgay(san.id, ngayChon);
+        if (isMounted && slots && slots.length > 0) {
+          setKhungGioList(
+            slots.map((s) => ({
+              gio: s.gio,
+              conTrong: s.conTrong && !s.dangGiuCho && !s.daQua,
+            }))
+          );
+        }
+      } catch (err) {
+        console.log('Chuyển sang fallback khung giờ local:', err);
+      }
+    }
+    loadRealSlots();
+    return () => {
+      isMounted = false;
+    };
+  }, [san.id, ngayChon]);
+
+  // T29 & CUS-10: Tải đánh giá của sân
+  const [danhSachDanhGia, setDanhSachDanhGia] = useState<any[]>([]);
+  useEffect(() => {
+    async function loadReviews() {
+      try {
+        const res = await apiClient.get<any>(`/courts/${san.id}/reviews`);
+        if (res.data?.data?.items) {
+          setDanhSachDanhGia(res.data.data.items);
+        }
+      } catch (err) {
+        // reviews optional
+      }
+    }
+    loadReviews();
   }, [san.id]);
 
   // Hàm test giả lập Socket event
@@ -235,6 +277,55 @@ export default function ChiTietSanScreen({ navigation, route }: Props) {
               </TouchableOpacity>
             ))}
           </View>
+
+          {/* T29 & CUS-10: ĐÁNH GIÁ TỪ KHÁCH HÀNG */}
+          <Text style={styles.tieuDeMuc}>
+            Đánh giá từ khách hàng ({san.soLuotDanhGia || danhSachDanhGia.length})
+          </Text>
+          {danhSachDanhGia.length === 0 ? (
+            <Text style={{ fontSize: 13, color: MAU.phu, marginTop: 4 }}>
+              Chưa có nhận xét nào. Hãy là người đầu tiên trải nghiệm và đánh giá sân này!
+            </Text>
+          ) : (
+            <View style={{ gap: 10, marginTop: 8 }}>
+              {danhSachDanhGia.slice(0, 5).map((item, idx) => (
+                <View
+                  key={idx}
+                  style={{
+                    backgroundColor: '#fff',
+                    borderRadius: 10,
+                    padding: 12,
+                    borderWidth: 1,
+                    borderColor: MAU.vien,
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ fontWeight: '700', fontSize: 13, color: MAU.chu }}>
+                      {item.tenNguoiDung || 'Khách hàng'}
+                    </Text>
+                    <View style={{ flexDirection: 'row', gap: 2 }}>
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Ionicons
+                          key={s}
+                          name={s <= item.soSao ? 'star' : 'star-outline'}
+                          size={14}
+                          color="#F59E0B"
+                        />
+                      ))}
+                    </View>
+                  </View>
+                  {item.noiDungDanhGia ? (
+                    <Text style={{ fontSize: 12.5, color: '#4B5563', marginTop: 4, lineHeight: 17 }}>
+                      {item.noiDungDanhGia}
+                    </Text>
+                  ) : null}
+                  <Text style={{ fontSize: 10.5, color: MAU.phu, marginTop: 4 }}>
+                    {item.thoiGian ? String(item.thoiGian).split('T')[0] : ''}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
 
           <View style={{ height: 110 }} />
         </View>

@@ -8,8 +8,12 @@ export type RootStackParamList = {
   DanhSachSanMain: undefined;
   ChiTietSan: { san: San };
   DatLich: { san: San; ngay: string; gio: string };
+  LichDatMain: undefined;
+  ChiTietDonDat: { donDatId: string; donDat?: DonDat };
+  HoSoMain: undefined;
   TrangChuTab: undefined;
   DanhSachSanTab: undefined;
+  LichDatTab: undefined;
   HoSoTab: undefined;
 };
 
@@ -17,8 +21,7 @@ export type RootStackParamList = {
 export interface MonTheThao {
   id: string;
   ten: string;
-  bieuTuongEmoji?: string;
-  biểuTượngEmoji?: string;
+  bieuTuongEmoji: string;
   mauSac: string;
 }
 
@@ -56,6 +59,7 @@ export type PhuongThucThanhToan = 'tienMat' | 'momo' | 'chuyenKhoan';
 /** Đơn đặt sân thể thao */
 export interface DonDat {
   id: string;
+  maDonDat?: string;
   sanId?: string;
   tenSan: string;
   monTheThao: string;
@@ -65,12 +69,32 @@ export interface DonDat {
   soGioThue: number;
   tongTien: number;
   trangThai: TrangThaiDonDat;
+  trangThaiGoc?: string;
+  trangThaiThanhToan?: string;
   mauSac: string;
   hoTen?: string;
   soDT?: string;
   ghiChu?: string;
   phuongThucThanhToan?: PhuongThucThanhToan;
   createdAt?: string;
+  expiresAt?: string;
+  coTheHuy?: boolean;
+  daDanhGia?: boolean;
+  thongTinThanhToan?: {
+    tenNganHang: string;
+    soTaiKhoan: string;
+    tenChuTaiKhoan: string;
+    soTien: number;
+    noiDungChuyenKhoan: string;
+    qrUrl: string;
+  } | null;
+  danhSachKhungGio?: Array<{
+    id: number;
+    khungGioId: number;
+    gioBatDau: string;
+    gioKetThuc: string;
+    giaTien: number;
+  }>;
 }
 
 /** Thông tin tài khoản người dùng */

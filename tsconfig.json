@@ -5,5 +5,15 @@
     "paths": {
       "@/*": ["./src/*"]
     }
-  }
+  },
+  "include": [
+    "src/**/*",
+    "App.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "backend",
+    "Plant",
+    ".agents"
+  ]
 }

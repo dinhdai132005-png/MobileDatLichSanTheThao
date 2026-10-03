@@ -13,6 +13,8 @@ import TrangChuScreen from '../screens/TrangChuScreen';
 import DanhSachSanScreen from '../screens/DanhSachSanScreen';
 import ChiTietSanScreen from '../screens/ChiTietSanScreen';
 import DatLichScreen from '../screens/DatLichScreen';
+import LichDatScreen from '../screens/LichDatScreen';
+import ChiTietDonDatScreen from '../screens/ChiTietDonDatScreen';
 import HoSoScreen from '../screens/HoSoScreen';
 import { RootStackParamList } from '../types';
 
@@ -31,6 +33,7 @@ function LuongTrangChu() {
       <Stack.Screen name="TrangChuMain" component={TrangChuScreen} />
       <Stack.Screen name="ChiTietSan" component={ChiTietSanScreen as any} />
       <Stack.Screen name="DatLich" component={DatLichScreen as any} />
+      <Stack.Screen name="ChiTietDonDat" component={ChiTietDonDatScreen as any} />
     </Stack.Navigator>
   );
 }
@@ -41,6 +44,25 @@ function LuongDanhSachSan() {
       <Stack.Screen name="DanhSachSanMain" component={DanhSachSanScreen} />
       <Stack.Screen name="ChiTietSan" component={ChiTietSanScreen as any} />
       <Stack.Screen name="DatLich" component={DatLichScreen as any} />
+      <Stack.Screen name="ChiTietDonDat" component={ChiTietDonDatScreen as any} />
+    </Stack.Navigator>
+  );
+}
+
+function LuongLichDat() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="LichDatMain" component={LichDatScreen as any} />
+      <Stack.Screen name="ChiTietDonDat" component={ChiTietDonDatScreen as any} />
+    </Stack.Navigator>
+  );
+}
+
+function LuongHoSo() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="HoSoMain" component={HoSoScreen as any} />
+      <Stack.Screen name="ChiTietDonDat" component={ChiTietDonDatScreen as any} />
     </Stack.Navigator>
   );
 }
@@ -61,6 +83,8 @@ export default function AppDieuHuong() {
               bieuTuong = focused ? 'home' : 'home-outline';
             } else if (route.name === 'DanhSachSanTab') {
               bieuTuong = focused ? 'location' : 'location-outline';
+            } else if (route.name === 'LichDatTab') {
+              bieuTuong = focused ? 'calendar' : 'calendar-outline';
             } else if (route.name === 'HoSoTab') {
               bieuTuong = focused ? 'person' : 'person-outline';
             }
@@ -74,7 +98,8 @@ export default function AppDieuHuong() {
       >
         <Tab.Screen name="TrangChuTab" component={LuongTrangChu} options={{ title: 'Trang Chủ' }} />
         <Tab.Screen name="DanhSachSanTab" component={LuongDanhSachSan} options={{ title: 'Sân Thể Thao' }} />
-        <Tab.Screen name="HoSoTab" component={HoSoScreen} options={{ title: 'Hồ Sơ' }} />
+        <Tab.Screen name="LichDatTab" component={LuongLichDat} options={{ title: 'Lịch Đặt' }} />
+        <Tab.Screen name="HoSoTab" component={LuongHoSo} options={{ title: 'Hồ Sơ' }} />
       </Tab.Navigator>
     </NavigationContainer>
   );

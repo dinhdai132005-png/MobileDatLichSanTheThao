@@ -1,78 +1,79 @@
 // ============================================================
-// AXIOS HTTP CLIENT - CẤU HÌNH BASE CLIENT & INTERCEPTORS
-// Tính năng: Interceptor JWT, Fallback Mock Data, Log Request/Response
+// API CLIENT — Cấu hình HTTP Client tập trung (Axios)
+// Tính năng: Quản lý JWT Token, Interceptors, Xử lý Response chuẩn hóa
 // ============================================================
-
 import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import { API_BASE_URL } from './config';
 
-// Cấu hình URL mặc định cho Backend Server
-export const API_BASE_URL = 'http://10.0.2.2:5000/api';
+export { API_BASE_URL };
 
-// Khởi tạo instance Axios
+export interface ApiResponse<T = any> {
+  success: boolean;
+  message: string;
+  data: T;
+}
+
+// Khởi tạo instance Axios dùng chung
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    Accept: 'application/json',
   },
 });
 
-let authToken: string | null = 'mock-jwt-bearer-token-xyz789';
+let authToken: string | null = null;
 
 export const setAuthToken = (token: string | null) => {
   authToken = token;
 };
 
-// --- 1. REQUEST INTERCEPTOR ---
+export const getAuthToken = () => authToken;
+
+// --- 1. REQUEST INTERCEPTOR: Tự động gắn JWT Token ---
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     if (authToken && config.headers) {
       config.headers.Authorization = `Bearer ${authToken}`;
     }
-    console.log(`🚀 [Axios Request] ${config.method?.toUpperCase()} -> ${config.baseURL}${config.url}`);
+    console.log(`🚀 [API Request] ${config.method?.toUpperCase()} -> ${config.baseURL}${config.url}`);
     return config;
   },
   (error) => {
-    console.error('❌ [Axios Request Error]', error);
+    console.error('❌ [API Request Error]', error);
     return Promise.reject(error);
   }
 );
 
-// --- 2. RESPONSE INTERCEPTOR ---
+// --- 2. RESPONSE INTERCEPTOR: Xử lý dữ liệu phản hồi ---
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
-    console.log(`✅ [Axios Response] ${response.status} <- ${response.config.url}`);
+    console.log(`✅ [API Response] ${response.status} <- ${response.config.url}`);
     return response;
   },
   (error) => {
-    if (error.response) {
-      console.warn(`⚠️ [Axios Response Error] Status ${error.response.status}:`, error.response.data);
-    } else if (error.request) {
-      console.warn('📡 [Axios Network Warning] Backend Server offline -> Fallback mock data.');
-    } else {
-      console.error('💥 [Axios Error]', error.message);
-    }
-    return Promise.reject(error);
+    const errorMsg =
+      error.response?.data?.message ||
+      error.message ||
+      'Không thể kết nối đến máy chủ Backend. Vui lòng kiểm tra kết nối mạng!';
+    console.warn(`⚠️ [API Error] ${error.config?.url}:`, errorMsg);
+    return Promise.reject(new Error(errorMsg));
   }
 );
 
 /**
- * Utility wrapper giúp tự động gọi Axios API,
- * nếu Backend offline hoặc lỗi mạng thì tự động Fallback về Mock Data local
+ * Helper gọi API trả về trường `data` trong format chuẩn { success, message, data }
  */
-export async function executeWithFallback<T>(
-  apiCall: () => Promise<AxiosResponse<T> | T>,
-  mockFallback: () => T
+export async function requestApi<T>(
+  promise: Promise<AxiosResponse<ApiResponse<T>>>
 ): Promise<T> {
-  try {
-    const res = await apiCall();
-    if (res && typeof res === 'object' && 'data' in res && 'status' in res) {
-      return (res as AxiosResponse<T>).data;
+  const res = await promise;
+  if (res.data && res.data.success !== undefined) {
+    if (!res.data.success) {
+      throw new Error(res.data.message || 'Thao tác không thành công');
     }
-    return res as T;
-  } catch (error) {
-    console.log('🔄 Backend Server chưa sẵn sàng -> Tự động chuyển sang Mock Data Local.');
-    return mockFallback();
+    return res.data.data;
   }
+  return (res.data as any) as T;
 }
