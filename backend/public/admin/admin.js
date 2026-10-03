@@ -1294,4 +1294,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   const walkinDate = document.getElementById('walkin-date');
   if (walkinCourt) walkinCourt.addEventListener('change', loadWalkinSlots);
   if (walkinDate) walkinDate.addEventListener('change', loadWalkinSlots);
+
+  // Kết nối Socket.io Real-time Gateway
+  if (typeof io !== 'undefined') {
+    try {
+      const socket = io();
+      socket.on('connect', () => {
+        console.log('⚡ [Admin Realtime] Đã kết nối Socket.io Gateway thành công!');
+      });
+      socket.on('new_booking', (thongTin) => {
+        showToast(`🔔 Có đơn đặt mới: ${thongTin.maDon} (${formatMoney(thongTin.tongTien)})`);
+        if (currentTab === 'bookings') loadBookings();
+        if (currentTab === 'dashboard') loadDashboard();
+        if (currentTab === 'schedule') loadSchedule();
+      });
+      socket.on('slot_updated', () => {
+        if (currentTab === 'schedule') loadSchedule();
+        if (currentTab === 'walkin') loadWalkinSlots();
+      });
+    } catch (e) {
+      console.log('ℹ️ [Admin Realtime] Không thể kết nối Socket:', e);
+    }
+  }
 });

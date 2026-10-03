@@ -26,10 +26,12 @@ class SocketService {
       console.log(`🔌 [Socket.io Client] Đang kết nối tới Gateway: ${url}...`);
 
       this.socket = io(url, {
-        transports: ['websocket', 'polling'],
+        transports: ['polling', 'websocket'],
         autoConnect: false,
-        reconnectionAttempts: 3,
-        reconnectionDelay: 3000,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 2000,
+        timeout: 10000,
       });
 
       this.socket.connect();
@@ -41,11 +43,12 @@ class SocketService {
 
       this.socket.on('disconnect', (reason) => {
         this.isConnectedState = false;
-        console.warn('⚠️ [Socket.io Client] Đã ngắt kết nối:', reason);
+        console.log('ℹ️ [Socket.io Client] Ngắt kết nối:', reason);
       });
 
       this.socket.on('connect_error', (err) => {
-        console.warn('📡 [Socket.io Client Warning] Lỗi kết nối Socket Gateway (Offline simulation active):', err.message);
+        // Ghi log thông thường để không làm gián đoạn UI LogBox trên máy thật
+        console.log('📡 [Socket.io Client Info] Trạng thái kết nối Socket:', err.message);
       });
 
       this.socket.on('slot_updated', (payload: SocketSlotUpdatePayload) => {
@@ -58,7 +61,7 @@ class SocketService {
         this.newBookingListeners.forEach((fn) => fn(payload));
       });
     } catch (err: any) {
-      console.warn('🛡️ [Socket.io Safe Guard] Bắt lỗi khởi tạo Socket.io client:', err?.message || err);
+      console.log('🛡️ [Socket.io Safe Guard] Lỗi khởi tạo Socket.io client:', err?.message || err);
     }
 
     return this.socket;

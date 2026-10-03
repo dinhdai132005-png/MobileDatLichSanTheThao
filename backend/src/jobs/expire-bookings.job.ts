@@ -5,11 +5,14 @@
 import { RowDataPacket } from 'mysql2/promise';
 import { BUSINESS } from '../config/business';
 import { withTransaction } from '../utils/transaction';
+import { broadcastSlotUpdate } from '../socket';
 
 let intervalTimer: NodeJS.Timeout | null = null;
 
 export async function processExpiredBookings(): Promise<number> {
-  return withTransaction(async (conn) => {
+  let danhSachKhungNha: { sanId: number; gioBatDau: string; ngayDat: string }[] = [];
+
+  const soLuong = await withTransaction(async (conn) => {
     // 1. Khóa và lấy các đơn PENDING đã quá hạn
     const [danhSachDonQuaHan] = await conn.execute<RowDataPacket[]>(
       `SELECT id FROM bookings WHERE status = 'PENDING' AND expires_at < NOW() FOR UPDATE`
@@ -21,6 +24,19 @@ export async function processExpiredBookings(): Promise<number> {
 
     const danhSachDonDatId = danhSachDonQuaHan.map((dong) => dong.id);
     const chuoiHoiCham = danhSachDonDatId.map(() => '?').join(',');
+
+    // Lấy thông tin các khung giờ sắp được nhả để bắn socket realtime
+    const [dsKhung] = await conn.execute<RowDataPacket[]>(
+      `SELECT bs.court_id AS sanId, ts.start_time AS gioBatDau, bs.slot_date AS ngayDat
+       FROM booking_slots bs
+       JOIN time_slots ts ON ts.id = bs.time_slot_id
+       WHERE bs.booking_id IN (${chuoiHoiCham})`
+    );
+    danhSachKhungNha = dsKhung.map((k) => ({
+      sanId: k.sanId,
+      gioBatDau: (k.gioBatDau as string).substring(0, 5),
+      ngayDat: k.ngayDat,
+    }));
 
     // 2. Chuyển trạng thái đơn sang EXPIRED
     await conn.execute(
@@ -46,6 +62,19 @@ export async function processExpiredBookings(): Promise<number> {
     console.log(`⏱ [SYS-01] Đã tự động hết hạn và nhả slot cho ${danhSachDonDatId.length} đơn đặt: [${danhSachDonDatId.join(', ')}]`);
     return danhSachDonDatId.length;
   });
+
+  // Bắn socket nhả slot ra ngoài transaction
+  if (danhSachKhungNha.length > 0) {
+    try {
+      for (const khung of danhSachKhungNha) {
+        broadcastSlotUpdate(khung.sanId, khung.gioBatDau, true, khung.ngayDat);
+      }
+    } catch (e) {
+      // Bỏ qua lỗi socket
+    }
+  }
+
+  return soLuong;
 }
 
 export function startExpireBookingsJob(): void {

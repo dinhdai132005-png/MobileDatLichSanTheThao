@@ -15,6 +15,7 @@ import {
   PhuongThucThanhToan,
   TrangThaiKhungGio,
 } from '../types';
+import { broadcastSlotUpdate, broadcastNewBooking } from '../socket';
 
 export class BookingService {
   /**
@@ -166,7 +167,7 @@ export class BookingService {
       );
     }
 
-    return withTransaction(async (conn) => {
+    const ketQua = await withTransaction(async (conn) => {
       // BR-08: Kiểm tra giới hạn 3 đơn hoạt động / khách
       const [donHoatDong] = await conn.execute<RowDataPacket[]>(
         `SELECT COUNT(*) AS tongSoDon FROM bookings
@@ -352,8 +353,29 @@ export class BookingService {
         trangThaiThanhToan: 'UNPAID',
         thoiGianHetHan,
         thongTinThanhToan,
+        danhSachGio: danhSachKhung.map((k) => (k.gioBatDau as string).substring(0, 5)),
       };
     });
+
+    // Phát sự kiện Socket.io Real-time tới tất cả client (Mobile + Web Admin)
+    try {
+      for (const gio of ketQua.danhSachGio) {
+        broadcastSlotUpdate(sanId, gio, false, ngayDat);
+      }
+      broadcastNewBooking({
+        maDon: ketQua.maDonDat,
+        sanId: ketQua.sanId,
+        tongTien: ketQua.tongTien,
+        trangThai: ketQua.trangThai,
+        gioBatDau: ketQua.gioBatDau,
+        gioKetThuc: ketQua.gioKetThuc,
+        ngayDat: ketQua.ngayDat,
+      });
+    } catch (e) {
+      // Safe guard lỗi socket không làm hỏng phản hồi HTTP
+    }
+
+    return ketQua;
   }
 
   /**
@@ -496,7 +518,7 @@ export class BookingService {
    * CUS-09: Khách hàng hủy đơn đặt sân (BR-09, BR-10)
    */
   static async cancelBookingByCustomer(nguoiDung: NguoiDungXacThuc, donDatId: number, lyDoHuy?: string) {
-    return withTransaction(async (conn) => {
+    const ketQua = await withTransaction(async (conn) => {
       const [danhSach] = await conn.execute<RowDataPacket[]>(
         'SELECT * FROM bookings WHERE id = ? FOR UPDATE',
         [donDatId]
@@ -559,8 +581,19 @@ export class BookingService {
         [donDatId, donDat.status, nguoiDung.id, lyDoHuy || 'Khách hàng tự hủy trên ứng dụng']
       );
 
+      // Lấy danh sách giờ đã hủy để phát socket nhả slot
+      const [dsKhungHuy] = await conn.execute<RowDataPacket[]>(
+        `SELECT ts.start_time AS gioBatDau FROM booking_slots bs
+         JOIN time_slots ts ON ts.id = bs.time_slot_id
+         WHERE bs.booking_id = ?`,
+        [donDatId]
+      );
+
       return {
         id: donDatId,
+        sanId: donDat.court_id,
+        ngayDat: donDat.booking_date,
+        danhSachGio: dsKhungHuy.map((k) => (k.gioBatDau as string).substring(0, 5)),
         trangThai: 'CANCELLED',
         choHoanTien,
         message: choHoanTien
@@ -568,6 +601,17 @@ export class BookingService {
           : 'Hủy đơn đặt sân thành công',
       };
     });
+
+    // Phát sự kiện Socket.io Real-time nhả khung giờ vừa hủy
+    try {
+      for (const gio of ketQua.danhSachGio) {
+        broadcastSlotUpdate(ketQua.sanId, gio, true, ketQua.ngayDat);
+      }
+    } catch (e) {
+      // Safe guard
+    }
+
+    return ketQua;
   }
 
   /**
