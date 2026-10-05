@@ -956,10 +956,10 @@ async function loadCourtTypesAndCourts() {
     const tbodyTypes = document.getElementById('loai-san-tbody');
     tbodyTypes.innerHTML = '';
     const sanLoaiSelect = document.getElementById('san-loai-chon');
-    sanLoaiSelect.innerHTML = '<option value="">-- Chọn loại sân --</option>';
+    if (sanLoaiSelect) sanLoaiSelect.innerHTML = '<option value="">-- Chọn loại sân --</option>';
 
     cachedCourtTypes.forEach((t) => {
-      sanLoaiSelect.innerHTML += `<option value="${t.id}">${t.name} (${t.category})</option>`;
+      if (sanLoaiSelect) sanLoaiSelect.innerHTML += `<option value="${t.id}">${t.name} (${t.category})</option>`;
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td style="font-family:var(--font-mono); font-weight:700;">#${t.id}</td>
@@ -974,7 +974,7 @@ async function loadCourtTypesAndCourts() {
       tbodyTypes.appendChild(tr);
     });
 
-    // Render sân
+    // Render sân (Quy hoạch vị trí cố định)
     const tbodyCourts = document.getElementById('courts-tbody');
     tbodyCourts.innerHTML = '';
 
@@ -989,13 +989,18 @@ async function loadCourtTypesAndCourts() {
       `;
 
       tr.innerHTML = `
-        <td style="font-family:var(--font-mono); font-weight:700;">#${c.id}</td>
+        <td style="font-family:var(--font-mono); font-weight:700; color:var(--primary);">Vị trí #${c.id}</td>
         <td style="font-weight:700;">${c.name}</td>
-        <td>${c.courtTypeName}</td>
+        <td><span class="badge" style="background:rgba(59, 130, 246, 0.2); color:#60A5FA;">${c.courtTypeName || c.courtType?.name || '—'}</span></td>
         <td>${c.capacity ? `<strong>${c.capacity}</strong> người` : '—'}</td>
-        <td>${c.description || '—'}</td>
+        <td style="color:var(--text-muted); font-size:12.5px;">${c.description || '—'}</td>
         <td>${renderCourtStatusBadge(c.status)}</td>
         <td>${statusSelect}</td>
+        <td>
+          <button class="btn btn-outline" style="padding:5px 10px; font-size:12px; white-space:nowrap;" onclick="moModalDoiMucDichSan(${c.id})">
+            🔄 Đổi mục đích
+          </button>
+        </td>
       `;
       tbodyCourts.appendChild(tr);
     });
@@ -1008,6 +1013,60 @@ function renderCourtStatusBadge(status) {
   if (status === 'ACTIVE') return '<span class="badge" style="background:rgba(16, 185, 129, 0.2); color:#34D399;">Hoạt động</span>';
   if (status === 'MAINTENANCE') return '<span class="badge" style="background:rgba(239, 68, 68, 0.2); color:#F87171;">Bảo trì</span>';
   return '<span class="badge" style="background:rgba(107, 114, 128, 0.2); color:#94A3B8;">Tạm ngưng</span>';
+}
+
+// ================= MỞ MODAL CHUYỂN ĐỔI MỤC ĐÍCH SỬ DỤNG SÂN (GÓP Ý GIẢNG VIÊN) =================
+function moModalDoiMucDichSan(courtId) {
+  const court = cachedCourts.find((c) => c.id === courtId);
+  if (!court) return;
+
+  document.getElementById('edit-court-id').value = court.id;
+  document.getElementById('edit-court-position').value = `Vị trí mặt bằng quy hoạch sân #${court.id}`;
+  document.getElementById('edit-court-name').value = court.name || '';
+  document.getElementById('edit-court-capacity').value = court.capacity || '';
+  document.getElementById('edit-court-image').value = court.imageUrl || '';
+  document.getElementById('edit-court-desc').value = court.description || '';
+
+  // Nạp danh sách loại sân vào select
+  const select = document.getElementById('edit-court-type');
+  select.innerHTML = '';
+  cachedCourtTypes.forEach((t) => {
+    const isSelected = (court.courtType?.id === t.id) || (court.courtTypeId === t.id);
+    select.innerHTML += `<option value="${t.id}" ${isSelected ? 'selected' : ''}>${t.name} (${t.category === 'SPORT' ? 'Môn Thể Thao' : 'Khu Sự Kiện'})</option>`;
+  });
+
+  openModal('modal-edit-court');
+}
+
+async function handleSaveReassignCourt(e) {
+  e.preventDefault();
+  const courtId = Number(document.getElementById('edit-court-id').value);
+  const courtTypeId = Number(document.getElementById('edit-court-type').value);
+  const name = document.getElementById('edit-court-name').value.trim();
+  const capacityStr = document.getElementById('edit-court-capacity').value;
+  const imageUrl = document.getElementById('edit-court-image').value.trim() || null;
+  const description = document.getElementById('edit-court-desc').value.trim() || null;
+
+  const payload = {
+    courtTypeId,
+    name,
+    capacity: capacityStr ? Number(capacityStr) : null,
+    imageUrl,
+    description,
+  };
+
+  try {
+    await apiFetch(`/admin/courts/${courtId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+    closeModal('modal-edit-court');
+    showToast('Chuyển đổi mục đích sử dụng sân thành công!');
+    loadCourtTypesAndCourts();
+  } catch (err) {
+    // Nếu vướng đơn đặt trong tương lai, ném cảnh báo rõ ràng
+    alert(`⚠️ Không thể chuyển đổi mục đích sử dụng:\n\n${err.message}`);
+  }
 }
 
 async function taoLoaiSan(e) {
@@ -1037,35 +1096,6 @@ async function batTatLoaiSan(id) {
     loadCourtTypesAndCourts();
   } catch (err) {
     showToast('Lỗi: ' + err.message, true);
-  }
-}
-
-async function taoSan(e) {
-  e.preventDefault();
-  const courtTypeId = Number(document.getElementById('san-loai-chon').value);
-  const name = document.getElementById('san-ten').value.trim();
-  const capacityStr = document.getElementById('san-suc-chua').value;
-  const description = document.getElementById('san-mota').value.trim();
-
-  const payload = {
-    courtTypeId,
-    name,
-    description,
-    capacity: capacityStr ? Number(capacityStr) : undefined,
-  };
-
-  try {
-    await apiFetch('/admin/courts', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
-    showToast('Thêm sân mới thành công!');
-    document.getElementById('san-ten').value = '';
-    document.getElementById('san-suc-chua').value = '';
-    document.getElementById('san-mota').value = '';
-    loadCourtTypesAndCourts();
-  } catch (err) {
-    showToast('Lỗi thêm sân: ' + err.message, true);
   }
 }
 

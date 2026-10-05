@@ -166,6 +166,47 @@ export class QuanTriService {
       capacity?: number | null;
     }
   ) {
+    const [hienTaiRows] = await csdl.execute<RowDataPacket[]>(
+      `SELECT id, loai_san_id, ten FROM san WHERE id = ?`,
+      [id]
+    );
+    if (hienTaiRows.length === 0) throw LoiApi.khongTimThay('Không tìm thấy sân');
+    const hienTai = hienTaiRows[0];
+
+    // Nghiệp vụ: Chuyển đổi mục đích sử dụng sân (đổi loai_san_id)
+    if (duLieu.courtTypeId !== undefined && duLieu.courtTypeId !== hienTai.loai_san_id) {
+      const [loaiMoi] = await csdl.execute<RowDataPacket[]>(
+        `SELECT id, ten FROM loai_san WHERE id = ?`,
+        [duLieu.courtTypeId]
+      );
+      if (loaiMoi.length === 0) throw LoiApi.khongTimThay('Không tìm thấy loại sân mới');
+
+      // Chặn đổi mục đích sử dụng nếu sân còn đơn đặt trong tương lai
+      const bayGioVN = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+      const ngayHienTaiStr = bayGioVN.toISOString().substring(0, 10);
+      const gioHienTaiStr = bayGioVN.toTimeString().substring(0, 5);
+
+      const [futureRows] = await csdl.execute<RowDataPacket[]>(
+        `SELECT COUNT(*) AS total
+         FROM don_dat
+         WHERE san_id = ?
+           AND trang_thai IN ('CONFIRMED', 'PENDING')
+           AND (ngay_dat > ? OR (ngay_dat = ? AND gio_ket_thuc > ?))`,
+        [id, ngayHienTaiStr, ngayHienTaiStr, gioHienTaiStr]
+      );
+
+      const futureCount = Number(futureRows[0].total);
+      if (futureCount > 0) {
+        throw new LoiApi(
+          409,
+          'COURT_HAS_FUTURE_BOOKINGS',
+          `Sân hiện đang có ${futureCount} đơn đặt trong tương lai, không thể chuyển đổi mục đích sử dụng sân`,
+          null,
+          { futureBookings: futureCount }
+        );
+      }
+    }
+
     const fields: string[] = [];
     const params: any[] = [];
 
@@ -199,7 +240,7 @@ export class QuanTriService {
     );
 
     if (res.affectedRows === 0) throw LoiApi.khongTimThay('Không tìm thấy sân');
-    return { success: true, message: 'Cập nhật sân thành công' };
+    return { success: true, message: 'Chuyển đổi mục đích sử dụng sân thành công' };
   }
 
   async doiTrangThaiSan(id: number, status: 'ACTIVE' | 'MAINTENANCE' | 'INACTIVE') {

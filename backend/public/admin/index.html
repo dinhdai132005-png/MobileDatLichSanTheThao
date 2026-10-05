@@ -591,10 +591,11 @@
           Đăng Nhập Vào Hệ Thống
         </button>
       </form>
-      <div style="margin-top: 20px; font-size: 12px; color: var(--text-muted); text-align: center;">Tài khoản kiểm thử nhanh:</div>
+      <div style="margin-top: 20px; font-size: 12px; color: var(--text-muted); text-align: center;">Bấm để điền nhanh tài khoản:</div>
       <div class="quick-acc">
-        <button class="quick-btn" onclick="fillQuickLogin('0900000001', 'admin123456')">👑 Admin</button>
-        <button class="quick-btn" onclick="fillQuickLogin('0911111111', '123456')">❌ Khách (Thử chặn BR-18)</button>
+        <button type="button" class="quick-btn" onclick="fillQuickLogin('0900000001', 'admin123456')">👑 Admin</button>
+        <button type="button" class="quick-btn" onclick="fillQuickLogin('0900000002', '123456')">👨‍💼 Nhân Viên</button>
+        <button type="button" class="quick-btn" onclick="fillQuickLogin('0911111111', '123456')">❌ Thử Khách (BR-18)</button>
       </div>
     </div>
   </div>
@@ -983,50 +984,56 @@
       <!-- TAB 8: COURTS & COURT TYPES (ADMIN) -->
       <section id="tab-courts" class="tab-content">
         <div class="section-header">
-          <h1 class="section-title">Quản Lý Loại Sân & Sân Thể Thao</h1>
+          <h1 class="section-title">🏛️ Quản Lý Mục Đích Sử Dụng & Vận Hành Sân (Theo Quy Hoạch Cơ Sở)</h1>
         </div>
 
-        <h3 style="margin-bottom: 10px; font-size: 15px;">Loại Sân (Bao gồm Khu sự kiện & tiệc - BR-30)</h3>
+        <!-- THÔNG BÁO QUY TẮC QUY HOẠCH NGHIỆP VỤ THEO GÓP Ý GIẢNG VIÊN -->
+        <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 24px;">
+          <div style="font-weight: 700; color: #60A5FA; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 16px;">ℹ️</span> <span>QUY HOẠCH HẠ TẦNG CỐ ĐỊNH & NGUYÊN TẮC VẬN HÀNH</span>
+          </div>
+          <p style="font-size: 13.5px; color: var(--text-muted); margin: 0; line-height: 1.6;">
+            Cơ sở thể thao được đầu tư xây dựng với số lượng vị trí sân cố định theo quy hoạch mặt bằng kiến trúc. Hệ thống <strong>không cho phép thêm mới hoặc xóa sân tùy tiện</strong>. Thay vào đó, Quản trị viên thực hiện <strong>Chuyển đổi mục đích sử dụng sân</strong> (chuyển đổi công năng giữa các bộ môn thể thao hoặc chuyển thành khu tổ chức sự kiện) và <strong>Điều chỉnh trạng thái vận hành / bảo trì</strong> (chặn chuyển đổi nếu còn đơn đặt trong tương lai theo quy tắc BR-05).
+          </p>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <h3 style="margin: 0; font-size: 16px; font-weight: 700;">Danh Sách Sân Cố Định Theo Quy Hoạch (Chuyển đổi công năng & Bảo trì)</h3>
+        </div>
+        <div class="table-container" style="margin-bottom: 32px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Vị Trí Sân</th>
+                <th>Tên Hiện Tại</th>
+                <th>Mục Đích Sử Dụng (Loại Sân)</th>
+                <th>Sức Chứa</th>
+                <th>Mô Tả Cơ Sở Vật Chất</th>
+                <th>Trạng Thái Vận Hành</th>
+                <th>Đổi Trạng Thái (BR-05)</th>
+                <th>Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody id="courts-tbody"></tbody>
+          </table>
+        </div>
+
+        <h3 style="margin-bottom: 10px; font-size: 16px; font-weight: 700;">Danh Mục Loại Sân & Phân Loại Bộ Môn (Cầu lông, Bóng đá, Tennis, Khu sự kiện...)</h3>
         <form onsubmit="taoLoaiSan(event)" style="display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
-          <input id="ls-ten" class="form-input" style="width:200px;" placeholder="Tên loại sân mới" required />
-          <select id="ls-phanloai" class="form-select" style="width:160px;">
-            <option value="SPORT">Thể thao (SPORT)</option>
-            <option value="EVENT">Khu sự kiện (EVENT)</option>
+          <input id="ls-ten" class="form-input" style="width:220px;" placeholder="Tên loại bộ môn (vd: Pickleball)" required />
+          <select id="ls-phanloai" class="form-select" style="width:180px;">
+            <option value="SPORT">Môn Thể Thao (SPORT)</option>
+            <option value="EVENT">Khu Sự Kiện / Tiệc (EVENT)</option>
           </select>
-          <input id="ls-mota" class="form-input" style="width:280px;" placeholder="Mô tả..." />
-          <button class="btn btn-primary" type="submit">➕ Thêm loại sân</button>
+          <input id="ls-mota" class="form-input" style="width:280px;" placeholder="Quy cách sân, tiêu chuẩn mặt sàn..." />
+          <button class="btn btn-primary" type="submit">➕ Bổ sung loại bộ môn</button>
         </form>
-        <div class="table-container" style="margin-bottom:28px;">
+        <div class="table-container">
           <table>
             <thead>
               <tr><th>ID</th><th>Tên Loại Sân</th><th>Phân Loại</th><th>Mô Tả</th><th>Trạng Thái</th><th>Thao Tác</th></tr>
             </thead>
             <tbody id="loai-san-tbody"></tbody>
-          </table>
-        </div>
-
-        <h3 style="margin-bottom: 10px; font-size: 15px;">Danh Sách Sân (Kiểm tra BR-05 khi đổi trạng thái)</h3>
-        <form onsubmit="taoSan(event)" style="display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
-          <select id="san-loai-chon" class="form-select" style="width:200px;" required></select>
-          <input id="san-ten" class="form-input" style="width:180px;" placeholder="Tên sân (vd: Sân 5A)" required />
-          <input id="san-suc-chua" type="number" class="form-input" style="width:140px;" placeholder="Sức chứa (người)" />
-          <input id="san-mota" class="form-input" style="width:240px;" placeholder="Mô tả..." />
-          <button class="btn btn-primary" type="submit">➕ Thêm sân</button>
-        </form>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Tên Sân</th>
-                <th>Loại Sân</th>
-                <th>Sức Chứa</th>
-                <th>Mô Tả</th>
-                <th>Trạng Thái</th>
-                <th>Đổi Trạng Thái (Kèm BR-05)</th>
-              </tr>
-            </thead>
-            <tbody id="courts-tbody"></tbody>
           </table>
         </div>
       </section>
@@ -1310,6 +1317,51 @@
         </div>
         <button type="submit" class="btn btn-danger" style="width: 100%; justify-content: center; padding: 12px; margin-top: 10px;">
           Xác Nhận Đóng Đơn Có Công Nợ
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CHUYỂN ĐỔI MỤC ĐÍCH SỬ DỤNG SÂN (REASSIGN COURT PURPOSE) -->
+  <div class="modal-overlay" id="modal-edit-court">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">🔄 Chuyển Đổi Mục Đích Sử Dụng Sân</h3>
+        <button class="btn-close" onclick="closeModal('modal-edit-court')">&times;</button>
+      </div>
+      <form id="form-edit-court" onsubmit="handleSaveReassignCourt(event)">
+        <input type="hidden" id="edit-court-id" />
+        <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 16px; font-size: 13px; color: #FCD34D;">
+          ⚠️ <strong>Ràng buộc toàn vẹn:</strong> Nếu đổi sang loại sân khác, sân không được có đơn đặt trong tương lai (BR-05 bảo vệ quyền lợi của khách hàng đã đặt).
+        </div>
+        <div class="form-group">
+          <label class="form-label">Vị Trí Sân Cố Định</label>
+          <input type="text" id="edit-court-position" class="form-input" readonly style="font-weight: 700; color: var(--text-muted); background: rgba(255,255,255,0.03);" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mục Đích Sử Dụng Mới (Loại Sân & Phân Loại)</label>
+          <select id="edit-court-type" class="form-select" required></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tên Hiển Thị Sân (Theo công năng mới)</label>
+          <input type="text" id="edit-court-name" class="form-input" placeholder="Ví dụ: Sân 3 (Pickleball)" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Sức Chứa Tối Đa (Người)</label>
+            <input type="number" id="edit-court-capacity" class="form-input" min="1" max="500" placeholder="Số lượng người..." />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Link Hình Ảnh (Nếu có)</label>
+            <input type="text" id="edit-court-image" class="form-input" placeholder="https://..." />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mô Tả Cơ Sở Vật Chất & Tiện Ích Mặt Bằng</label>
+          <textarea id="edit-court-desc" class="form-textarea" rows="3" placeholder="Mặt sàn tiêu chuẩn, hệ thống đèn LED, lưới, thông gió..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; margin-top: 10px;">
+          💾 Xác Nhận Chuyển Đổi Mục Đích Sử Dụng Sân
         </button>
       </form>
     </div>
