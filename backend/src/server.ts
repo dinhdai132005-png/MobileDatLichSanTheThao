@@ -7,9 +7,10 @@ import { khoiDongJobQuetHetHan, dungJobQuetHetHan } from './jobs/hethan-dondat.j
 
 const PORT = MOI_TRUONG.PORT;
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`[Máy chủ] Đang lắng nghe tại cổng http://localhost:${PORT}`);
   console.log(`[API V1] Base URL: http://localhost:${PORT}/api/v1`);
+  console.log(`[Mạng LAN] Base URL: http://0.0.0.0:${PORT}/api/v1`);
 
   // Khởi động job tự động quét đơn hết hạn (BR-07)
   khoiDongJobQuetHetHan(30000);
