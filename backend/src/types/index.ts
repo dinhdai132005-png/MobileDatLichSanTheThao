@@ -1,67 +1,44 @@
 // =====================================================================
-// KIỂU DỮ LIỆU DÙNG CHUNG — TIẾNG VIỆT KHÔNG DẤU
-// Tham chiếu: Plant/01-database.md & Chuẩn chuyên ngành IT
+// KIỂU DỮ LIỆU DÙNG CHUNG — giá trị enum giữ nguyên theo 01-database.md mục 6
 // =====================================================================
+export type VaiTro = 'CUSTOMER' | 'STAFF' | 'ADMIN';
+export type TrangThaiTaiKhoan = 'ACTIVE' | 'LOCKED';
 
-// Vai trò người dùng (Giữ nguyên chuẩn IT Enum)
-export type VaiTroNguoiDung = 'CUSTOMER' | 'STAFF' | 'ADMIN';
-export type TrangThaiNguoiDung = 'ACTIVE' | 'LOCKED';
-
-// Trạng thái sân và loại ngày
+export type DanhMucSan = 'SPORT' | 'EVENT';
 export type TrangThaiSan = 'ACTIVE' | 'MAINTENANCE' | 'INACTIVE';
 export type LoaiNgay = 'WEEKDAY' | 'WEEKEND';
 
-// Trạng thái vòng đời đơn đặt sân
-export type TrangThaiDonDat =
-  | 'PENDING'
-  | 'CONFIRMED'
-  | 'COMPLETED'
-  | 'CANCELLED'
-  | 'EXPIRED'
-  | 'NO_SHOW';
-
-// Phương thức & trạng thái thanh toán
+export type TrangThaiDon = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'EXPIRED' | 'NO_SHOW';
 export type PhuongThucThanhToan = 'CASH' | 'BANK_TRANSFER' | 'VNPAY';
-export type TrangThaiThanhToan = 'UNPAID' | 'PAID' | 'REFUNDED';
-export type NguonDonDat = 'APP' | 'STAFF';
+export type TrangThaiThanhToanDon = 'UNPAID' | 'PAID' | 'REFUNDED';
+export type NguonDon = 'APP' | 'STAFF';
 
 export type LoaiGiaoDich = 'PAYMENT' | 'REFUND';
+export type MucDichGiaoDich = 'COURT' | 'SERVICE';
 export type TrangThaiGiaoDich = 'PENDING' | 'SUCCESS' | 'FAILED';
 
-// Trạng thái khả dụng của từng khung giờ
-export type TrangThaiKhungGio =
-  | 'AVAILABLE'
-  | 'BOOKED'
-  | 'PAST'
-  | 'MAINTENANCE'
-  | 'NO_PRICE';
+export type LoaiDichVu = 'DRINK' | 'RENTAL' | 'PACKAGE';
+export type TrangThaiDichVu = 'ACTIVE' | 'OUT_OF_STOCK' | 'INACTIVE';
+export type TrangThaiYeuCauDichVu = 'REQUESTED' | 'DELIVERED' | 'CANCELLED';
 
-/** Thông tin người dùng đã xác thực gắn vào Request */
+export type TrangThaiKhungGio = 'AVAILABLE' | 'BOOKED' | 'PAST' | 'MAINTENANCE' | 'NO_PRICE';
+
+/** Người dùng đã xác thực, gắn vào req.user bởi middleware xacThuc */
 export interface NguoiDungXacThuc {
   id: number;
-  hoTen: string;
-  soDienThoai: string;
-  email?: string | null;
-  role: VaiTroNguoiDung;
-  status: TrangThaiNguoiDung;
+  fullName: string;
+  phone: string;
+  email: string | null;
+  role: VaiTro;
+  status: TrangThaiTaiKhoan;
 }
 
-// Alias tương thích chuẩn
-export type AuthUser = NguoiDungXacThuc;
-export type UserRole = VaiTroNguoiDung;
-export type UserStatus = TrangThaiNguoiDung;
-export type CourtStatus = TrangThaiSan;
-export type DayType = LoaiNgay;
-export type BookingStatus = TrangThaiDonDat;
-export type PaymentMethod = PhuongThucThanhToan;
-export type PaymentStatus = TrangThaiThanhToan;
-export type BookingSource = NguonDonDat;
-export type SlotAvailabilityStatus = TrangThaiKhungGio;
-
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       user?: NguoiDungXacThuc;
+      nguoiDung?: NguoiDungXacThuc;
     }
   }
 }

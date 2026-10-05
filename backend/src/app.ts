@@ -1,47 +1,40 @@
 // =====================================================================
-// EXPRESS APPLICATION — Tham chiếu: Plant/07-architecture.md & AGENT.md
-// Pattern: Route -> Controller -> Service -> DB
+// KHỞI TẠO EXPRESS APP — Cấu hình CORS, parser, routes và middleware lỗi
 // =====================================================================
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
+import { apiV1Router } from './routes';
+import { xuLyLoi } from './middlewares/loi.middleware';
+import { LoiApi } from './utils/loi';
+
 import path from 'path';
-import { ENV } from './config/env';
-import apiV1Router from './routes';
-import { errorHandler } from './middlewares/error.middleware';
-import { ok, sendError } from './utils/response';
 
-const app = express();
+export const app = express();
 
-// --- Middlewares chuẩn ---
-app.use(
-  cors({
-    origin: ENV.CORS_ORIGIN || '*',
-    credentials: true,
-  })
-);
+// Middleware cơ bản
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// --- Giao diện Web Admin tĩnh ---
+// Phục vụ giao diện Web Admin tĩnh (plant/05-pages-sitemap.md & plant/08-development-plan.md)
 app.use('/admin', express.static(path.join(__dirname, '../public/admin')));
 
-// --- T01: Health check endpoint ---
-app.get('/health', (_req, res) => {
-  return ok(res, { status: 'OK', timestamp: new Date().toISOString() }, 'Hệ thống hoạt động bình thường');
+// Health check endpoint
+app.get('/health', (_req: Request, res: Response) => {
+  res.json({
+    status: 'OK',
+    service: 'DatLichSanTheThao Backend',
+    timestamp: new Date().toISOString(),
+  });
 });
 
-// --- API Routes theo chuẩn Plant/06-api.md (Base URL: /api/v1) ---
+// Gắn toàn bộ REST API v1
 app.use('/api/v1', apiV1Router);
 
-// Hỗ trợ tương thích ngược /api -> /api/v1
-app.use('/api', apiV1Router);
-
-// --- 404 handler ---
-app.use((_req, res) => {
-  return sendError(res, 'Endpoint không tồn tại hoặc sai phương thức HTTP', 404, 'NOT_FOUND');
+// Bắt 404 cho các route không tồn tại
+app.use((_req: Request, _res: Response, next) => {
+  next(LoiApi.khongTimThay('Đường dẫn API không tồn tại'));
 });
 
-// --- Global error handler ---
-app.use(errorHandler);
-
-export default app;
+// Middleware xử lý lỗi toàn cục
+app.use(xuLyLoi);

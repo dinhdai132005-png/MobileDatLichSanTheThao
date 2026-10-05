@@ -1,26 +1,30 @@
 -- =====================================================================
 -- DỮ LIỆU MẪU (SEED): HỆ THỐNG QUẢN LÝ VÀ ĐẶT SÂN THỂ THAO
--- Tham chiếu: Plant/01-database.md mục 8 & Plant/08-development-plan.md Task T04
+-- Bảng và cột chuẩn hóa: TIẾNG VIỆT KHÔNG DẤU (snake_case)
+-- Mật khẩu mẫu cho nhân viên và khách: 123456
+-- Tài khoản ADMIN: chạy `npm run seed:admin`
 -- =====================================================================
 
 USE sport_booking;
 
--- 1. Xóa dữ liệu cũ theo thứ tự ràng buộc
 SET FOREIGN_KEY_CHECKS = 0;
-TRUNCATE TABLE reviews;
-TRUNCATE TABLE booking_status_logs;
-TRUNCATE TABLE payments;
-TRUNCATE TABLE booking_slots;
-TRUNCATE TABLE bookings;
-TRUNCATE TABLE slot_prices;
-TRUNCATE TABLE courts;
-TRUNCATE TABLE court_types;
-TRUNCATE TABLE time_slots;
-TRUNCATE TABLE users;
+TRUNCATE TABLE chi_tiet_yeu_cau_dich_vu;
+TRUNCATE TABLE yeu_cau_dich_vu;
+TRUNCATE TABLE dich_vu;
+TRUNCATE TABLE danh_gia;
+TRUNCATE TABLE nhat_ky_trang_thai_don;
+TRUNCATE TABLE thanh_toan;
+TRUNCATE TABLE chi_tiet_khung_gio_dat;
+TRUNCATE TABLE don_dat;
+TRUNCATE TABLE gia_khung_gio;
+TRUNCATE TABLE san;
+TRUNCATE TABLE loai_san;
+TRUNCATE TABLE khung_gio;
+TRUNCATE TABLE nguoi_dung;
 SET FOREIGN_KEY_CHECKS = 1;
 
--- 2. Khung giờ cố định 1 giờ (16 khung từ 06:00 đến 22:00)
-INSERT INTO time_slots (id, start_time, end_time, is_active) VALUES
+-- 1. Khung giờ cố định 1 giờ (16 khung: 06:00 -> 22:00)
+INSERT INTO khung_gio (id, gio_bat_dau, gio_ket_thuc, hoat_dong) VALUES
 (1,  '06:00:00', '07:00:00', 1),
 (2,  '07:00:00', '08:00:00', 1),
 (3,  '08:00:00', '09:00:00', 1),
@@ -38,52 +42,55 @@ INSERT INTO time_slots (id, start_time, end_time, is_active) VALUES
 (15, '20:00:00', '21:00:00', 1),
 (16, '21:00:00', '22:00:00', 1);
 
--- 3. Loại sân (4 loại phổ biến)
-INSERT INTO court_types (id, name, description, is_active) VALUES
-(1, 'Bóng đá mini 5 người', 'Mặt cỏ nhân tạo tiêu chuẩn FIFA, có dàn đèn chiếu sáng ban đêm hiện đại.', 1),
-(2, 'Cầu lông', 'Thảm PVC chống trơn trượt chuyên nghiệp, độ nảy chuẩn thi đấu.', 1),
-(3, 'Tennis', 'Sân cứng tiêu chuẩn US Open, mặt sân phủ sơn Acrylic cao cấp.', 1),
-(4, 'Pickleball', 'Mặt sân đệm giảm chấn thương, hệ thống lưới và đèn đạt chuẩn quốc tế.', 1);
+-- 2. Loại sân (4 loại thể thao + 1 khu sự kiện/tiệc, BR-30)
+INSERT INTO loai_san (id, ten, phan_loai, mo_ta, hoat_dong) VALUES
+(1, 'Bóng đá mini 5 người', 'SPORT', 'Mặt cỏ nhân tạo tiêu chuẩn, có hệ thống đèn chiếu sáng ban đêm.', 1),
+(2, 'Cầu lông', 'SPORT', 'Thảm PVC chống trơn trượt, độ nảy chuẩn thi đấu.', 1),
+(3, 'Tennis', 'SPORT', 'Sân cứng tiêu chuẩn, mặt sân phủ sơn Acrylic cao cấp.', 1),
+(4, 'Pickleball', 'SPORT', 'Mặt sân đệm giảm chấn thương, hệ thống lưới và đèn đạt chuẩn.', 1),
+(5, 'Khu sự kiện & tiệc', 'EVENT', 'Phòng tiệc, khu BBQ dùng cho sinh nhật, họp mặt, team building.', 1);
 
--- 4. Danh sách các sân
-INSERT INTO courts (id, court_type_id, name, description, image_url, status) VALUES
-(1, 1, 'Sân Bóng 5A', 'Sân ngoài trời gần cổng chính, mái che phụ bên lề.', 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=600&q=80', 'ACTIVE'),
-(2, 1, 'Sân Bóng 5B', 'Sân cạnh khu dịch vụ căng-tin, hệ thống thoát nước ngầm.', 'https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&w=600&q=80', 'ACTIVE'),
-(3, 2, 'Sân Cầu Lông 1', 'Sân số 1 trong nhà thi đấu có máy lạnh.', 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=600&q=80', 'ACTIVE'),
-(4, 2, 'Sân Cầu Lông 2', 'Sân số 2 thảm chuẩn, khoảng cách biên rộng.', 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=600&q=80', 'ACTIVE'),
-(5, 2, 'Sân Cầu Lông 3', 'Sân số 3 nhà thi đấu, ánh sáng chống chói.', 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=600&q=80', 'ACTIVE'),
-(6, 3, 'Sân Tennis 1', 'Sân tennis có khán đài mini, đèn LED 1000W.', 'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=600&q=80', 'ACTIVE'),
-(7, 4, 'Sân Pickleball 1', 'Sân pickleball ngoài trời có mái che nắng.', 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=600&q=80', 'ACTIVE');
+-- 3. Danh sách sân
+INSERT INTO san (id, loai_san_id, ten, mo_ta, hinh_anh, suc_chua, trang_thai) VALUES
+(1, 1, 'Sân 5A', 'Sân ngoài trời gần cổng chính, có mái che phụ bên lề.', 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=600&q=80', NULL, 'ACTIVE'),
+(2, 1, 'Sân 5B', 'Sân cạnh khu căng-tin, hệ thống thoát nước ngầm.', 'https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&w=600&q=80', NULL, 'ACTIVE'),
+(3, 2, 'Sân CL1', 'Sân số 1 trong nhà thi đấu có máy lạnh.', 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=600&q=80', NULL, 'ACTIVE'),
+(4, 2, 'Sân CL2', 'Sân số 2 thảm chuẩn, khoảng cách biên rộng.', 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=600&q=80', NULL, 'ACTIVE'),
+(5, 2, 'Sân CL3', 'Sân số 3 nhà thi đấu, ánh sáng chống chói.', 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=600&q=80', NULL, 'ACTIVE'),
+(6, 3, 'Sân Tennis 1', 'Sân tennis có khán đài mini, đèn LED.', 'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=600&q=80', NULL, 'ACTIVE'),
+(7, 4, 'Sân Pickleball 1', 'Sân pickleball ngoài trời có mái che nắng.', 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=600&q=80', NULL, 'ACTIVE'),
+(8, 5, 'Phòng tiệc A', 'Phòng tiệc máy lạnh, âm thanh, bàn ghế cho tối đa 30 khách.', 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=600&q=80', 30, 'ACTIVE'),
+(9, 5, 'Khu BBQ ngoài trời', 'Khu nướng BBQ ngoài trời, có mái che và đèn trang trí.', 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=600&q=80', 50, 'ACTIVE');
 
--- 5. Bảng giá slot_prices: mỗi loại sân x 16 khung giờ x 2 loại ngày (WEEKDAY, WEEKEND)
--- Giờ cao điểm: 17:00 - 21:00 (slot 12, 13, 14, 15)
--- Giá tham chiếu:
--- Bóng đá: Ngày thường: 180k (thường) / 250k (cao điểm). Cuối tuần: 220k (thường) / 300k (cao điểm).
--- Cầu lông: Ngày thường: 80k (thường) / 120k (cao điểm). Cuối tuần: 100k (thường) / 140k (cao điểm).
--- Tennis: Ngày thường: 200k (thường) / 280k (cao điểm). Cuối tuần: 250k (thường) / 350k (cao điểm).
--- Pickleball: Ngày thường: 120k (thường) / 160k (cao điểm). Cuối tuần: 150k (thường) / 200k (cao điểm).
+-- 4. Bảng giá: mỗi loại sân x 16 khung x 2 day_type. Giờ cao điểm: 17:00-21:00 (slot 12..15)
+INSERT INTO gia_khung_gio (loai_san_id, khung_gio_id, loai_ngay, gia)
+SELECT 1, id, 'WEEKDAY', CASE WHEN id IN (12,13,14,15) THEN 250000 ELSE 180000 END FROM khung_gio
+UNION ALL SELECT 1, id, 'WEEKEND', CASE WHEN id IN (12,13,14,15) THEN 300000 ELSE 220000 END FROM khung_gio
+UNION ALL SELECT 2, id, 'WEEKDAY', CASE WHEN id IN (12,13,14,15) THEN 120000 ELSE 80000 END FROM khung_gio
+UNION ALL SELECT 2, id, 'WEEKEND', CASE WHEN id IN (12,13,14,15) THEN 140000 ELSE 100000 END FROM khung_gio
+UNION ALL SELECT 3, id, 'WEEKDAY', CASE WHEN id IN (12,13,14,15) THEN 280000 ELSE 200000 END FROM khung_gio
+UNION ALL SELECT 3, id, 'WEEKEND', CASE WHEN id IN (12,13,14,15) THEN 350000 ELSE 250000 END FROM khung_gio
+UNION ALL SELECT 4, id, 'WEEKDAY', CASE WHEN id IN (12,13,14,15) THEN 160000 ELSE 120000 END FROM khung_gio
+UNION ALL SELECT 4, id, 'WEEKEND', CASE WHEN id IN (12,13,14,15) THEN 200000 ELSE 150000 END FROM khung_gio
+UNION ALL SELECT 5, id, 'WEEKDAY', CASE WHEN id IN (12,13,14,15) THEN 500000 ELSE 350000 END FROM khung_gio
+UNION ALL SELECT 5, id, 'WEEKEND', CASE WHEN id IN (12,13,14,15) THEN 650000 ELSE 450000 END FROM khung_gio;
 
-INSERT INTO slot_prices (court_type_id, time_slot_id, day_type, price)
-SELECT 1, id, 'WEEKDAY', CASE WHEN id IN (12,13,14,15) THEN 250000 ELSE 180000 END FROM time_slots
-UNION ALL
-SELECT 1, id, 'WEEKEND', CASE WHEN id IN (12,13,14,15) THEN 300000 ELSE 220000 END FROM time_slots
-UNION ALL
-SELECT 2, id, 'WEEKDAY', CASE WHEN id IN (12,13,14,15) THEN 120000 ELSE 80000 END FROM time_slots
-UNION ALL
-SELECT 2, id, 'WEEKEND', CASE WHEN id IN (12,13,14,15) THEN 140000 ELSE 100000 END FROM time_slots
-UNION ALL
-SELECT 3, id, 'WEEKDAY', CASE WHEN id IN (12,13,14,15) THEN 280000 ELSE 200000 END FROM time_slots
-UNION ALL
-SELECT 3, id, 'WEEKEND', CASE WHEN id IN (12,13,14,15) THEN 350000 ELSE 250000 END FROM time_slots
-UNION ALL
-SELECT 4, id, 'WEEKDAY', CASE WHEN id IN (12,13,14,15) THEN 160000 ELSE 120000 END FROM time_slots
-UNION ALL
-SELECT 4, id, 'WEEKEND', CASE WHEN id IN (12,13,14,15) THEN 200000 ELSE 150000 END FROM time_slots;
+-- 5. Danh mục dịch vụ (DRINK / RENTAL / PACKAGE)
+INSERT INTO dich_vu (id, ten, phan_loai, don_vi_tinh, don_gia, mo_ta, hinh_anh, trang_thai) VALUES
+(1,  'Nước suối',            'DRINK',   'chai', 10000, 'Chai 500ml', NULL, 'ACTIVE'),
+(2,  'Nước tăng lực',        'DRINK',   'lon',  20000, 'Lon 330ml', NULL, 'ACTIVE'),
+(3,  'Trà đá',               'DRINK',   'ly',    8000, 'Ly lớn', NULL, 'ACTIVE'),
+(4,  'Bia lon',              'DRINK',   'lon',  25000, 'Lon 330ml', NULL, 'ACTIVE'),
+(5,  'Thuê vợt cầu lông',    'RENTAL',  'cây',  30000, 'Tính một lần theo buổi', NULL, 'ACTIVE'),
+(6,  'Thuê giày',            'RENTAL',  'đôi',  40000, 'Tính một lần theo buổi', NULL, 'ACTIVE'),
+(7,  'Thuê bóng',            'RENTAL',  'quả',  30000, 'Tính một lần theo buổi', NULL, 'ACTIVE'),
+(8,  'Áo bib',               'RENTAL',  'cái',  10000, 'Tính một lần theo buổi', NULL, 'ACTIVE'),
+(9,  'Gói tiệc nước 10 người','PACKAGE', 'gói', 300000, 'Nước ngọt, trà đá, nước suối cho 10 người', NULL, 'ACTIVE'),
+(10, 'Gói BBQ 10 người',     'PACKAGE', 'gói', 1200000, 'Thịt nướng, rau củ, đồ uống cho 10 người', NULL, 'ACTIVE'),
+(11, 'Trang trí sinh nhật',  'PACKAGE', 'gói', 500000, 'Bóng bay, banner, bàn tiệc', NULL, 'ACTIVE');
 
--- 6. Mẫu người dùng (mật khẩu bcrypt mặc định: '123456' -> $2b$10$wN010l70qB6p4K7Dk8g6veW44d284QZ3s6mE.L9F1d8H2gN3qN9eS hoặc hash tương đương)
--- Mật khẩu thật của Admin sẽ được sinh bằng script seed:admin theo file .env
-INSERT INTO users (id, full_name, phone, email, password_hash, role, status) VALUES
-(1, 'Quản Trị Viên Hệ Thống', '0900000001', 'admin@sportbooking.vn', '$2a$10$iI8g5o3Wz0B60Pfx7bJgNu4sMv1r51H4qV1tCqX7d4kU2qA8g0L2W', 'ADMIN', 'ACTIVE'),
-(2, 'Nguyễn Văn Nhân Viên', '0900000002', 'staff@sportbooking.vn', '$2a$10$iI8g5o3Wz0B60Pfx7bJgNu4sMv1r51H4qV1tCqX7d4kU2qA8g0L2W', 'STAFF', 'ACTIVE'),
-(3, 'Trần Khách Hàng A', '0911111111', 'khach_a@gmail.com', '$2a$10$iI8g5o3Wz0B60Pfx7bJgNu4sMv1r51H4qV1tCqX7d4kU2qA8g0L2W', 'CUSTOMER', 'ACTIVE'),
-(4, 'Lê Khách Hàng B', '0922222222', 'khach_b@gmail.com', '$2a$10$iI8g5o3Wz0B60Pfx7bJgNu4sMv1r51H4qV1tCqX7d4kU2qA8g0L2W', 'CUSTOMER', 'ACTIVE');
+-- 6. Người dùng mẫu (Mật khẩu: 123456)
+INSERT INTO nguoi_dung (id, ho_ten, so_dien_thoai, email, mat_khau_hash, vai_tro, trang_thai) VALUES
+(2, 'Nguyễn Văn Nhân Viên', '0900000002', 'staff@sportbooking.vn', '$2b$10$ekRWDm2FiINV0o1EKLPOYO.1dEriRVNCRZSPWs2fmkRnRvGP8kFKK', 'STAFF', 'ACTIVE'),
+(3, 'Trần Khách Hàng A', '0911111111', 'khach_a@gmail.com', '$2b$10$ekRWDm2FiINV0o1EKLPOYO.1dEriRVNCRZSPWs2fmkRnRvGP8kFKK', 'CUSTOMER', 'ACTIVE'),
+(4, 'Lê Khách Hàng B', '0922222222', 'khach_b@gmail.com', '$2b$10$ekRWDm2FiINV0o1EKLPOYO.1dEriRVNCRZSPWs2fmkRnRvGP8kFKK', 'CUSTOMER', 'ACTIVE');

@@ -1,50 +1,29 @@
 // =====================================================================
-// SERVER ENTRY POINT — Tham chiếu: Plant/07-architecture.md mục 3.1
-// Khởi động HTTP Server và Background Job hết hạn giữ chỗ (SYS-01)
+// SERVER ENTRY POINT — Lắng nghe HTTP và quản lý vòng đời ứng dụng
 // =====================================================================
-import http from 'http';
-import app from './app';
-import { ENV } from './config/env';
-import { testDbConnection } from './config/db';
-import { startExpireBookingsJob, stopExpireBookingsJob } from './jobs/expire-bookings.job';
-import { initSocket } from './socket';
+import { app } from './app';
+import { MOI_TRUONG } from './config/moitruong';
+import { khoiDongJobQuetHetHan, dungJobQuetHetHan } from './jobs/hethan-dondat.job';
 
-async function bootstrap() {
-  try {
-    // 1. Kiểm tra kết nối MySQL
-    await testDbConnection();
+const PORT = MOI_TRUONG.PORT;
 
-    // 2. Khởi động background job hết hạn giữ chỗ (BR-07)
-    startExpireBookingsJob();
+const server = app.listen(PORT, () => {
+  console.log(`[Máy chủ] Đang lắng nghe tại cổng http://localhost:${PORT}`);
+  console.log(`[API V1] Base URL: http://localhost:${PORT}/api/v1`);
 
-    // 3. Khởi tạo HTTP Server & gắn Socket.io Gateway
-    const httpServer = http.createServer(app);
-    initSocket(httpServer);
+  // Khởi động job tự động quét đơn hết hạn (BR-07)
+  khoiDongJobQuetHetHan(30000);
+});
 
-    httpServer.listen(ENV.PORT, () => {
-      console.log(`🚀 [Server] Backend đang chạy tại: http://localhost:${ENV.PORT}`);
-      console.log(`📍 [Health] Kiểm tra trạng thái: http://localhost:${ENV.PORT}/health`);
-      console.log(`📡 [API v1] Base URL: http://localhost:${ENV.PORT}/api/v1`);
-      console.log(`⚙️ [Admin UI] Trang quản trị: http://localhost:${ENV.PORT}/admin`);
-      console.log(`⚡ [Socket.io] Gateway WebSocket đã sẵn sàng`);
-    });
-
-    // Xử lý dừng máy chủ an toàn
-    const gracefulShutdown = () => {
-      console.log('\n🛑 [Server] Đang đóng các kết nối và dừng dịch vụ...');
-      stopExpireBookingsJob();
-      httpServer.close(() => {
-        console.log('👋 [Server] Đã dừng server hoàn tất');
-        process.exit(0);
-      });
-    };
-
-    process.on('SIGINT', gracefulShutdown);
-    process.on('SIGTERM', gracefulShutdown);
-  } catch (error) {
-    console.error('💥 [Server Bootstrap Error] Không thể khởi động server:', error);
-    process.exit(1);
-  }
+// Xử lý dừng máy chủ an toàn
+function dungMayChu(tinHieu: string) {
+  console.log(`\n[Máy chủ] Nhận tín hiệu ${tinHieu}, đang đóng các kết nối...`);
+  dungJobQuetHetHan();
+  server.close(() => {
+    console.log('[Máy chủ] Đã đóng máy chủ an toàn.');
+    process.exit(0);
+  });
 }
 
-bootstrap();
+process.on('SIGINT', () => dungMayChu('SIGINT'));
+process.on('SIGTERM', () => dungMayChu('SIGTERM'));

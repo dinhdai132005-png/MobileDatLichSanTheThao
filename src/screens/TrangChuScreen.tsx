@@ -103,6 +103,28 @@ export default function TrangChuScreen({ navigation }: Props) {
             ))}
           </ScrollView>
 
+          {/* KHU SỰ KIỆN & TIỆC — BR-30 / Task T28A */}
+          <TouchableOpacity
+            style={styles.bannerSuKien}
+            onPress={() => navigation.navigate('DanhSachSanTab', { category: 'EVENT' })}
+          >
+            <View style={styles.thongTinBanner}>
+              <View style={styles.badgeSuKien}>
+                <Text style={styles.chuBadgeSuKien}>MỚI • PHÒNG TIỆC & BBQ</Text>
+              </View>
+              <Text style={styles.tieuDeBanner}>Khu Sự Kiện & Tiệc Sinh Nhật</Text>
+              <Text style={styles.moTaBanner}>
+                Không gian tổ chức giải đấu, giao lưu thể thao, phòng tiệc BBQ riêng tư đầy đủ tiện nghi
+              </Text>
+              <View style={styles.nutKhamPha}>
+                <Text style={styles.chuKhamPha}>Xem các khu sự kiện →</Text>
+              </View>
+            </View>
+            <View style={styles.iconBanner}>
+              <Text style={{ fontSize: 44 }}>🎉</Text>
+            </View>
+          </TouchableOpacity>
+
           {/* SÂN CÒN TRỐNG HÔM NAY */}
           <View style={styles.hangTieuDe}>
             <Text style={styles.tieuDeMuc}>Sân còn trống hôm nay</Text>
@@ -193,4 +215,30 @@ const styles = StyleSheet.create({
   hangDuoi: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   danhGia: { fontSize: 12, color: MAU.chu, fontWeight: '500' },
   giaTien: { fontSize: 14, fontWeight: '700', color: MAU.chinh },
+  bannerSuKien: {
+    flexDirection: 'row',
+    backgroundColor: '#312E81',
+    marginHorizontal: 16,
+    marginTop: 20,
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    overflow: 'hidden',
+  },
+  thongTinBanner: { flex: 1, paddingRight: 10 },
+  badgeSuKien: {
+    backgroundColor: '#4F46E5',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginBottom: 6,
+  },
+  chuBadgeSuKien: { fontSize: 10, fontWeight: '800', color: '#EEF2FF', letterSpacing: 0.5 },
+  tieuDeBanner: { fontSize: 15, fontWeight: '800', color: '#FFFFFF', marginBottom: 4 },
+  moTaBanner: { fontSize: 11, color: '#C7D2FE', lineHeight: 15, marginBottom: 8 },
+  nutKhamPha: { alignSelf: 'flex-start' },
+  chuKhamPha: { fontSize: 12, fontWeight: '700', color: '#FCD34D' },
+  iconBanner: { width: 50, alignItems: 'center', justifyContent: 'center' },
 });

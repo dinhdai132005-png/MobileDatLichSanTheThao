@@ -32,6 +32,12 @@ export function mapBackendDonDatToMobile(dongRaw: any): DonDat {
 
   const gioBatDau = (dongRaw.gioBatDau || dongRaw.startTime || dongRaw.gioDat || '08:00').substring(0, 5);
 
+  const courtAmount = Number(dongRaw.courtAmount ?? dongRaw.tienSan ?? dongRaw.tongTien ?? 0);
+  const serviceAmount = Number(dongRaw.serviceAmount ?? dongRaw.tienDichVu ?? 0);
+  const grandTotal = dongRaw.grandTotal !== undefined
+    ? Number(dongRaw.grandTotal)
+    : (courtAmount + serviceAmount > 0 ? courtAmount + serviceAmount : Number(dongRaw.tongTien ?? 80000));
+
   return {
     id: String(dongRaw.id || dongRaw.maDonDat || dongRaw.bookingCode),
     maDonDat: String(dongRaw.maDonDat || dongRaw.bookingCode || dongRaw.id),
@@ -42,7 +48,16 @@ export function mapBackendDonDatToMobile(dongRaw: any): DonDat {
     ngayDat: ngayDatDinhDang || new Date().toISOString().split('T')[0],
     gioDat: gioBatDau,
     soGioThue: Number(dongRaw.soGioThue) || 1,
-    tongTien: Number(dongRaw.tongTien ?? dongRaw.totalAmount ?? 80000),
+    tongTien: grandTotal,
+    tienSan: courtAmount,
+    tienDichVu: serviceAmount,
+    courtAmount,
+    serviceAmount,
+    grandTotal,
+    balance: Number(dongRaw.balance ?? 0),
+    paidAmount: Number(dongRaw.paidAmount ?? 0),
+    canOrderService: Boolean(dongRaw.canOrderService),
+    refundPending: Boolean(dongRaw.refundPending),
     trangThai: trangThaiDon,
     trangThaiGoc: trangThaiBackend,
     trangThaiThanhToan: dongRaw.trangThaiThanhToan || dongRaw.paymentStatus || 'UNPAID',
@@ -132,10 +147,15 @@ export const donDatService = {
     return mapBackendDonDatToMobile(ketQua);
   },
 
-  /** Hủy đơn đặt sân (CUS-09) */
-  async huyDonDat(donDatId: string, lyDoHuy: string = 'Khách hàng tự hủy trên ứng dụng'): Promise<boolean> {
+  /** Hủy đơn đặt sân (CUS-09, BR-09, BR-34, TC-60) */
+  async huyDonDat(donDatId: string, lyDoHuy: string = 'Khách hàng tự hủy trên ứng dụng', refundInfo?: string): Promise<boolean> {
     await requestApi<any>(
-      apiClient.post<ApiResponse<any>>(`/bookings/${donDatId}/cancel`, { lyDoHuy, reason: lyDoHuy })
+      apiClient.post<ApiResponse<any>>(`/bookings/${donDatId}/cancel`, {
+        lyDoHuy,
+        reason: lyDoHuy,
+        refundInfo: refundInfo || undefined,
+        thongTinHoanTien: refundInfo || undefined,
+      })
     );
     return true;
   },

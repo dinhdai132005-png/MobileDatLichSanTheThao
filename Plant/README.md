@@ -1,6 +1,6 @@
 # HỆ THỐNG QUẢN LÝ VÀ ĐẶT SÂN THỂ THAO
 
-> Tài liệu nguồn tham chiếu (single source of truth) cho toàn bộ project.
+> Tài liệu nguồn tham chiếu (single source of truth) cho toàn bộ project. **Phiên bản 1.2** (xem mục 8 Lịch sử thay đổi).
 > Đối tượng đọc: sinh viên (chủ đồ án), giảng viên, và **công cụ AI được giao code**.
 
 ---
@@ -30,6 +30,8 @@ Một đơn vị vận hành **một cơ sở thể thao có nhiều sân** (bó
 - **Nhân viên** dùng **Web** để điều hành hằng ngày: xem lịch sân, đặt sân tại quầy hoặc qua điện thoại, ghi nhận thanh toán, hoàn thành hoặc đánh dấu vắng mặt, xử lý hủy và hoàn tiền.
 - **Quản trị viên** dùng **Web** để cấu hình (loại sân, sân, khung giờ, bảng giá, tài khoản nhân viên) và xem báo cáo.
 
+**Dịch vụ phát sinh (góp ý giảng viên):** trong buổi chơi, khách gọi **đồ uống, thuê đồ (vợt, giày...) hoặc gói tiệc** ngay trên app; **nhân viên mang ra**; khi khách trả đồ và ra về, các khoản đã giao được **cộng vào hóa đơn** và nhân viên thu tiền tại quầy. **Khu tổ chức sự kiện/tiệc** (phòng tiệc, khu BBQ) được đặt theo giờ như sân thể thao và thu thêm phí thuê khu vực.
+
 Mô hình đặt sân: **khung giờ cố định 1 giờ**, giá theo **loại sân × khung giờ × (ngày thường/cuối tuần)**, thanh toán **tại sân (tiền mặt)** hoặc **chuyển khoản có nhân viên xác nhận**. VNPay sandbox là phần mở rộng (P2).
 
 ## 2. Actor / Role (ĐỀ XUẤT)
@@ -58,8 +60,9 @@ Mô hình đặt sân: **khung giờ cố định 1 giờ**, giá theo **loại 
 | `08-development-plan.md` | **Danh sách task có thứ tự cho AI**, tiêu chí nghiệm thu, test case | Lập kế hoạch và giao việc |
 | `09-defense-guide.md` | Kịch bản demo, câu hỏi giảng viên và đáp án | Chuẩn bị bảo vệ |
 | `10-sync-check.md` | Ma trận truy vết, kiểm tra đồng bộ, câu hỏi còn mở | Review và kiểm tra |
+| `11-end-to-end-flows.md` | **Luồng liền mạch Mobile ↔ API ↔ DB ↔ Web**: 9 kịch bản E2E, ma trận bàn giao, điểm lệch đã sửa | Nghiệm thu, demo, hiểu hệ thống chạy trọn vẹn |
 
-**Thứ tự đọc cho AI:** `README` → `AGENT` → `03` → `01` → `06` → `04` → `05` → `07` → `08`.
+**Thứ tự đọc cho AI:** `README` → `AGENT` → `03` → `01` → `06` → `04` → `05` → `07` → `11` (để hiểu bức tranh liền mạch) → `08`.
 
 **Ghi chú về tên file:** file `06-css-rules.md` trong danh sách cũ được gộp thành mục "Quy ước giao diện" trong `05-pages-sitemap.md` (nội dung ngắn, không đáng một file riêng). `02-class-diagram.md` được mở rộng thành `02-uml-diagrams.md` để chứa đủ các loại sơ đồ.
 
@@ -88,8 +91,9 @@ Mobile và Web dùng **chung một Backend**.
 | Mức | Ý nghĩa | Nội dung |
 |---|---|---|
 | **P0** | Bắt buộc, không có là hỏng đồ án | Đăng ký, đăng nhập, danh mục sân, lịch trống, đặt sân (chống trùng), hết hạn giữ chỗ, thanh toán tiền mặt hoặc chuyển khoản, hủy, hoàn tiền, lịch sân cho nhân viên, đặt tại quầy, hoàn thành hoặc no-show, CRUD cấu hình của admin |
+| **P1★** | Theo góp ý giảng viên, nên làm ngay sau P0 | **Dịch vụ phát sinh:** danh mục dịch vụ (đồ uống, thuê đồ, gói tiệc), khách gọi dịch vụ trên app, nhân viên giao và nhận lại đồ thuê, hóa đơn, thu tiền dịch vụ; **khu sự kiện/tiệc** |
 | **P1** | Nên có nếu còn thời gian | Đánh giá sân, báo cáo doanh thu và tỷ lệ lấp đầy, quản lý khách hàng (khóa/mở), tra cứu khách, nhật ký trạng thái booking |
-| **P2** | Tùy chọn | VNPay sandbox, dịch vụ đi kèm (thuê vợt, nước), thông báo trong app |
+| **P2** | Tùy chọn | VNPay sandbox, thông báo trong app |
 
 ## 6. Các quyết định thiết kế chính (và lý do)
 
@@ -108,6 +112,13 @@ Mobile và Web dùng **chung một Backend**.
 | D11 | Không xóa cứng, chỉ vô hiệu hóa | Giữ lịch sử và toàn vẹn khóa ngoại |
 | D12 | Có `booking_status_logs` | Truy vết ai đổi trạng thái lúc nào, giải quyết tranh chấp |
 | D13 | Tiền lưu `INT UNSIGNED` (VND, không có phần lẻ) | `DECIMAL` trả về string trong `mysql2`, dễ lỗi |
+| D14 | **Dịch vụ phát sinh gắn với đơn sân** qua `service_orders` / `service_order_items`, vòng đời `REQUESTED → DELIVERED / CANCELLED` | Khớp quy trình thực tế: khách gọi, nhân viên mang ra, tính tiền khi giao |
+| D15 | **Hóa đơn không phải bảng riêng**: `grandTotal = court_amount + service_amount`, tính khi đọc từ dữ liệu có sẵn | Tránh dữ liệu trùng lặp, luôn khớp với `payments` |
+| D16 | Chỉ yêu cầu **đã giao** mới tính tiền; tiền dịch vụ **thu tại quầy**, có thể thu nhiều lần; tiền sân vẫn thu như cũ | Giữ nguyên quy tắc tiền sân (BR-11), không xung đột với việc gọi thêm đồ sau khi đã trả sân |
+| D17 | **Khu sự kiện/tiệc = loại sân `category = EVENT`**, không làm module riêng; phần ăn uống = dịch vụ `PACKAGE`/`DRINK` | Dùng lại toàn bộ cơ chế khung giờ, giá, chống trùng, thanh toán, hủy; thu thêm phí mà không thêm bảng đặt chỗ mới |
+| D18 | **Không quản lý tồn kho**, thuê đồ tính **một lần theo buổi**, nhân viên bật tắt "tạm hết hàng" | Giữ phạm vi vừa đủ; đền bù mất/hỏng xử lý ngoài hệ thống |
+| D19 | **Đóng đơn có công nợ** do ADMIN thực hiện, không xóa nợ bằng cách tạo `payments` giả | Không có lối này, đơn đã giao dịch vụ mà khách bỏ đi sẽ kẹt `CONFIRMED` vĩnh viễn; giữ nguyên số liệu doanh thu thật |
+| D20 | **Không realtime**: tự làm mới 30 giây ở cả Mobile và Web; server là nguồn sự thật | Đủ liền mạch cho nghiệp vụ sân, tránh WebSocket |
 
 ## 7. Thuật ngữ
 
@@ -117,6 +128,19 @@ Mobile và Web dùng **chung một Backend**.
 | Court type / Loại sân | Môn hoặc loại (VD: "Bóng đá mini 5 người") |
 | Time slot / Khung giờ | Một khoảng 1 giờ cố định (VD: 18:00–19:00) |
 | Booking / Đơn đặt sân | Một lần đặt gồm 1–3 khung giờ liền kề của một sân trong một ngày |
+| Dịch vụ phát sinh | Đồ uống, thuê đồ hoặc gói tiệc khách gọi trong lúc sử dụng sân; tính vào hóa đơn khi đã giao |
+| Yêu cầu dịch vụ (service order) | Một lần gọi dịch vụ gồm nhiều dòng, gắn với một đơn sân |
+| Hóa đơn | Tiền sân + tiền dịch vụ đã giao, tính khi đọc (không lưu thành bảng) |
+| Đóng đơn có công nợ | Thao tác của ADMIN khi khách đã dùng dịch vụ/sân nhưng bỏ đi không trả đủ; đơn thành `COMPLETED`, ghi nợ, không tạo `payments` |
+| Khu sự kiện/tiệc | Loại sân đặc biệt (`category = EVENT`) như phòng tiệc, khu BBQ, đặt theo giờ |
 | Walk-in | Khách đặt tại quầy hoặc qua điện thoại do nhân viên nhập |
 | Giữ chỗ (hold) | Thời gian đơn `PENDING` được giữ slot chờ thanh toán |
 | No-show | Khách đã đặt nhưng không đến |
+
+## 8. Lịch sử thay đổi
+
+| Phiên bản | Nội dung |
+|---|---|
+| 1.0 | Bộ tài liệu đầu tiên: đặt sân, thanh toán tiền sân, hủy/hoàn tiền, vận hành bởi nhân viên, báo cáo |
+| 1.1 | **Theo góp ý giảng viên:** thêm dịch vụ phát sinh (khách gọi đồ uống/thuê đồ/gói tiệc trên app, nhân viên mang ra, tính vào hóa đơn khi trả đồ), khu tổ chức sự kiện/tiệc, hóa đơn. Thay đổi: bảng `services`, `service_orders`, `service_order_items` (thay `booking_services` P2); `bookings.total_amount` đổi tên thành `court_amount` và thêm `service_amount`; `payments.purpose`; `court_types.category`, `courts.capacity`; quy tắc BR-12 cập nhật, thêm BR-23..BR-32; thêm CUS-11..13, STF-11..15, ADM-08; mốc M3B; test case TC-41..TC-59 |
+| 1.2 | **Rà luồng liền mạch Mobile–Web (mô phỏng hành trình + đối chiếu API/màn hình):** thêm `11-end-to-end-flows.md`; sửa 8 điểm lệch: **đóng đơn có công nợ** (ADM-09, BR-33; cột `bookings.closed_with_debt`) để đơn không kẹt khi khách bỏ đi không trả; **`refundInfo`** khi hủy đơn đã trả (BR-34); `GET /staff/courts/:id/availability` cho quy tắc nhân viên; tìm khách theo SĐT chuyển sang P0; đặt lại mật khẩu khách; widget **đơn quá giờ** + `overdue=true`; **tự làm mới 30 giây** ở hai nền tảng; bổ sung seed dịch vụ và khu sự kiện. Thêm TC-60..TC-66 và task T18F |

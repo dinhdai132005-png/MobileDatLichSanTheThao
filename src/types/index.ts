@@ -6,14 +6,16 @@
 export type RootStackParamList = {
   DangNhap: undefined;
   TrangChuMain: undefined;
-  DanhSachSanMain: undefined;
+  DanhSachSanMain: { category?: 'SPORT' | 'EVENT' } | undefined;
   ChiTietSan: { san: San };
   DatLich: { san: San; ngay: string; gio: string };
   LichDatMain: undefined;
   ChiTietDonDat: { donDatId: string; donDat?: DonDat };
+  GoiDichVu: { donDatId: string; donDat?: DonDat };
+  HoaDon: { donDatId: string; donDat?: DonDat };
   HoSoMain: undefined;
   TrangChuTab: undefined;
-  DanhSachSanTab: undefined;
+  DanhSachSanTab: { category?: 'SPORT' | 'EVENT' } | undefined;
   LichDatTab: undefined;
   HoSoTab: undefined;
 };
@@ -69,6 +71,16 @@ export interface DonDat {
   gioDat: string;
   soGioThue: number;
   tongTien: number;
+  tienSan?: number;
+  tienDichVu?: number;
+  courtAmount?: number;
+  serviceAmount?: number;
+  grandTotal?: number;
+  balance?: number;
+  paidAmount?: number;
+  canOrderService?: boolean;
+  canCancel?: boolean;
+  refundPending?: boolean;
   trangThai: TrangThaiDonDat;
   trangThaiGoc?: string;
   trangThaiThanhToan?: string;
@@ -96,6 +108,59 @@ export interface DonDat {
     gioKetThuc: string;
     giaTien: number;
   }>;
+}
+
+/** Danh mục dịch vụ / đồ uống / thuê đồ */
+export interface DichVuItem {
+  id: number;
+  name: string;
+  type: 'DRINK' | 'RENTAL' | 'PACKAGE';
+  unitPrice: number;
+  unit: string;
+  status: 'ACTIVE' | 'OUT_OF_STOCK' | 'INACTIVE';
+  description?: string;
+}
+
+/** Dòng chi tiết trong yêu cầu dịch vụ */
+export interface DongChiTietYeuCau {
+  id: number;
+  serviceId: number;
+  serviceName: string;
+  type: 'DRINK' | 'RENTAL' | 'PACKAGE';
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+  unit: string;
+  returnedAt?: string | null;
+  isReturned?: boolean;
+}
+
+/** Một lần gọi dịch vụ */
+export interface YeuCauDichVu {
+  id: number;
+  status: 'REQUESTED' | 'DELIVERED' | 'CANCELLED';
+  source: 'APP' | 'STAFF';
+  totalAmount: number;
+  createdAt: string;
+  deliveredAt?: string | null;
+  items: DongChiTietYeuCau[];
+}
+
+/** Hóa đơn tổng hợp của đơn đặt */
+export interface HoaDonDonDat {
+  bookingId: number;
+  bookingCode: string;
+  courtName: string;
+  bookingDate: string;
+  status: string;
+  courtAmount: number;
+  serviceAmount: number;
+  grandTotal: number;
+  paidAmount: number;
+  balance: number;
+  canOrderService: boolean;
+  serviceOrders: YeuCauDichVu[];
+  unreturnedRentalsCount: number;
 }
 
 /** Thông tin tài khoản người dùng */

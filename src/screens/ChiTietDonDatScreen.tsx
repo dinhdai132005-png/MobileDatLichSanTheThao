@@ -59,9 +59,10 @@ export default function ChiTietDonDatScreen({ route, navigation }: ChiTietDonDat
   const [noiDungDanhGia, setNoiDungDanhGia] = useState<string>('');
   const [dangGuiDanhGia, setDangGuiDanhGia] = useState<boolean>(false);
 
-  // State cho Modal Hủy đơn (CUS-09)
+  // State cho Modal Hủy đơn (CUS-09, BR-34, TC-60)
   const [hienModalHuy, setHienModalHuy] = useState<boolean>(false);
   const [lyDoHuy, setLyDoHuy] = useState<string>('');
+  const [thongTinHoanTien, setThongTinHoanTien] = useState<string>('');
   const [dangXuLyHuy, setDangXuLyHuy] = useState<boolean>(false);
 
   const taiChiTiet = async () => {
@@ -113,9 +114,17 @@ export default function ChiTietDonDatScreen({ route, navigation }: ChiTietDonDat
       return;
     }
 
+    if (donDat?.trangThaiThanhToan === 'PAID' && !thongTinHoanTien.trim()) {
+      Alert.alert(
+        'Thiếu thông tin hoàn tiền',
+        'Đơn đã thanh toán. Vui lòng cung cấp số tài khoản và ngân hàng để nhân viên xử lý hoàn tiền cho bạn (BR-34).'
+      );
+      return;
+    }
+
     setDangXuLyHuy(true);
     try {
-      await donDatService.huyDonDat(donDatId, lyDoHuy.trim());
+      await donDatService.huyDonDat(donDatId, lyDoHuy.trim(), thongTinHoanTien.trim() || undefined);
       setHienModalHuy(false);
       Alert.alert('Thành công', 'Đơn đặt sân đã được hủy thành công.');
       taiChiTiet();
@@ -292,10 +301,50 @@ export default function ChiTietDonDatScreen({ route, navigation }: ChiTietDonDat
 
           <View style={styles.duongKe} />
 
-          <View style={styles.hangTongTien}>
-            <Text style={styles.nhanTongTien}>Tổng thanh toán</Text>
-            <Text style={styles.soTienTong}>{formatTien(donDat?.tongTien || 0)}</Text>
+          {/* CHI TIẾT CHI PHÍ SÂN & DỊCH VỤ */}
+          <View style={styles.dongChiPhiDon}>
+            <Text style={styles.nhanChiPhiDon}>Tiền thuê sân:</Text>
+            <Text style={styles.giaTriChiPhiDon}>
+              {formatTien(donDat?.courtAmount ?? donDat?.tienSan ?? donDat?.tongTien ?? 0)}
+            </Text>
           </View>
+
+          {(donDat?.serviceAmount ?? donDat?.tienDichVu ?? 0) > 0 && (
+            <View style={styles.dongChiPhiDon}>
+              <Text style={styles.nhanChiPhiDon}>Tiền dịch vụ phát sinh:</Text>
+              <Text style={styles.giaTriChiPhiDon}>
+                {formatTien(donDat?.serviceAmount ?? donDat?.tienDichVu ?? 0)}
+              </Text>
+            </View>
+          )}
+
+          <View style={styles.hangTongTien}>
+            <Text style={styles.nhanTongTien}>Tổng hóa đơn</Text>
+            <Text style={styles.soTienTong}>
+              {formatTien(donDat?.grandTotal ?? donDat?.tongTien ?? 0)}
+            </Text>
+          </View>
+        </View>
+
+        {/* NÚT GỌI DỊCH VỤ & XEM HÓA ĐƠN (T28A, T28B) */}
+        <View style={styles.nhomNutDichVu}>
+          {donDat?.canOrderService && (
+            <TouchableOpacity
+              style={styles.nutGoiDichVuChinh}
+              onPress={() => navigation.navigate('GoiDichVu', { donDatId, donDat })}
+            >
+              <Ionicons name="fast-food-outline" size={18} color="#FFFFFF" />
+              <Text style={styles.chuNutGoiDichVuChinh}>Gọi nước uống / Thuê đồ</Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            style={styles.nutXemHoaDon}
+            onPress={() => navigation.navigate('HoaDon', { donDatId, donDat })}
+          >
+            <Ionicons name="receipt-outline" size={18} color={MAU_SAC.chinh} />
+            <Text style={styles.chuNutXemHoaDon}>Xem chi tiết hóa đơn & dịch vụ</Text>
+          </TouchableOpacity>
         </View>
 
         {/* THÔNG TIN CHUYỂN KHOẢN VIETQR (NẾU CÓ) */}
@@ -444,10 +493,25 @@ export default function ChiTietDonDatScreen({ route, navigation }: ChiTietDonDat
               style={styles.oNhapLyDo}
               placeholder="Nhập lý do hủy đơn (bắt buộc)..."
               multiline
-              numberOfLines={3}
+              numberOfLines={2}
               value={lyDoHuy}
               onChangeText={setLyDoHuy}
             />
+
+            {donDat?.trangThaiThanhToan === 'PAID' && (
+              <View style={{ marginTop: 10 }}>
+                <Text style={styles.nhanHoanTien}>
+                  Thông tin nhận tiền hoàn (Ngân hàng, STK, Tên chủ TK) *
+                </Text>
+                <TextInput
+                  style={styles.oNhapHoanTien}
+                  placeholder="Ví dụ: MB Bank - 0987654321 - NGUYEN VAN A"
+                  placeholderTextColor="#9CA3AF"
+                  value={thongTinHoanTien}
+                  onChangeText={setThongTinHoanTien}
+                />
+              </View>
+            )}
 
             <View style={styles.hangNutModal}>
               <TouchableOpacity
@@ -817,5 +881,51 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  dongChiPhiDon: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  nhanChiPhiDon: { fontSize: 13, color: MAU_SAC.chuMo },
+  giaTriChiPhiDon: { fontSize: 13, fontWeight: '600', color: MAU_SAC.chuChinh },
+  nhomNutDichVu: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    gap: 8,
+  },
+  nutGoiDichVuChinh: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: MAU_SAC.chinh,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  chuNutGoiDichVuChinh: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
+  nutXemHoaDon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: MAU_SAC.chinhNhat,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: MAU_SAC.chinh + '40',
+  },
+  chuNutXemHoaDon: { fontSize: 13, fontWeight: '700', color: MAU_SAC.chinh },
+  nhanHoanTien: { fontSize: 12, fontWeight: '700', color: MAU_SAC.chuChinh, marginBottom: 4 },
+  oNhapHoanTien: {
+    borderWidth: 1,
+    borderColor: MAU_SAC.vien,
+    borderRadius: 10,
+    padding: 10,
+    fontSize: 13,
+    color: MAU_SAC.chuChinh,
+    backgroundColor: '#F9FAFB',
+    marginBottom: 16,
   },
 });

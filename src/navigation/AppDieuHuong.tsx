@@ -16,6 +16,8 @@ import DatLichScreen from '../screens/DatLichScreen';
 import LichDatScreen from '../screens/LichDatScreen';
 import ChiTietDonDatScreen from '../screens/ChiTietDonDatScreen';
 import HoSoScreen from '../screens/HoSoScreen';
+import GoiDichVuScreen from '../screens/GoiDichVuScreen';
+import HoaDonScreen from '../screens/HoaDonScreen';
 import { RootStackParamList } from '../types';
 
 const Tab = createBottomTabNavigator();
@@ -34,6 +36,8 @@ function LuongTrangChu() {
       <Stack.Screen name="ChiTietSan" component={ChiTietSanScreen as any} />
       <Stack.Screen name="DatLich" component={DatLichScreen as any} />
       <Stack.Screen name="ChiTietDonDat" component={ChiTietDonDatScreen as any} />
+      <Stack.Screen name="GoiDichVu" component={GoiDichVuScreen as any} />
+      <Stack.Screen name="HoaDon" component={HoaDonScreen as any} />
     </Stack.Navigator>
   );
 }
@@ -45,6 +49,8 @@ function LuongDanhSachSan() {
       <Stack.Screen name="ChiTietSan" component={ChiTietSanScreen as any} />
       <Stack.Screen name="DatLich" component={DatLichScreen as any} />
       <Stack.Screen name="ChiTietDonDat" component={ChiTietDonDatScreen as any} />
+      <Stack.Screen name="GoiDichVu" component={GoiDichVuScreen as any} />
+      <Stack.Screen name="HoaDon" component={HoaDonScreen as any} />
     </Stack.Navigator>
   );
 }
@@ -54,6 +60,8 @@ function LuongLichDat() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="LichDatMain" component={LichDatScreen as any} />
       <Stack.Screen name="ChiTietDonDat" component={ChiTietDonDatScreen as any} />
+      <Stack.Screen name="GoiDichVu" component={GoiDichVuScreen as any} />
+      <Stack.Screen name="HoaDon" component={HoaDonScreen as any} />
     </Stack.Navigator>
   );
 }
@@ -63,6 +71,8 @@ function LuongHoSo() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="HoSoMain" component={HoSoScreen as any} />
       <Stack.Screen name="ChiTietDonDat" component={ChiTietDonDatScreen as any} />
+      <Stack.Screen name="GoiDichVu" component={GoiDichVuScreen as any} />
+      <Stack.Screen name="HoaDon" component={HoaDonScreen as any} />
     </Stack.Navigator>
   );
 }

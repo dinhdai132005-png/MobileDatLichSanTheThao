@@ -1,6 +1,6 @@
 # 02 — UML DIAGRAMS (Mermaid)
 
-> Trạng thái: **ĐỀ XUẤT / CHƯA TRIỂN KHAI**. Sơ đồ viết bằng Mermaid, xem trực tiếp trên GitHub, VS Code (extension Markdown Preview Mermaid) hoặc dán vào https://mermaid.live để xuất ảnh đưa vào báo cáo.
+> Trạng thái: **ĐỀ XUẤT / CHƯA TRIỂN KHAI** (v1.2: use case dịch vụ, activity 2.4–2.5, sequence 3.6–3.7, state 4.3, class Service; thêm đóng đơn có công nợ). Sơ đồ viết bằng Mermaid, xem trực tiếp trên GitHub, VS Code (extension Markdown Preview Mermaid) hoặc dán vào https://mermaid.live để xuất ảnh đưa vào báo cáo.
 > Mọi sơ đồ khớp với `03-actors-functions.md` (BR-xx, mã chức năng), `01-database.md` (bảng, enum) và `06-api.md` (endpoint). ER Diagram nằm ở `01-database.md` mục 2.
 
 ## 1. Use Case Diagram
@@ -23,6 +23,7 @@ flowchart LR
         C6(["CUS-08 Xem lịch sử đơn"])
         C7(["CUS-09 Hủy đơn"])
         C8(["CUS-10 Đánh giá sân"])
+        C9(["CUS-11..13 Gọi dịch vụ, xem hóa đơn"])
     end
 
     subgraph UCS["Nhân viên"]
@@ -34,6 +35,8 @@ flowchart LR
         S6(["STF-08 Hủy đơn thay khách"])
         S7(["STF-09 Xác nhận hoàn tiền"])
         S8(["STF-10 Tra cứu khách hàng"])
+        S9(["STF-11..13 Giao dịch vụ, nhận lại đồ thuê"])
+        S10(["STF-12,14,15 Thêm dịch vụ, thu tiền dịch vụ, hết hàng"])
     end
 
     subgraph UCA["Quản trị viên"]
@@ -41,15 +44,18 @@ flowchart LR
         A2(["ADM-05 Quản lý tài khoản nhân viên"])
         A3(["ADM-06 Khóa/mở khách hàng"])
         A4(["ADM-07 Báo cáo"])
+        A5(["ADM-08 Quản lý danh mục dịch vụ"])
+        A6(["ADM-09 Đóng đơn có công nợ"])
+        A7(["ADM-06 Đặt lại mật khẩu khách"])
     end
 
     subgraph UCT["Hệ thống"]
         T1(["SYS-01 Hết hạn đơn giữ chỗ"])
     end
 
-    C --- C1 & C2 & C3 & C4 & C5 & C6 & C7 & C8
-    S --- S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8
-    A --- A1 & A2 & A3 & A4
+    C --- C1 & C2 & C3 & C4 & C5 & C6 & C7 & C8 & C9
+    S --- S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & S9 & S10
+    A --- A1 & A2 & A3 & A4 & A5 & A6 & A7
     A -. "kế thừa quyền" .-> S
     T --- T1
 
@@ -57,9 +63,12 @@ flowchart LR
     C5 -. "extend (BANK_TRANSFER)" .-> C4
     C7 -. "extend (đã trả tiền)" .-> S7
     S3 -. "include" .-> S4
+    C9 -. "cần đơn CONFIRMED" .-> C4
+    C9 -. "tạo yêu cầu cho" .-> S9
+    S10 -. "include" .-> S4
 ```
 
-Ghi chú: `STF-08`/`STF-09` kích hoạt tạo/hoàn tất `REFUND` (BR-10). Admin kế thừa mọi use case của nhân viên.
+Ghi chú: `STF-08`/`STF-09` kích hoạt tạo/hoàn tất `REFUND` (BR-10). Admin kế thừa mọi use case của nhân viên. Đặt khu sự kiện/tiệc dùng lại use case đặt sân (CUS-04..09) với loại sân `EVENT` (BR-30), nên không có use case riêng.
 
 ## 2. Activity Diagram
 
@@ -127,6 +136,44 @@ flowchart TD
     L --> I
 ```
 
+### 2.4 Gọi dịch vụ, giao, trả đồ và thanh toán dịch vụ (CUS-12 → STF-14)
+
+```mermaid
+flowchart TD
+    A(["Đơn CONFIRMED, chưa quá giờ kết thúc"]) --> B["Khách mở Gọi dịch vụ và chọn đồ uống, thuê đồ, gói tiệc"]
+    B --> C["POST /bookings/:id/service-orders"]
+    C --> D{"Đơn hợp lệ và dịch vụ ACTIVE?"}
+    D -- "Không" --> E["Báo lỗi BOOKING_NOT_ACTIVE_FOR_SERVICE hoặc SERVICE_NOT_AVAILABLE"]
+    D -- "Có" --> F["Yêu cầu REQUESTED, chưa tính tiền"]
+    F --> G["Nhân viên thấy trong hàng đợi"]
+    G --> H{"Xử lý"}
+    H -- "Hủy bởi khách hoặc nhân viên" --> I(["CANCELLED"])
+    H -- "Mang ra và bấm Đã giao" --> J["DELIVERED, cộng vào service_amount"]
+    J --> K{"Có đồ thuê?"}
+    K -- "Có" --> L["Khách trả đồ, nhân viên bấm Đã nhận lại"]
+    K -- "Không" --> M["Xem hóa đơn"]
+    L --> M
+    M --> N["Thu tiền sân nếu còn UNPAID và thu tiền dịch vụ"]
+    N --> O["Bấm Hoàn thành, kiểm tra BR-12 và BR-28"]
+    O --> P(["COMPLETED"])
+```
+
+### 2.5 Khách bỏ đi không thanh toán: đóng đơn có công nợ (ADM-09)
+
+```mermaid
+flowchart TD
+    A(["Đơn CONFIRMED đã qua giờ, khách đã rời đi"]) --> B{"Đã có dịch vụ DELIVERED?"}
+    B -- "Chưa" --> C["Nhân viên: Hoàn thành nếu đã PAID, hoặc No-show nếu khách không đến"]
+    B -- "Rồi" --> D{"Khách thanh toán đủ và trả đồ thuê?"}
+    D -- "Có" --> E["Nhân viên: nhận lại đồ, thu tiền, Hoàn thành BR-28"]
+    D -- "Không" --> F["Hoàn thành, hủy, no-show đều bị chặn BR-12 BR-28 BR-29"]
+    F --> G["ADMIN: Đóng đơn có công nợ, nhập lý do"]
+    G --> H["Hủy các yêu cầu REQUESTED, status = COMPLETED, closed_with_debt = 1, ghi log kèm số nợ"]
+    H --> I(["Công nợ hiện trong hóa đơn và báo cáo, doanh thu không đổi"])
+    C --> J(["Kết thúc"])
+    E --> J
+```
+
 ## 3. Sequence Diagram
 
 ### 3.1 Đăng nhập (CUS-02, STF-01)
@@ -165,7 +212,7 @@ sequenceDiagram
     API->>API: auth, requireRole CUSTOMER, validate
     API->>DB: BEGIN
     API->>DB: Kiểm tra sân ACTIVE, slot active và liền kề, BR-08
-    API->>DB: Tra slot_prices theo day_type, tính total_amount
+    API->>DB: Tra slot_prices theo day_type, tính court_amount
     API->>DB: INSERT bookings (PENDING, expires_at = now + 30 phút)
     API->>DB: INSERT booking_slots (is_locked = 1)
     alt ER_DUP_ENTRY uq_slot_active
@@ -192,7 +239,7 @@ sequenceDiagram
     API->>API: auth, requireRole STAFF/ADMIN
     API->>DB: BEGIN, SELECT booking FOR UPDATE
     API->>API: Đơn PENDING hoặc CONFIRMED và UNPAID? (hết hạn thì từ chối)
-    API->>DB: INSERT payments (PAYMENT, SUCCESS, amount = total_amount, processed_by)
+    API->>DB: INSERT payments (PAYMENT, SUCCESS, amount = court_amount, processed_by)
     API->>DB: UPDATE bookings payment_status = PAID, status = CONFIRMED
     API->>DB: INSERT booking_status_logs (nếu đổi trạng thái)
     API->>DB: COMMIT
@@ -210,11 +257,11 @@ sequenceDiagram
     actor NV as Nhân viên
     participant W as Web Admin
     K->>M: Bấm Hủy đơn
-    M->>API: POST /bookings/:id/cancel
+    M->>API: POST /bookings/:id/cancel (reason, refundInfo)
     API->>DB: BEGIN, SELECT booking FOR UPDATE
     API->>API: Kiểm tra chủ đơn, trạng thái, còn ít nhất 6 giờ (BR-09)
     API->>DB: UPDATE status = CANCELLED, booking_slots.is_locked = NULL
-    API->>DB: INSERT payments (REFUND, PENDING, amount = total_amount)
+    API->>DB: INSERT payments (REFUND, PENDING, amount = court_amount, note = refundInfo)
     API->>DB: INSERT booking_status_logs, COMMIT
     API-->>M: 200 đã hủy, chờ hoàn tiền
     NV->>W: Mở danh sách chờ hoàn tiền
@@ -240,6 +287,62 @@ sequenceDiagram
     end
 ```
 
+### 3.6 Khách gọi dịch vụ, nhân viên giao (CUS-12, STF-11)
+
+```mermaid
+sequenceDiagram
+    actor K as Khách
+    participant M as Mobile
+    participant API as Backend
+    participant DB as MySQL
+    actor NV as Nhân viên
+    participant W as Web Admin
+    K->>M: Chọn nước suối x2 và thuê vợt x1, bấm Gửi yêu cầu
+    M->>API: POST /bookings/:id/service-orders
+    API->>DB: BEGIN, SELECT booking FOR UPDATE
+    API->>API: Kiểm tra chủ đơn, CONFIRMED, chưa quá end_time, dịch vụ ACTIVE
+    API->>DB: INSERT service_orders (REQUESTED), INSERT service_order_items (unit_price snapshot)
+    API->>DB: COMMIT
+    API-->>M: 201 yêu cầu REQUESTED
+    W->>API: GET /staff/service-orders?status=REQUESTED (làm mới 30 giây)
+    API-->>W: Danh sách chờ giao
+    NV->>NV: Mang đồ ra sân
+    NV->>W: Bấm Đã giao
+    W->>API: POST /staff/service-orders/:id/deliver
+    API->>DB: BEGIN, khóa booking và order
+    API->>DB: UPDATE order DELIVERED, tính lại bookings.service_amount
+    API->>DB: COMMIT
+    API-->>W: 200
+    K->>M: Kéo làm mới, thấy trạng thái Đã giao
+```
+
+### 3.7 Trả đồ, thu tiền dịch vụ, hoàn thành đơn (STF-13, STF-14, STF-07)
+
+```mermaid
+sequenceDiagram
+    actor NV as Nhân viên
+    participant W as Web Admin
+    participant API as Backend
+    participant DB as MySQL
+    NV->>W: Khách trả đồ, bấm Đã nhận lại cho từng món thuê
+    W->>API: POST /staff/service-order-items/:id/return
+    API->>DB: UPDATE returned_at, returned_by
+    NV->>W: Mở khối Dịch vụ và hóa đơn
+    W->>API: GET /staff/bookings/:id/invoice
+    API-->>W: courtAmount, serviceAmount, grandTotal, balance, unreturnedRentals
+    NV->>W: Bấm Thu tiền dịch vụ
+    W->>API: POST /staff/bookings/:id/service-payments
+    API->>DB: BEGIN, SELECT booking FOR UPDATE
+    API->>DB: INSERT payments (PAYMENT, SERVICE, SUCCESS, amount = serviceBalance)
+    API->>DB: COMMIT
+    API-->>W: 200 hóa đơn đã thu đủ
+    NV->>W: Bấm Hoàn thành
+    W->>API: POST /staff/bookings/:id/complete
+    API->>API: Kiểm tra BR-12 và BR-28
+    API->>DB: UPDATE bookings status = COMPLETED, INSERT booking_status_logs
+    API-->>W: 200
+```
+
 ## 4. State Diagram
 
 ### 4.1 Trạng thái đơn đặt sân (`bookings.status`)
@@ -252,8 +355,9 @@ stateDiagram-v2
     PENDING --> EXPIRED : quá expires_at (job)
     PENDING --> CANCELLED : khách hoặc nhân viên hủy
     CONFIRMED --> CANCELLED : khách hủy trước 6 giờ hoặc nhân viên hủy
-    CONFIRMED --> COMPLETED : nhân viên hoàn thành (đã PAID, đã đến giờ)
+    CONFIRMED --> COMPLETED : nhân viên hoàn thành (đã PAID tiền sân, đã đến giờ, thỏa BR-28)
     CONFIRMED --> NO_SHOW : nhân viên đánh dấu (đã đến giờ)
+    CONFIRMED --> COMPLETED : ADMIN đóng đơn có công nợ (BR-33)
     COMPLETED --> [*]
     CANCELLED --> [*]
     EXPIRED --> [*]
@@ -268,10 +372,11 @@ Bảng chuyển trạng thái hợp lệ (service phải kiểm tra, mọi cặp
 | (mới) | CONFIRMED | Khách / Nhân viên | `CASH`, hoặc nhân viên đặt hộ |
 | PENDING | CONFIRMED | Nhân viên / (VNPay callback) | Còn hạn `expires_at` |
 | PENDING | EXPIRED | Hệ thống | `expires_at < NOW()` |
-| PENDING, CONFIRMED | CANCELLED | Khách | Còn ≥ 6 giờ (BR-09) |
-| PENDING, CONFIRMED | CANCELLED | Nhân viên | Có lý do |
-| CONFIRMED | COMPLETED | Nhân viên | `PAID` và đã đến giờ (BR-12) |
-| CONFIRMED | NO_SHOW | Nhân viên | Đã đến giờ (BR-12) |
+| PENDING, CONFIRMED | CANCELLED | Khách | Còn ≥ 6 giờ (BR-09) và chưa có dịch vụ đã giao (BR-29) |
+| PENDING, CONFIRMED | CANCELLED | Nhân viên | Có lý do và chưa có dịch vụ đã giao (BR-29) |
+| CONFIRMED | COMPLETED | Nhân viên | `PAID` tiền sân, đã đến giờ, thỏa BR-28 (không còn yêu cầu chờ giao, đã nhận lại đồ thuê, đã thu đủ tiền dịch vụ) |
+| CONFIRMED | COMPLETED | **ADMIN** | **Đóng đơn có công nợ** (BR-33): đã đến giờ bắt đầu, lý do bắt buộc, bỏ qua điều kiện đã trả đủ và đồ thuê đã trả; `closed_with_debt = 1` |
+| CONFIRMED | NO_SHOW | Nhân viên | Đã đến giờ và chưa có dịch vụ đã giao (BR-12) |
 
 ### 4.2 Trạng thái thanh toán (`bookings.payment_status`)
 
@@ -284,6 +389,29 @@ stateDiagram-v2
     REFUNDED --> [*]
     PAID --> [*] : COMPLETED hoặc NO_SHOW
 ```
+
+### 4.3 Trạng thái yêu cầu dịch vụ (`service_orders.status`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> REQUESTED : khách gọi dịch vụ
+    [*] --> DELIVERED : nhân viên nhập hộ tại quầy
+    REQUESTED --> DELIVERED : nhân viên bấm Đã giao
+    REQUESTED --> CANCELLED : khách hoặc nhân viên hủy, hoặc đơn sân bị hủy hoặc no-show
+    DELIVERED --> CANCELLED : nhân viên hủy khi chưa thu tiền vượt tổng mới (BR-25)
+    DELIVERED --> [*]
+    CANCELLED --> [*]
+```
+
+| Từ | Sang | Ai | Điều kiện / hiệu lực |
+|---|---|---|---|
+| (mới) | REQUESTED | Khách | Đơn sân `CONFIRMED`, chưa quá giờ kết thúc (BR-24). Chưa tính tiền |
+| (mới) | DELIVERED | Nhân viên | Đơn sân `CONFIRMED` (BR-31). Cộng ngay vào `service_amount` |
+| REQUESTED | DELIVERED | Nhân viên | Đơn sân còn `CONFIRMED`. Cộng vào `service_amount` |
+| REQUESTED | CANCELLED | Khách / Nhân viên / Hệ thống | Hệ thống tự hủy khi đơn sân bị hủy hoặc no-show (BR-29, BR-12) |
+| DELIVERED | CANCELLED | Nhân viên | Tiền dịch vụ đã thu ≤ `service_amount` mới (BR-25) |
+
+Đồ thuê (`RENTAL`) có thêm trạng thái con trên từng dòng: **chưa trả** (`returned_at IS NULL`) → **đã trả** (`returned_at` có giá trị) khi nhân viên bấm "Đã nhận lại" (BR-27).
 
 ## 5. Class Diagram (mô hình miền, khớp bảng DB)
 
@@ -302,11 +430,13 @@ classDiagram
     class CourtType {
         +int id
         +string name
+        +CourtCategory category
         +bool isActive
     }
     class Court {
         +int id
         +string name
+        +int capacity
         +CourtStatus status
         +getAvailability(date)
     }
@@ -326,7 +456,8 @@ classDiagram
         +date bookingDate
         +time startTime
         +time endTime
-        +int totalAmount
+        +int courtAmount
+        +int serviceAmount
         +BookingStatus status
         +PaymentMethod paymentMethod
         +PaymentStatus paymentStatus
@@ -344,6 +475,7 @@ classDiagram
     class Payment {
         +int id
         +PaymentType type
+        +PaymentPurpose purpose
         +PaymentMethod method
         +int amount
         +PaymentTxStatus status
@@ -360,6 +492,28 @@ classDiagram
         +int rating
         +string comment
     }
+    class Service {
+        +int id
+        +string name
+        +ServiceType type
+        +int price
+        +ServiceStatus status
+    }
+    class ServiceOrder {
+        +int id
+        +ServiceOrderStatus status
+        +Source source
+        +string note
+        +datetime deliveredAt
+        +deliver()
+        +cancel(reason)
+    }
+    class ServiceOrderItem {
+        +int quantity
+        +int unitPrice
+        +datetime returnedAt
+        +markReturned()
+    }
 
     CourtType "1" --> "0..*" Court : gồm
     CourtType "1" --> "0..*" SlotPrice : có bảng giá
@@ -375,6 +529,10 @@ classDiagram
     Booking "1" --> "0..1" Review : được đánh giá
     User "1" --> "0..*" Review : viết
     User "0..1" --> "0..*" Payment : xử lý
+    Booking "1" *-- "0..*" ServiceOrder : yêu cầu dịch vụ
+    ServiceOrder "1" *-- "1..*" ServiceOrderItem : gồm các dòng
+    Service "1" --> "0..*" ServiceOrderItem : được gọi
+    User "0..1" --> "0..*" ServiceOrder : tạo / giao
 ```
 
 Ghi chú: `Booking *-- BookingSlot` là composition (xóa đơn thì mất các giờ). Thực tế không xóa cứng (BR-14).
@@ -384,7 +542,7 @@ Ghi chú: `Booking *-- BookingSlot` là composition (xóa đơn thì mất các 
 | Thành phần UML | Khớp với |
 |---|---|
 | Use case CUS/STF/ADM/SYS | `03-actors-functions.md` mục 4 |
-| State đơn | `01-database.md` mục 6 (`bookings.status`) và `06-api.md` mục 5 |
-| Class | Bảng trong `01-database.md` mục 5 |
+| State đơn, State yêu cầu dịch vụ | `01-database.md` mục 6 (`bookings.status`, `service_orders.status`) và `06-api.md` mục 5 |
+| Class | Bảng trong `01-database.md` mục 5 (gồm `services`, `service_orders`, `service_order_items`) |
 | Sequence | Endpoint trong `06-api.md` |
 | Ma trận truy vết đầy đủ | `10-sync-check.md` mục 1 |

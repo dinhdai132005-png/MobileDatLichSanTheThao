@@ -7,7 +7,7 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏟️</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
       --primary: #10B981;
@@ -19,15 +19,19 @@
       --surface-card: #1C2849;
       --surface-hover: #26355E;
       --border: #2D3D66;
+      --border-focus: #10B981;
       --text: #F8FAFC;
       --text-muted: #94A3B8;
       --danger: #EF4444;
+      --danger-dark: #DC2626;
       --warning: #F59E0B;
       --success: #10B981;
       --info: #38BDF8;
       --purple: #8B5CF6;
       --radius: 12px;
+      --radius-sm: 8px;
       --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+      --font-mono: 'JetBrains Mono', monospace;
     }
 
     * {
@@ -47,55 +51,57 @@
 
     /* Header */
     header {
-      background: rgba(21, 31, 56, 0.85);
-      backdrop-filter: blur(14px);
+      background: rgba(21, 31, 56, 0.95);
+      backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
-      padding: 14px 28px;
+      padding: 12px 24px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
       position: sticky;
       top: 0;
-      z-index: 100;
+      z-index: 50;
     }
-
     .brand {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
     }
     .brand-logo {
-      font-size: 28px;
-      background: linear-gradient(135deg, #10B981, #3B82F6);
-      width: 44px;
-      height: 44px;
+      font-size: 26px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      width: 42px;
+      height: 42px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      border-radius: var(--radius-sm);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
     }
     .brand-title {
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 800;
       letter-spacing: -0.02em;
-      color: #FFFFFF;
+      background: linear-gradient(90deg, #FFFFFF, #94A3B8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
     .brand-subtitle {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text-muted);
+      font-weight: 500;
     }
 
     .header-actions {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
     }
     .user-pill {
       background: var(--surface-card);
       border: 1px solid var(--border);
       padding: 6px 14px;
-      border-radius: 9999px;
+      border-radius: 999px;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -104,10 +110,11 @@
     }
     .role-tag {
       font-size: 10px;
-      padding: 2px 6px;
+      padding: 2px 7px;
       border-radius: 4px;
-      font-weight: 700;
+      font-weight: 800;
       text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
     .role-ADMIN { background: rgba(239, 68, 68, 0.2); color: #F87171; border: 1px solid #EF4444; }
     .role-STAFF { background: rgba(59, 130, 246, 0.2); color: #60A5FA; border: 1px solid #3B82F6; }
@@ -117,7 +124,7 @@
       border: 1px solid var(--border);
       color: var(--text-muted);
       padding: 6px 14px;
-      border-radius: 8px;
+      border-radius: var(--radius-sm);
       font-size: 13px;
       cursor: pointer;
       transition: all 0.2s;
@@ -135,19 +142,19 @@
     }
 
     aside {
-      width: 240px;
+      width: 250px;
       background: var(--surface);
       border-right: 1px solid var(--border);
       padding: 20px 12px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
     }
     .nav-btn {
       background: transparent;
       border: none;
       color: var(--text-muted);
-      padding: 11px 14px;
+      padding: 10px 14px;
       border-radius: 10px;
       font-size: 13.5px;
       font-weight: 600;
@@ -186,7 +193,7 @@
       flex: 1;
       padding: 24px 32px;
       overflow-y: auto;
-      max-width: 1440px;
+      max-width: 1500px;
       margin: 0 auto;
       width: 100%;
     }
@@ -209,6 +216,8 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
     }
     .section-title {
       font-size: 20px;
@@ -217,7 +226,7 @@
     }
     .btn {
       padding: 8px 16px;
-      border-radius: 8px;
+      border-radius: var(--radius-sm);
       font-size: 13.5px;
       font-weight: 600;
       cursor: pointer;
@@ -237,33 +246,51 @@
       border: 1px solid var(--border);
       color: var(--text);
     }
-    .btn-outline:hover { background: var(--surface-hover); }
+    .btn-outline:hover { background: var(--surface-hover); border-color: var(--text-muted); }
     .btn-danger {
       background: rgba(239, 68, 68, 0.2);
       border: 1px solid var(--danger);
       color: #FCA5A5;
     }
     .btn-danger:hover { background: var(--danger); color: white; }
+    .btn-warning {
+      background: rgba(245, 158, 11, 0.2);
+      border: 1px solid var(--warning);
+      color: #FCD34D;
+    }
+    .btn-warning:hover { background: var(--warning); color: #000; }
+    .btn-purple {
+      background: rgba(139, 92, 246, 0.2);
+      border: 1px solid var(--purple);
+      color: #C4B5FD;
+    }
+    .btn-purple:hover { background: var(--purple); color: white; }
 
     /* KPI Cards */
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
       gap: 16px;
       margin-bottom: 24px;
     }
     .kpi-card {
-      background: var(--surface-card);
+      background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 18px 20px;
       display: flex;
       flex-direction: column;
       gap: 6px;
-      box-shadow: var(--shadow);
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
     }
     .kpi-label {
-      font-size: 13px;
+      font-size: 12.5px;
       color: var(--text-muted);
       font-weight: 600;
     }
@@ -271,10 +298,43 @@
       font-size: 26px;
       font-weight: 800;
       letter-spacing: -0.02em;
+      font-family: var(--font-mono);
     }
     .kpi-sub {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text-muted);
+    }
+
+    /* Forms */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .form-label {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .form-input, .form-select, .form-textarea {
+      background: var(--surface-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      padding: 9px 12px;
+      font-size: 13.5px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
     }
 
     /* Tables */
@@ -282,28 +342,29 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      overflow: hidden;
+      overflow-x: auto;
       box-shadow: var(--shadow);
     }
     table {
       width: 100%;
       border-collapse: collapse;
+      text-align: left;
       font-size: 13.5px;
     }
     th {
-      background: var(--surface-card);
+      background: rgba(11, 19, 41, 0.6);
       color: var(--text-muted);
       font-weight: 700;
-      text-align: left;
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border);
       font-size: 12px;
       text-transform: uppercase;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.05em;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
     }
     td {
       padding: 14px 16px;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid rgba(45, 61, 102, 0.4);
       vertical-align: middle;
     }
     tr:last-child td {
@@ -317,53 +378,80 @@
     .badge {
       display: inline-flex;
       align-items: center;
-      padding: 4px 10px;
-      border-radius: 9999px;
-      font-size: 11.5px;
-      font-weight: 700;
       gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
-    .badge-PENDING { background: rgba(245, 158, 11, 0.15); color: #FBBF24; border: 1px solid rgba(245, 158, 11, 0.3); }
-    .badge-CONFIRMED { background: rgba(59, 130, 246, 0.15); color: #60A5FA; border: 1px solid rgba(59, 130, 246, 0.3); }
-    .badge-COMPLETED { background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.3); }
-    .badge-CANCELLED { background: rgba(107, 114, 128, 0.2); color: #9CA3AF; border: 1px solid rgba(107, 114, 128, 0.3); }
-    .badge-EXPIRED { background: rgba(139, 92, 246, 0.15); color: #A78BFA; border: 1px solid rgba(139, 92, 246, 0.3); }
-    .badge-NO_SHOW { background: rgba(239, 68, 68, 0.15); color: #F87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
 
-    .badge-PAID { background: rgba(16, 185, 129, 0.2); color: #34D399; }
-    .badge-UNPAID { background: rgba(245, 158, 11, 0.2); color: #FBBF24; }
-    .badge-REFUNDED { background: rgba(139, 92, 246, 0.2); color: #A78BFA; }
+    /* Schedule Grid */
+    .schedule-wrapper {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow-x: auto;
+      max-height: 720px;
+    }
+    .schedule-table {
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+    .schedule-table th, .schedule-table td {
+      border: 1px solid var(--border);
+      padding: 8px;
+    }
+    .schedule-table th {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
 
     /* Modals */
     .modal-overlay {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.7);
+      inset: 0;
+      background: rgba(11, 19, 41, 0.8);
       backdrop-filter: blur(6px);
       display: none;
       align-items: center;
       justify-content: center;
-      z-index: 200;
-      padding: 16px;
+      z-index: 100;
+      padding: 20px;
+    }
+    .modal-overlay.active {
+      display: flex;
+      animation: fadeIn 0.2s ease-out;
     }
     .modal-card {
-      background: var(--surface-card);
+      background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 16px;
+      border-radius: var(--radius);
       width: 100%;
-      max-width: 600px;
-      padding: 24px 28px;
-      box-shadow: var(--shadow);
+      max-width: 680px;
       max-height: 90vh;
       overflow-y: auto;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      padding: 24px;
+    }
+    .modal-card-lg {
+      max-width: 860px;
     }
     .modal-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 20px;
-      padding-bottom: 12px;
       border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
     }
     .modal-title {
       font-size: 18px;
@@ -375,95 +463,17 @@
       color: var(--text-muted);
       font-size: 20px;
       cursor: pointer;
+      line-height: 1;
+      padding: 4px;
     }
+    .btn-close:hover { color: var(--text); }
 
-    /* Forms */
-    .form-group {
-      margin-bottom: 16px;
-    }
-    .form-label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 6px;
-    }
-    .form-input, .form-select, .form-textarea {
-      width: 100%;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      padding: 10px 14px;
-      font-size: 14px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .form-input:focus, .form-select:focus, .form-textarea:focus {
-      border-color: var(--primary);
-    }
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    /* Schedule Grid */
-    .schedule-wrapper {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 16px;
-      overflow-x: auto;
-    }
-    .schedule-table {
-      min-width: 1000px;
-    }
-    .schedule-table th, .schedule-table td {
-      text-align: center;
-      padding: 10px 6px;
-      font-size: 12px;
-    }
-    .schedule-cell {
-      border-radius: 6px;
-      padding: 8px 4px;
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.15s;
-      min-height: 48px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      gap: 2px;
-    }
-    .cell-available {
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid rgba(16, 185, 129, 0.25);
-      color: #34D399;
-    }
-    .cell-available:hover {
-      background: rgba(16, 185, 129, 0.25);
-    }
-    .cell-booked {
-      background: rgba(59, 130, 246, 0.2);
-      border: 1px solid rgba(59, 130, 246, 0.4);
-      color: #93C5FD;
-    }
-    .cell-pending {
-      background: rgba(245, 158, 11, 0.2);
-      border: 1px solid rgba(245, 158, 11, 0.4);
-      color: #FCD34D;
-    }
-
-    /* Login Modal Overlay */
+    /* Login Screen */
     #login-overlay {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(11, 19, 41, 0.95);
-      backdrop-filter: blur(16px);
-      z-index: 500;
+      inset: 0;
+      background: var(--bg);
+      z-index: 200;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -472,11 +482,11 @@
     .login-box {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 20px;
+      border-radius: var(--radius);
+      padding: 36px 32px;
       width: 100%;
-      max-width: 420px;
-      padding: 32px 36px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+      max-width: 440px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
     }
     .login-logo {
       font-size: 40px;
@@ -487,7 +497,7 @@
       font-size: 22px;
       font-weight: 800;
       text-align: center;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
     }
     .login-desc {
       font-size: 13px;
@@ -505,12 +515,13 @@
       padding: 8px;
       background: var(--surface-card);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: var(--radius-sm);
       color: var(--text);
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
       text-align: center;
+      transition: all 0.2s;
     }
     .quick-btn:hover { border-color: var(--primary); color: var(--primary); }
 
@@ -534,11 +545,33 @@
       from { transform: translateY(20px); opacity: 0; }
       to { transform: translateY(0); opacity: 1; }
     }
+
+    /* Invoice Details Panel */
+    .invoice-card {
+      background: var(--surface-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin: 16px 0;
+    }
+    .invoice-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 13.5px;
+    }
+    .invoice-row.total {
+      border-top: 1px solid var(--border);
+      margin-top: 8px;
+      padding-top: 10px;
+      font-weight: 800;
+      font-size: 15px;
+    }
   </style>
 </head>
 <body>
 
-  <!-- MÀN HÌNH ĐĂNG NHẬP -->
+  <!-- MÀN HÌNH ĐĂNG NHẬP (STAFF & ADMIN) -->
   <div id="login-overlay" style="display: none;">
     <div class="login-box">
       <div class="login-logo">🏟️</div>
@@ -587,13 +620,14 @@
 
   <!-- BODY -->
   <div class="app-container">
-    <!-- ASIDE -->
+    <!-- ASIDE NAVIGATION -->
     <aside>
       <div class="nav-label">VẬN HÀNH (STAFF)</div>
       <button class="nav-btn active" onclick="switchTab('dashboard')">📊 Dashboard Hôm Nay</button>
       <button class="nav-btn" onclick="switchTab('schedule')">📅 Lịch Sân Theo Ngày</button>
       <button class="nav-btn" onclick="switchTab('bookings')">📋 Danh Sách Đơn Đặt</button>
       <button class="nav-btn" onclick="switchTab('walkin')">⚡ Đặt Sân Tại Quầy</button>
+      <button class="nav-btn" onclick="switchTab('service-orders')">🍵 Hàng Đợi Dịch Vụ</button>
       <button class="nav-btn" onclick="switchTab('refunds')">💸 Xử Lý Hoàn Tiền</button>
       <button class="nav-btn" onclick="switchTab('customers')">🧑‍🤝‍🧑 Khách Hàng</button>
 
@@ -602,13 +636,14 @@
       <button class="nav-btn admin-only" onclick="switchTab('courts')">🏟️ Loại Sân & Sân</button>
       <button class="nav-btn admin-only" onclick="switchTab('timeslots')">🕒 Khung Giờ</button>
       <button class="nav-btn admin-only" onclick="switchTab('prices')">🏷️ Bảng Giá Ma Trận</button>
+      <button class="nav-btn admin-only" onclick="switchTab('services')">📦 Danh Mục Dịch Vụ</button>
       <button class="nav-btn admin-only" onclick="switchTab('staff')">👥 Tài Khoản Nhân Viên</button>
       <button class="nav-btn admin-only" onclick="switchTab('reports')">📈 Báo Cáo & Tỷ Lệ</button>
     </aside>
 
-    <!-- MAIN -->
+    <!-- MAIN CONTENT -->
     <main>
-      <!-- TAB 1: DASHBOARD -->
+      <!-- TAB 1: DASHBOARD (STF-02) -->
       <section id="tab-dashboard" class="tab-content active">
         <div class="section-header">
           <h1 class="section-title">Tổng Quan Hôm Nay</h1>
@@ -618,7 +653,7 @@
           <div class="kpi-card">
             <span class="kpi-label">Tổng đơn hôm nay</span>
             <span class="kpi-value" id="kpi-total">0</span>
-            <span class="kpi-sub">Bao gồm tất cả trạng thái</span>
+            <span class="kpi-sub">Tất cả trạng thái</span>
           </div>
           <div class="kpi-card">
             <span class="kpi-label">Đơn đã xác nhận</span>
@@ -635,52 +670,80 @@
             <span class="kpi-value" id="kpi-revenue" style="color: #34D399;">0 ₫</span>
             <span class="kpi-sub">Đã trừ các khoản hoàn tiền</span>
           </div>
-          <div class="kpi-card" style="border-color: rgba(245, 158, 11, 0.4);">
+          <div class="kpi-card" style="border-color: rgba(245, 158, 11, 0.4); cursor:pointer;" onclick="xemDonChoThanhToan()">
             <span class="kpi-label">Đang giữ chỗ chờ CK</span>
             <span class="kpi-value" id="kpi-pending-hold" style="color: var(--warning);">0</span>
             <span class="kpi-sub">Hết hạn sau 30 phút (BR-07)</span>
           </div>
-          <div class="kpi-card" style="border-color: rgba(139, 92, 246, 0.4);">
+          <div class="kpi-card" style="border-color: rgba(139, 92, 246, 0.4); cursor:pointer;" onclick="switchTab('refunds')">
             <span class="kpi-label">Chờ hoàn tiền</span>
             <span class="kpi-value" id="kpi-pending-refund" style="color: var(--purple);">0</span>
             <span class="kpi-sub">Cần nhân viên chuyển khoản</span>
           </div>
-        </div>
-      </section>
-
-      <!-- TAB 2: SCHEDULE GRID -->
-      <section id="tab-schedule" class="tab-content">
-        <div class="section-header">
-          <h1 class="section-title">Lịch Lưới Sân Theo Ngày (Sân × Khung Giờ)</h1>
-          <div style="display: flex; gap: 10px; align-items: center;">
-            <input type="date" id="schedule-date" class="form-input" style="width: 170px;" onchange="loadSchedule()" />
-            <button class="btn btn-outline" onclick="loadSchedule()">🔄 Làm mới</button>
+          <div class="kpi-card" style="border-color: rgba(56, 189, 248, 0.4); cursor:pointer;" onclick="switchTab('service-orders')">
+            <span class="kpi-label">Dịch vụ chờ giao</span>
+            <span class="kpi-value" id="kpi-pending-services" style="color: var(--info);">0</span>
+            <span class="kpi-sub">Yêu cầu mang ra sân</span>
+          </div>
+          <div class="kpi-card" style="border-color: rgba(239, 68, 68, 0.4); cursor:pointer;" onclick="xemDonQuaGio()">
+            <span class="kpi-label">Đơn quá giờ chưa xử lý</span>
+            <span class="kpi-value" id="kpi-overdue-bookings" style="color: var(--danger);">0</span>
+            <span class="kpi-sub">Cần Hoàn thành / No-show</span>
           </div>
         </div>
-        <div class="schedule-wrapper">
-          <table class="schedule-table" id="schedule-table">
+
+        <div class="section-header" style="margin-top: 30px;">
+          <h2 style="font-size: 16px; font-weight: 700;">Đơn Đặt Sân Hôm Nay</h2>
+        </div>
+        <div class="table-container">
+          <table>
             <thead>
-              <tr id="schedule-th-row">
-                <th style="width: 140px;">Sân Thể Thao</th>
+              <tr>
+                <th>Mã Đơn</th>
+                <th>Khách Hàng</th>
+                <th>Sân</th>
+                <th>Khung Giờ</th>
+                <th>Tổng Tiền</th>
+                <th>Trạng Thái</th>
+                <th>Thanh Toán</th>
+                <th>Thao Tác</th>
               </tr>
             </thead>
-            <tbody id="schedule-tbody">
-              <!-- Render via JS -->
-            </tbody>
+            <tbody id="dashboard-bookings-tbody"></tbody>
           </table>
         </div>
       </section>
 
-      <!-- TAB 3: BOOKINGS LIST -->
+      <!-- TAB 2: SCHEDULE GRID (STF-03) -->
+      <section id="tab-schedule" class="tab-content">
+        <div class="section-header">
+          <h1 class="section-title">Lịch Lưới Sân Theo Ngày (Sân × Khung Giờ)</h1>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <button class="btn btn-outline" onclick="changeScheduleDate(-1)">◀ Lùi 1 ngày</button>
+            <input type="date" id="schedule-date" class="form-input" style="width: 160px;" onchange="loadSchedule()" />
+            <button class="btn btn-outline" onclick="changeScheduleDate(1)">Tiến 1 ngày ▶</button>
+            <button class="btn btn-primary" onclick="setScheduleToday()">Hôm nay</button>
+            <button class="btn btn-outline" onclick="loadSchedule()">🔄 Làm mới</button>
+          </div>
+        </div>
+        <div class="schedule-wrapper" id="schedule-grid">
+          <!-- Render via JS -->
+        </div>
+      </section>
+
+      <!-- TAB 3: BOOKINGS LIST (STF-04) -->
       <section id="tab-bookings" class="tab-content">
         <div class="section-header">
           <h1 class="section-title">Danh Sách Đơn Đặt Sân</h1>
           <button class="btn btn-primary" onclick="switchTab('walkin')">➕ Đặt Tại Quầy</button>
         </div>
         <!-- Bộ lọc -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) 100px; gap: 10px; margin-bottom: 16px;">
-          <input type="date" id="filter-date" class="form-input" onchange="loadBookings()" />
-          <select id="filter-status" class="form-select" onchange="loadBookings()">
+        <div style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;">
+          <input type="date" id="filter-date" class="form-input" style="width: 160px;" onchange="loadBookings()" />
+          <select id="filter-court" class="form-select" style="width: 170px;" onchange="loadBookings()">
+            <option value="">Tất cả sân</option>
+          </select>
+          <select id="filter-status" class="form-select" style="width: 170px;" onchange="loadBookings()">
             <option value="">Tất cả trạng thái</option>
             <option value="PENDING">PENDING (Chờ giữ chỗ)</option>
             <option value="CONFIRMED">CONFIRMED (Đã xác nhận)</option>
@@ -689,13 +752,17 @@
             <option value="EXPIRED">EXPIRED (Hết hạn)</option>
             <option value="NO_SHOW">NO_SHOW (Vắng mặt)</option>
           </select>
-          <select id="filter-payment" class="form-select" onchange="loadBookings()">
+          <select id="filter-payment" class="form-select" style="width: 170px;" onchange="loadBookings()">
             <option value="">Thanh toán (Tất cả)</option>
             <option value="UNPAID">Chưa thanh toán</option>
             <option value="PAID">Đã thanh toán</option>
             <option value="REFUNDED">Đã hoàn tiền</option>
           </select>
-          <input type="text" id="filter-keyword" class="form-input" placeholder="Mã đơn / Tên / SĐT..." onkeyup="if(event.key==='Enter') loadBookings()" />
+          <input type="text" id="filter-keyword" class="form-input" placeholder="Mã đơn / Tên / SĐT..." style="width: 200px;" onkeyup="if(event.key==='Enter') loadBookings()" />
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--danger); font-weight: 600; cursor: pointer;">
+            <input type="checkbox" id="filter-overdue" onchange="loadBookings()" />
+            <span>⚠️ Đơn quá giờ</span>
+          </label>
           <button class="btn btn-outline" onclick="loadBookings()">Lọc</button>
         </div>
 
@@ -707,99 +774,177 @@
                 <th>Khách Hàng</th>
                 <th>Sân & Loại</th>
                 <th>Ngày & Giờ</th>
-                <th>Tổng Tiền</th>
+                <th>Tiền Sân</th>
+                <th>Dịch Vụ</th>
+                <th>Tổng Cộng</th>
                 <th>Trạng Thái</th>
                 <th>Thanh Toán</th>
                 <th>Thao Tác</th>
               </tr>
             </thead>
-            <tbody id="bookings-tbody">
-              <!-- Render via JS -->
-            </tbody>
+            <tbody id="bookings-tbody"></tbody>
           </table>
         </div>
       </section>
 
-      <!-- TAB 4: WALKIN BOOKING -->
+      <!-- TAB 4: WALKIN BOOKING (STF-05) -->
       <section id="tab-walkin" class="tab-content">
         <div class="section-header">
           <h1 class="section-title">Đặt Sân Trực Tiếp Tại Quầy (Nhân Viên Đặt Hộ)</h1>
         </div>
-        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; max-width: 700px;">
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; max-width: 740px;">
           <form onsubmit="handleCreateWalkIn(event)">
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Chọn Sân</label>
-                <select id="walkin-court" class="form-select" required onchange="onWalkinCourtChange()"></select>
+                <select id="walkin-court" class="form-select" required onchange="loadWalkinSlots()"></select>
               </div>
               <div class="form-group">
                 <label class="form-label">Ngày Đặt Sân</label>
-                <input type="date" id="walkin-date" class="form-input" required onchange="onWalkinCourtChange()" />
+                <input type="date" id="walkin-date" class="form-input" required onchange="loadWalkinSlots()" />
               </div>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Chọn Khung Giờ (Tối đa 3 giờ liền kề — BR-02)</label>
-              <div id="walkin-slots" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 6px;">
-                <!-- Slots render -->
-              </div>
+              <label class="form-label">Chọn Khung Giờ (Tối đa 3 giờ liền kề — BR-02, BR-03 áp dụng giờ đang diễn ra)</label>
+              <div id="walkin-slots" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 6px;"></div>
             </div>
 
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Họ Tên Khách Vãng Lai</label>
-                <input type="text" id="walkin-name" class="form-input" placeholder="Nguyễn Văn A" required />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Số Điện Thoại</label>
-                <input type="text" id="walkin-phone" class="form-input" placeholder="0912345678" required />
-              </div>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Hình Thức Thanh Toán</label>
-                <select id="walkin-payment-method" class="form-select">
-                  <option value="CASH">Tiền mặt tại quầy</option>
-                  <option value="BANK_TRANSFER">Chuyển khoản</option>
-                </select>
-              </div>
-              <div class="form-group" style="display: flex; align-items: center; margin-top: 24px;">
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                  <input type="checkbox" id="walkin-paynow" checked />
-                  <span style="font-size: 13.5px; font-weight: 600;">Khách thanh toán luôn (Đánh dấu PAID ngay)</span>
+            <div class="form-group" style="margin-top: 10px;">
+              <label class="form-label">Loại Khách Hàng</label>
+              <div style="display: flex; gap: 20px; margin-bottom: 8px;">
+                <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                  <input type="radio" name="walkin-customer-type" value="GUEST" checked onchange="toggleWalkinCustomerType()" /> Khách vãng lai
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                  <input type="radio" name="walkin-customer-type" value="MEMBER" onchange="toggleWalkinCustomerType()" /> Khách có tài khoản (Tìm SĐT)
                 </label>
               </div>
             </div>
 
-            <div class="form-group">
-              <label class="form-label">Ghi Chú</label>
-              <input type="text" id="walkin-note" class="form-input" placeholder="Ghi chú thêm nếu có..." />
+            <div id="walkin-guest-fields" class="form-row">
+              <div class="form-group">
+                <label class="form-label">Họ Tên Khách Vãng Lai</label>
+                <input type="text" id="walkin-guest-name" class="form-input" placeholder="Nguyễn Văn A" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Số Điện Thoại Khách</label>
+                <input type="text" id="walkin-guest-phone" class="form-input" placeholder="09xxxxxxxx" />
+              </div>
             </div>
 
-            <button type="submit" class="btn btn-primary" style="padding: 12px 24px; width: 100%; justify-content: center;">
-              Tạo Đơn Đặt Sân Ngay
+            <div id="walkin-member-fields" style="display: none;" class="form-group">
+              <label class="form-label">Tìm Kiếm Khách Hàng (SĐT / Tên)</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="text" id="walkin-search-customer" class="form-input" placeholder="Nhập 4 số cuối SĐT..." />
+                <button type="button" class="btn btn-outline" onclick="timKhachHangChoWalkin()">Tìm</button>
+              </div>
+              <select id="walkin-customer-select" class="form-select" style="margin-top: 8px;">
+                <option value="">-- Chọn khách hàng --</option>
+              </select>
+            </div>
+
+            <div class="form-row" style="margin-top: 10px;">
+              <div class="form-group">
+                <label class="form-label">Thu Tiền Sân Ngay?</label>
+                <select id="walkin-paynow" class="form-select" onchange="toggleWalkinPaymentMethod()">
+                  <option value="true">Thanh toán ngay tại quầy (PAID)</option>
+                  <option value="false">Thanh toán sau tại sân (UNPAID)</option>
+                </select>
+              </div>
+              <div class="form-group" id="walkin-method-group">
+                <label class="form-label">Hình Thức Thanh Toán</label>
+                <select id="walkin-payment-method" class="form-select">
+                  <option value="CASH">Tiền mặt (CASH)</option>
+                  <option value="BANK_TRANSFER">Chuyển khoản (BANK_TRANSFER)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Ghi Chú Đơn Đặt</label>
+              <input type="text" id="walkin-note" class="form-input" placeholder="Khách gọi đặt qua điện thoại..." />
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; margin-top: 10px;">
+              ⚡ Tạo Đơn Đặt Tại Quầy (CONFIRMED)
             </button>
           </form>
         </div>
       </section>
 
-      <!-- TAB 5: REFUNDS -->
+      <!-- TAB 5: SERVICE ORDERS QUEUE (STF-11, STF-15) -->
+      <section id="tab-service-orders" class="tab-content">
+        <div class="section-header">
+          <h1 class="section-title">Hàng Đợi Yêu Cầu Dịch Vụ (Đồ uống, Thuê đồ, Tiệc BBQ)</h1>
+          <button class="btn btn-outline" onclick="loadServiceOrders()">🔄 Tải Lại Hàng Đợi</button>
+        </div>
+        <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+          <select id="filter-so-status" class="form-select" style="width: 200px;" onchange="loadServiceOrders()">
+            <option value="">Tất cả trạng thái</option>
+            <option value="REQUESTED" selected>Chờ giao (REQUESTED)</option>
+            <option value="DELIVERED">Đã giao (DELIVERED)</option>
+            <option value="CANCELLED">Đã hủy (CANCELLED)</option>
+          </select>
+        </div>
+
+        <div class="table-container" style="margin-bottom: 30px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Mã YC</th>
+                <th>Mã Đơn Đặt</th>
+                <th>Sân</th>
+                <th>Khách Hàng</th>
+                <th>Các Món Yêu Cầu</th>
+                <th>Ghi Chú</th>
+                <th>Thời Gian</th>
+                <th>Trạng Thái</th>
+                <th>Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody id="service-orders-tbody"></tbody>
+          </table>
+        </div>
+
+        <!-- BẬT TẮT TRẠNG THÁI TẠM HẾT HÀNG (STF-15, TC-59) -->
+        <div class="section-header">
+          <h2 style="font-size: 16px; font-weight: 700;">Quản Lý Trạng Thái Hàng Hóa Quầy Dịch Vụ</h2>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Tên Dịch Vụ</th>
+                <th>Phân Loại</th>
+                <th>Đơn Giá</th>
+                <th>Trạng Thái Bán</th>
+                <th>Thao Tác Nhanh</th>
+              </tr>
+            </thead>
+            <tbody id="service-availability-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 6: REFUNDS (STF-09) -->
       <section id="tab-refunds" class="tab-content">
         <div class="section-header">
-          <h1 class="section-title">Danh Sách Yêu Cầu Hoàn Tiền (REFUND PENDING)</h1>
+          <h1 class="section-title">Danh Sách Chờ Hoàn Tiền (Khách Hủy Đơn Đã Trả Tiền)</h1>
           <button class="btn btn-outline" onclick="loadRefunds()">🔄 Tải Lại</button>
         </div>
         <div class="table-container">
           <table>
             <thead>
               <tr>
+                <th>Payment ID</th>
                 <th>Mã Đơn</th>
                 <th>Khách Hàng</th>
-                <th>SĐT</th>
                 <th>Số Tiền Hoàn</th>
-                <th>Thời Điểm Hủy</th>
-                <th>Lý Do</th>
+                <th>Thông Tin Nhận Tiền Hoàn (refundInfo)</th>
+                <th>Thời Gian Hủy</th>
+                <th>Trạng Thái</th>
                 <th>Thao Tác</th>
               </tr>
             </thead>
@@ -808,32 +953,64 @@
         </div>
       </section>
 
-      <!-- TAB 6: COURTS & TYPES (ADMIN) -->
-      <section id="tab-courts" class="tab-content">
+      <!-- TAB 7: CUSTOMERS (STF-10, ADM-06) -->
+      <section id="tab-customers" class="tab-content">
         <div class="section-header">
-          <h1 class="section-title">Loại Sân & Sân Thể Thao</h1>
+          <h1 class="section-title">Tra Cứu & Quản Lý Khách Hàng</h1>
+          <div style="display:flex; gap:10px;">
+            <input id="khach-tu-khoa" class="form-input" style="width:260px;" placeholder="Tên / SĐT / Email..." onkeyup="if(event.key==='Enter') taiDanhSachKhachHang()" />
+            <button class="btn btn-outline" onclick="taiDanhSachKhachHang()">Tìm</button>
+          </div>
         </div>
-
-        <h3 style="margin: 8px 0;">Loại sân</h3>
-        <form onsubmit="taoLoaiSan(event)" style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
-          <input id="loai-san-ten" class="form-input" style="width:220px;" placeholder="Tên loại sân mới" required />
-          <input id="loai-san-mota" class="form-input" style="width:280px;" placeholder="Mô tả (tùy chọn)" />
-          <button class="btn btn-primary" type="submit">➕ Thêm loại sân</button>
-        </form>
-        <div class="table-container" style="margin-bottom:24px;">
+        <div class="table-container">
           <table>
             <thead>
-              <tr><th>ID</th><th>Tên Loại Sân</th><th>Mô Tả</th><th>Trạng Thái</th><th>Thao Tác</th></tr>
+              <tr>
+                <th>ID</th>
+                <th>Họ Tên</th>
+                <th>Số Điện Thoại</th>
+                <th>Email</th>
+                <th>Số Đơn</th>
+                <th>Trạng Thái</th>
+                <th>Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody id="khach-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 8: COURTS & COURT TYPES (ADMIN) -->
+      <section id="tab-courts" class="tab-content">
+        <div class="section-header">
+          <h1 class="section-title">Quản Lý Loại Sân & Sân Thể Thao</h1>
+        </div>
+
+        <h3 style="margin-bottom: 10px; font-size: 15px;">Loại Sân (Bao gồm Khu sự kiện & tiệc - BR-30)</h3>
+        <form onsubmit="taoLoaiSan(event)" style="display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+          <input id="ls-ten" class="form-input" style="width:200px;" placeholder="Tên loại sân mới" required />
+          <select id="ls-phanloai" class="form-select" style="width:160px;">
+            <option value="SPORT">Thể thao (SPORT)</option>
+            <option value="EVENT">Khu sự kiện (EVENT)</option>
+          </select>
+          <input id="ls-mota" class="form-input" style="width:280px;" placeholder="Mô tả..." />
+          <button class="btn btn-primary" type="submit">➕ Thêm loại sân</button>
+        </form>
+        <div class="table-container" style="margin-bottom:28px;">
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Tên Loại Sân</th><th>Phân Loại</th><th>Mô Tả</th><th>Trạng Thái</th><th>Thao Tác</th></tr>
             </thead>
             <tbody id="loai-san-tbody"></tbody>
           </table>
         </div>
 
-        <h3 style="margin: 8px 0;">Sân (đổi trạng thái kèm kiểm tra BR-05)</h3>
-        <form onsubmit="taoSan(event)" style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
-          <select id="san-loai-chon" class="form-select" style="width:220px;" required></select>
-          <input id="san-ten" class="form-input" style="width:200px;" placeholder="Tên sân mới" required />
-          <input id="san-mota" class="form-input" style="width:280px;" placeholder="Mô tả (tùy chọn)" />
+        <h3 style="margin-bottom: 10px; font-size: 15px;">Danh Sách Sân (Kiểm tra BR-05 khi đổi trạng thái)</h3>
+        <form onsubmit="taoSan(event)" style="display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+          <select id="san-loai-chon" class="form-select" style="width:200px;" required></select>
+          <input id="san-ten" class="form-input" style="width:180px;" placeholder="Tên sân (vd: Sân 5A)" required />
+          <input id="san-suc-chua" type="number" class="form-input" style="width:140px;" placeholder="Sức chứa (người)" />
+          <input id="san-mota" class="form-input" style="width:240px;" placeholder="Mô tả..." />
           <button class="btn btn-primary" type="submit">➕ Thêm sân</button>
         </form>
         <div class="table-container">
@@ -843,6 +1020,7 @@
                 <th>ID</th>
                 <th>Tên Sân</th>
                 <th>Loại Sân</th>
+                <th>Sức Chứa</th>
                 <th>Mô Tả</th>
                 <th>Trạng Thái</th>
                 <th>Đổi Trạng Thái (Kèm BR-05)</th>
@@ -853,7 +1031,28 @@
         </div>
       </section>
 
-      <!-- TAB 7: PRICING MATRIX (ADMIN) -->
+      <!-- TAB 9: TIME SLOTS (ADMIN) -->
+      <section id="tab-timeslots" class="tab-content">
+        <div class="section-header">
+          <h1 class="section-title">Quản Lý Khung Giờ Trong Ngày</h1>
+        </div>
+        <form onsubmit="taoKhungGio(event)" style="display:flex; gap:10px; margin-bottom:14px; align-items:center;">
+          <input type="time" id="kg-gio-bat-dau" class="form-input" style="width:140px;" required />
+          <span>→</span>
+          <input type="time" id="kg-gio-ket-thuc" class="form-input" style="width:140px;" required />
+          <button class="btn btn-primary" type="submit">➕ Thêm khung giờ</button>
+        </form>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Khung Giờ</th><th>Trạng Thái</th><th>Thao Tác</th></tr>
+            </thead>
+            <tbody id="kg-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 10: PRICING MATRIX (ADMIN) -->
       <section id="tab-prices" class="tab-content">
         <div class="section-header">
           <h1 class="section-title">Bảng Giá Ma Trận (Loại Sân × Khung Giờ × Ngày Thường/Cuối Tuần)</h1>
@@ -871,12 +1070,48 @@
             <tbody id="prices-tbody"></tbody>
           </table>
         </div>
-        <div style="margin-top:14px;">
-          <button class="btn btn-primary" onclick="luuBangGia()">💾 Lưu Bảng Giá Đã Sửa</button>
+        <div style="margin-top:16px;">
+          <button class="btn btn-primary" onclick="luuBangGia()">💾 Lưu Toàn Bộ Bảng Giá Đã Sửa</button>
         </div>
       </section>
 
-      <!-- TAB 8: STAFF ACCOUNTS (ADMIN) -->
+      <!-- TAB 11: SERVICE CATALOG (ADMIN - ADM-08) -->
+      <section id="tab-services" class="tab-content">
+        <div class="section-header">
+          <h1 class="section-title">Danh Mục Dịch Vụ Phụ Trợ (Đồ uống, Thuê đồ, Gói tiệc BBQ)</h1>
+        </div>
+        <form onsubmit="taoDichVuAdmin(event)" style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+          <input id="dv-ten" class="form-input" style="width:200px;" placeholder="Tên dịch vụ / món" required />
+          <select id="dv-phanloai" class="form-select" style="width:160px;" required>
+            <option value="DRINK">Nước uống (DRINK)</option>
+            <option value="RENTAL">Thuê dụng cụ (RENTAL)</option>
+            <option value="PACKAGE">Gói tiệc BBQ (PACKAGE)</option>
+          </select>
+          <input id="dv-donvi" class="form-input" style="width:110px;" placeholder="Đơn vị (chai, cái)" required />
+          <input id="dv-gia" type="number" class="form-input" style="width:140px;" placeholder="Đơn giá (₫)" required />
+          <input id="dv-mota" class="form-input" style="width:220px;" placeholder="Mô tả..." />
+          <button class="btn btn-primary" type="submit">➕ Thêm dịch vụ</button>
+        </form>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Tên Dịch Vụ</th>
+                <th>Phân Loại</th>
+                <th>Đơn Vị</th>
+                <th>Đơn Giá</th>
+                <th>Trạng Thái</th>
+                <th>Mô Tả</th>
+                <th>Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody id="admin-services-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 12: STAFF ACCOUNTS (ADMIN - ADM-05) -->
       <section id="tab-staff" class="tab-content">
         <div class="section-header">
           <h1 class="section-title">Quản Lý Tài Khoản Nhân Viên (Role: STAFF)</h1>
@@ -905,7 +1140,7 @@
         </div>
       </section>
 
-      <!-- TAB 9: REPORTS (ADMIN) -->
+      <!-- TAB 13: REPORTS (ADMIN - ADM-07) -->
       <section id="tab-reports" class="tab-content">
         <div class="section-header">
           <h1 class="section-title">Báo Cáo Doanh Thu & Tỷ Lệ Lấp Đầy Sân</h1>
@@ -917,22 +1152,47 @@
         </div>
         <div class="kpi-grid">
           <div class="kpi-card">
-            <span class="kpi-label">Tỷ lệ lấp đầy sân</span>
-            <span class="kpi-value" id="rep-occupancy" style="color: var(--primary);">0%</span>
-            <span class="kpi-sub" id="rep-slots-info">Số slot đặt / Tổng slot</span>
+            <span class="kpi-label">Doanh thu tiền sân</span>
+            <span class="kpi-value" id="rep-court-rev" style="color: var(--accent);">0 ₫</span>
+            <span class="kpi-sub">Từ tiền thuê sân</span>
           </div>
           <div class="kpi-card">
-            <span class="kpi-label">Tổng doanh thu kỳ báo cáo</span>
-            <span class="kpi-value" id="rep-revenue" style="color: #34D399;">0 ₫</span>
-            <span class="kpi-sub">Thu thực tế trừ hoàn tiền</span>
+            <span class="kpi-label">Doanh thu dịch vụ</span>
+            <span class="kpi-value" id="rep-service-rev" style="color: var(--info);">0 ₫</span>
+            <span class="kpi-sub">Đồ uống & thuê đồ</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Tiền đã hoàn trả</span>
+            <span class="kpi-value" id="rep-refund-rev" style="color: var(--danger);">0 ₫</span>
+            <span class="kpi-sub">Trừ vào tiền sân (BR-32)</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Doanh thu thực tế (Ròng)</span>
+            <span class="kpi-value" id="rep-net-rev" style="color: #34D399;">0 ₫</span>
+            <span class="kpi-sub">Tiền sân + Dịch vụ − Hoàn tiền</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Tỷ lệ lấp đầy sân</span>
+            <span class="kpi-value" id="rep-occupancy" style="color: var(--primary);">0%</span>
+            <span class="kpi-sub" id="rep-slots-info">Slot đặt / Tổng slot</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Đơn đóng có công nợ</span>
+            <span class="kpi-value" id="rep-debt-closed" style="color: var(--warning);">0</span>
+            <span class="kpi-sub">Đơn đóng công nợ (BR-33)</span>
           </div>
         </div>
-        <div class="table-container" style="margin-top: 16px;">
+
+        <div class="section-header" style="margin-top:24px;">
+          <h3 style="font-size: 15px; font-weight: 700;">Chi Tiết Doanh Thu Theo Ngày</h3>
+        </div>
+        <div class="table-container" style="margin-bottom: 24px;">
           <table>
             <thead>
               <tr>
                 <th>Ngày</th>
-                <th>Tiền Thu</th>
+                <th>Tiền Sân</th>
+                <th>Tiền Dịch Vụ</th>
                 <th>Tiền Hoàn</th>
                 <th>Doanh Thu Thực</th>
               </tr>
@@ -940,58 +1200,118 @@
             <tbody id="rep-tbody"></tbody>
           </table>
         </div>
-      </section>
 
-      <!-- TAB 10: CUSTOMERS (STAFF + ADMIN) -->
-      <section id="tab-customers" class="tab-content">
         <div class="section-header">
-          <h1 class="section-title">Tra Cứu Khách Hàng</h1>
-          <div style="display:flex; gap:10px;">
-            <input id="khach-tu-khoa" class="form-input" style="width:240px;" placeholder="Tên / SĐT / Email..." onkeyup="if(event.key==='Enter') taiDanhSachKhachHang()" />
-            <button class="btn btn-outline" onclick="taiDanhSachKhachHang()">Tìm</button>
-          </div>
+          <h3 style="font-size: 15px; font-weight: 700;">Top Dịch Vụ Phát Sinh Bán Chạy Nhất</h3>
         </div>
         <div class="table-container">
           <table>
             <thead>
-              <tr><th>ID</th><th>Họ Tên</th><th>Số Điện Thoại</th><th>Email</th><th>Số Đơn</th><th>Trạng Thái</th><th>Thao Tác</th></tr>
+              <tr>
+                <th>ID</th>
+                <th>Tên Dịch Vụ</th>
+                <th>Phân Loại</th>
+                <th>Số Lượng Bán / Thuê</th>
+                <th>Tổng Doanh Thu</th>
+              </tr>
             </thead>
-            <tbody id="khach-tbody"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- TAB 11: TIME SLOTS (ADMIN) -->
-      <section id="tab-timeslots" class="tab-content">
-        <div class="section-header">
-          <h1 class="section-title">Quản Lý Khung Giờ</h1>
-        </div>
-        <form onsubmit="taoKhungGio(event)" style="display:flex; gap:10px; margin-bottom:14px; align-items:center;">
-          <input type="time" id="kg-gio-bat-dau" class="form-input" style="width:140px;" required />
-          <span>→</span>
-          <input type="time" id="kg-gio-ket-thuc" class="form-input" style="width:140px;" required />
-          <button class="btn btn-primary" type="submit">➕ Thêm khung giờ</button>
-        </form>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr><th>ID</th><th>Khung Giờ</th><th>Trạng Thái</th><th>Thao Tác</th></tr>
-            </thead>
-            <tbody id="kg-tbody"></tbody>
+            <tbody id="rep-services-tbody"></tbody>
           </table>
         </div>
       </section>
     </main>
   </div>
 
-  <!-- MODAL: CHI TIẾT ĐƠN ĐẶT -->
+  <!-- MODAL: CHI TIẾT ĐƠN ĐẶT SÂN & HÓA ĐƠN TỔNG HỢP -->
   <div class="modal-overlay" id="modal-detail">
-    <div class="modal-card">
+    <div class="modal-card modal-card-lg">
       <div class="modal-header">
-        <h3 class="modal-title">Chi Tiết Đơn Đặt Sân</h3>
+        <h3 class="modal-title">Chi Tiết Đơn Đặt Sân & Hóa Đơn</h3>
         <button class="btn-close" onclick="closeModal('modal-detail')">&times;</button>
       </div>
       <div id="modal-detail-content"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: THÊM DỊCH VỤ TẠI QUẦY -->
+  <div class="modal-overlay" id="modal-add-service">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">➕ Thêm Dịch Vụ Tại Quầy</h3>
+        <button class="btn-close" onclick="closeModal('modal-add-service')">&times;</button>
+      </div>
+      <form id="form-add-service" onsubmit="handleStaffAddService(event)">
+        <input type="hidden" id="add-service-booking-id" />
+        <div class="form-group">
+          <label class="form-label">Chọn Dịch Vụ / Đồ Uống / Thuê Dụng Cụ</label>
+          <select id="add-service-item" class="form-select" required></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Số Lượng</label>
+          <input type="number" id="add-service-qty" class="form-input" value="1" min="1" max="100" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ghi Chú</label>
+          <input type="text" id="add-service-note" class="form-input" placeholder="Phục vụ tại sân..." />
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; margin-top: 10px;">
+          🚀 Xác Nhận Thêm (Tự Động Giao - BR-31)
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: THU TIỀN DỊCH VỤ -->
+  <div class="modal-overlay" id="modal-pay-service">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">💵 Thu Tiền Dịch Vụ Phát Sinh</h3>
+        <button class="btn-close" onclick="closeModal('modal-pay-service')">&times;</button>
+      </div>
+      <form id="form-pay-service" onsubmit="handleStaffPayService(event)">
+        <input type="hidden" id="pay-service-booking-id" />
+        <div class="form-group">
+          <label class="form-label">Số Tiền Dịch Vụ Còn Thiếu</label>
+          <input type="text" id="pay-service-amount-display" class="form-input" readonly style="font-weight: 800; font-family: var(--font-mono); color: var(--warning);" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Hình Thức Thu Tiền</label>
+          <select id="pay-service-method" class="form-select">
+            <option value="CASH">Tiền mặt (CASH)</option>
+            <option value="BANK_TRANSFER">Chuyển khoản (BANK_TRANSFER)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mã Giao Dịch Chuyển Khoản (Nếu CK)</label>
+          <input type="text" id="pay-service-ref" class="form-input" placeholder="Mã giao dịch ngân hàng..." />
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; margin-top: 10px;">
+          ✅ Xác Nhận Thu Tiền Dịch Vụ
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ĐÓNG ĐƠN CÓ CÔNG NỢ (ADMIN ONLY - ADM-09) -->
+  <div class="modal-overlay" id="modal-close-debt">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" style="color: var(--danger);">⚠️ Đóng Đơn Có Công Nợ</h3>
+        <button class="btn-close" onclick="closeModal('modal-close-debt')">&times;</button>
+      </div>
+      <form id="form-close-debt" onsubmit="handleAdminCloseWithDebt(event)">
+        <input type="hidden" id="close-debt-booking-id" />
+        <p style="font-size: 13.5px; color: var(--text-muted); margin-bottom: 14px;">
+          Hành động này áp dụng khi khách chơi xong bỏ về không trả tiền dịch vụ hoặc không trả đồ thuê. Đơn sẽ chuyển sang <strong style="color: white;">COMPLETED</strong> kèm cờ <strong style="color: var(--warning);">closed_with_debt = 1</strong> và ghi log công nợ.
+        </p>
+        <div class="form-group">
+          <label class="form-label">Lý Do Đóng Đơn (Bắt buộc theo BR-33)</label>
+          <textarea id="close-debt-reason" class="form-textarea" rows="3" placeholder="Khách bỏ về không thanh toán 50.000đ tiền nước và chưa trả 1 vợt cầu lông..." required></textarea>
+        </div>
+        <button type="submit" class="btn btn-danger" style="width: 100%; justify-content: center; padding: 12px; margin-top: 10px;">
+          Xác Nhận Đóng Đơn Có Công Nợ
+        </button>
+      </form>
     </div>
   </div>
 
@@ -1001,7 +1321,6 @@
     <span id="toast-text">Thông báo</span>
   </div>
 
-  <script src="/socket.io/socket.io.js"></script>
   <script src="admin.js"></script>
 </body>
 </html>

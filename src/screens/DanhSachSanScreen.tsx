@@ -22,6 +22,7 @@ import { San } from '../types';
 import { sanService } from '../services/sanService';
 
 type Props = {
+  route?: any;
   navigation: NativeStackNavigationProp<any>;
 };
 
@@ -34,14 +35,22 @@ const MAU = {
   vien: '#E8EAED',
 };
 
-const BO_LOC = ['Tất cả', 'Cầu Lông', 'Bóng Đá', 'Tennis', 'Bóng Rổ', 'Pickleball'];
+const BO_LOC = ['Tất cả', 'Cầu Lông', 'Bóng Đá', 'Tennis', 'Bóng Rổ', 'Pickleball', 'Khu Sự Kiện & Tiệc'];
 
-export default function DanhSachSanScreen({ navigation }: Props) {
+export default function DanhSachSanScreen({ route, navigation }: Props) {
   const [danhSachSan, setDanhSachSan] = useState<San[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [tuKhoa, setTuKhoa] = useState<string>('');
-  const [monChon, setMonChon] = useState<string>('Tất cả');
+  const [monChon, setMonChon] = useState<string>(
+    route?.params?.category === 'EVENT' ? 'Khu Sự Kiện & Tiệc' : 'Tất cả'
+  );
   const [sapXep, setSapXep] = useState<string>('khoangCach');
+
+  useEffect(() => {
+    if (route?.params?.category === 'EVENT') {
+      setMonChon('Khu Sự Kiện & Tiệc');
+    }
+  }, [route?.params?.category]);
 
   // Lấy dữ liệu qua Axios HTTP Client
   useEffect(() => {
@@ -62,7 +71,13 @@ export default function DanhSachSanScreen({ navigation }: Props) {
   // Lọc danh sách sân
   const danhSachDaLoc = danhSachSan.filter((san) => {
     const khopTen = san.tenSan.toLowerCase().includes(tuKhoa.toLowerCase());
-    const khopMon = monChon === 'Tất cả' || san.monTheThao === monChon;
+    const khopMon =
+      monChon === 'Tất cả' ||
+      (monChon === 'Khu Sự Kiện & Tiệc'
+        ? san.monTheThao.toLowerCase().includes('sự kiện') ||
+          san.monTheThao.toLowerCase().includes('tiệc') ||
+          san.monTheThao.toLowerCase().includes('event')
+        : san.monTheThao === monChon);
     return khopTen && khopMon;
   });
 

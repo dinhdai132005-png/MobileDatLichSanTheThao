@@ -1,476 +1,332 @@
 # 01 — DATABASE MySQL
 
-> Trạng thái: **ĐỀ XUẤT / CHƯA TRIỂN KHAI**. MySQL 8.0.16+ (cần để `CHECK` có hiệu lực). Engine InnoDB, charset `utf8mb4`.
+> Trạng thái: **ĐÃ CÓ** (v1.2: dịch vụ phát sinh + khu sự kiện theo góp ý giảng viên; toàn bộ tên bảng và tên cột chuẩn hóa bằng **TIẾNG VIỆT KHÔNG DẤU** `snake_case`). MySQL 8.0.16+ (cần để `CHECK` có hiệu lực). Engine InnoDB, charset `utf8mb4`.
 
 ## 1. Nguyên tắc thiết kế
 
 - Mỗi bảng tồn tại vì một nghiệp vụ cụ thể (mục 4).
-- **Không xóa cứng** dữ liệu nghiệp vụ. Vô hiệu hóa bằng `is_active` hoặc `status`.
+- **Không xóa cứng** dữ liệu nghiệp vụ. Vô hiệu hóa bằng `hoat_dong` hoặc `trang_thai`.
 - **Tiền là số nguyên VND** (`INT UNSIGNED`). Tránh `DECIMAL` vì `mysql2` trả về string.
 - Giờ lưu `TIME`, ngày lưu `DATE`, thời điểm lưu `DATETIME` theo múi giờ `+07:00`.
-- Giá được **snapshot** vào `booking_slots.price` khi đặt (BR-15).
+- Giá được **snapshot**: tiền sân vào `chi_tiet_khung_gio_dat.gia`, tiền dịch vụ vào `chi_tiet_yeu_cau_dich_vu.don_gia` (BR-15, BR-23).
+- **Hóa đơn không phải một bảng:** hóa đơn của một đơn = `tien_san` + `tien_dich_vu` (chỉ gồm các yêu cầu **đã giao**), tính từ các bảng có sẵn (mục 7.7). Không tạo bảng `hoa_don` riêng để tránh dữ liệu trùng lặp.
+- `don_dat.trang_thai_thanh_toan` chỉ phản ánh thanh toán **tiền sân**. Thanh toán tiền dịch vụ theo dõi qua `thanh_toan.muc_dich = 'SERVICE'`.
 - Chống trùng lịch bằng **UNIQUE KEY** (mục 3).
 
 ## 2. ER Diagram
 
 ```mermaid
 erDiagram
-    users {
+    nguoi_dung {
         int id PK
-        varchar full_name
-        varchar phone UK
+        varchar ho_ten
+        varchar so_dien_thoai UK
         varchar email UK
-        varchar password_hash
-        enum role
-        enum status
+        varchar mat_khau_hash
+        enum vai_tro
+        enum trang_thai
     }
-    court_types {
+    loai_san {
         int id PK
-        varchar name UK
-        boolean is_active
+        varchar ten UK
+        enum phan_loai
+        boolean hoat_dong
     }
-    courts {
+    san {
         int id PK
-        int court_type_id FK
-        varchar name UK
-        enum status
+        int loai_san_id FK
+        varchar ten UK
+        smallint suc_chua
+        enum trang_thai
     }
-    time_slots {
+    khung_gio {
         int id PK
-        time start_time UK
-        time end_time
-        boolean is_active
+        time gio_bat_dau UK
+        time gio_ket_thuc
+        boolean hoat_dong
     }
-    slot_prices {
+    gia_khung_gio {
         int id PK
-        int court_type_id FK
-        int time_slot_id FK
-        enum day_type
-        int price
+        int loai_san_id FK
+        int khung_gio_id FK
+        enum loai_ngay
+        int gia
     }
-    bookings {
+    don_dat {
         int id PK
-        varchar booking_code UK
-        int user_id FK
-        varchar guest_name
-        varchar guest_phone
-        int court_id FK
-        date booking_date
-        time start_time
-        time end_time
-        int total_amount
-        enum status
-        enum payment_method
-        enum payment_status
-        enum source
-        datetime expires_at
-        int created_by FK
+        varchar ma_don_dat UK
+        int nguoi_dung_id FK
+        varchar ten_khach
+        varchar so_dien_thoai_khach
+        int san_id FK
+        date ngay_dat
+        time gio_bat_dau
+        time gio_ket_thuc
+        int tien_san
+        int tien_dich_vu
+        tinyint dong_don_cong_no
+        enum trang_thai
+        enum phuong_thuc_thanh_toan
+        enum trang_thai_thanh_toan
+        enum nguon_don
+        datetime het_han_luc
+        int nguoi_tao_id FK
     }
-    booking_slots {
+    chi_tiet_khung_gio_dat {
         int id PK
-        int booking_id FK
-        int court_id FK
-        date slot_date
-        int time_slot_id FK
-        int price
-        tinyint is_locked
+        int don_dat_id FK
+        int san_id FK
+        date ngay_dat
+        int khung_gio_id FK
+        int gia
+        tinyint dang_khoa
     }
-    payments {
+    thanh_toan {
         int id PK
-        int booking_id FK
-        enum type
-        enum method
-        int amount
-        enum status
-        int processed_by FK
-        datetime processed_at
+        int don_dat_id FK
+        enum loai_giao_dich
+        enum muc_dich
+        enum phuong_thuc
+        int so_tien
+        enum trang_thai
+        int nguoi_xu_ly_id FK
+        datetime ngay_xu_ly
     }
-    booking_status_logs {
+    nhat_ky_trang_thai_don {
         int id PK
-        int booking_id FK
-        enum from_status
-        enum to_status
-        int changed_by FK
-        datetime created_at
+        int don_dat_id FK
+        enum trang_thai_truoc
+        enum trang_thai_sau
+        int nguoi_thuc_hien_id FK
+        datetime ngay_tao
     }
-    reviews {
+    danh_gia {
         int id PK
-        int booking_id FK
-        int user_id FK
-        tinyint rating
-        varchar comment
+        int don_dat_id FK
+        int nguoi_dung_id FK
+        tinyint so_sao
+        varchar nhan_xet
     }
-    services {
+    dich_vu {
         int id PK
-        varchar name
-        int price
-        boolean is_active
+        varchar ten UK
+        enum phan_loai
+        int don_gia
+        enum trang_thai
     }
-    booking_services {
+    yeu_cau_dich_vu {
         int id PK
-        int booking_id FK
-        int service_id FK
-        int quantity
-        int unit_price
+        int don_dat_id FK
+        enum trang_thai
+        enum nguon
+        int nguoi_yeu_cau_id FK
+        int nguoi_giao_id FK
+        datetime giao_luc
+    }
+    chi_tiet_yeu_cau_dich_vu {
+        int id PK
+        int yeu_cau_dich_vu_id FK
+        int dich_vu_id FK
+        int so_luong
+        int don_gia
+        datetime tra_luc
+        int nguoi_nhan_tra_id FK
     }
 
-    court_types ||--o{ courts : "gồm"
-    court_types ||--o{ slot_prices : "có giá"
-    time_slots ||--o{ slot_prices : "áp giá"
-    users |o--o{ bookings : "đặt"
-    users |o--o{ bookings : "nhân viên tạo hộ"
-    courts ||--o{ bookings : "được đặt"
-    bookings ||--|{ booking_slots : "gồm các giờ"
-    courts ||--o{ booking_slots : "khóa giờ"
-    time_slots ||--o{ booking_slots : "là"
-    bookings ||--o{ payments : "thanh toán"
-    users |o--o{ payments : "xử lý"
-    bookings ||--o{ booking_status_logs : "lịch sử"
-    users |o--o{ booking_status_logs : "đổi bởi"
-    bookings ||--o| reviews : "được đánh giá"
-    users ||--o{ reviews : "viết"
-    bookings ||--o{ booking_services : "dùng dịch vụ P2"
-    services ||--o{ booking_services : "thuộc"
+    loai_san ||--o{ san : "gồm"
+    loai_san ||--o{ gia_khung_gio : "có giá"
+    khung_gio ||--o{ gia_khung_gio : "áp giá"
+    nguoi_dung |o--o{ don_dat : "đặt"
+    nguoi_dung |o--o{ don_dat : "nhân viên tạo hộ"
+    san ||--o{ don_dat : "được đặt"
+    don_dat ||--|{ chi_tiet_khung_gio_dat : "gồm các giờ"
+    san ||--o{ chi_tiet_khung_gio_dat : "khóa giờ"
+    khung_gio ||--o{ chi_tiet_khung_gio_dat : "là"
+    don_dat ||--o{ thanh_toan : "thanh toán"
+    nguoi_dung |o--o{ thanh_toan : "xử lý"
+    don_dat ||--o{ nhat_ky_trang_thai_don : "lịch sử"
+    nguoi_dung |o--o{ nhat_ky_trang_thai_don : "đổi bởi"
+    don_dat ||--o| danh_gia : "được đánh giá"
+    nguoi_dung ||--o{ danh_gia : "viết"
+    don_dat ||--o{ yeu_cau_dich_vu : "có yêu cầu dịch vụ"
+    yeu_cau_dich_vu ||--|{ chi_tiet_yeu_cau_dich_vu : "gồm các dòng"
+    dich_vu ||--o{ chi_tiet_yeu_cau_dich_vu : "được gọi"
+    nguoi_dung |o--o{ yeu_cau_dich_vu : "tạo / giao"
 ```
 
 ## 3. Cơ chế chống trùng lịch (quan trọng nhất, phải hiểu để bảo vệ)
 
-Bảng `booking_slots` có mỗi dòng là **một sân – một ngày – một khung giờ** của một đơn.
+Bảng `chi_tiet_khung_gio_dat` có mỗi dòng là **một sân – một ngày – một khung giờ** của một đơn.
 
-```
-UNIQUE KEY uq_slot_active (court_id, slot_date, time_slot_id, is_locked)
+```sql
+UNIQUE KEY uq_slot_dang_khoa (san_id, ngay_dat, khung_gio_id, dang_khoa)
 ```
 
-- Khi đơn **đang giữ chỗ hoặc hợp lệ**: `is_locked = 1` → chỉ một dòng được tồn tại cho cùng (sân, ngày, giờ). INSERT thứ hai báo `ER_DUP_ENTRY`.
-- Khi đơn **bị hủy hoặc hết hạn**: UPDATE `is_locked = NULL`. MySQL cho phép **nhiều giá trị NULL** trong UNIQUE index, nên slot được giải phóng nhưng dòng lịch sử vẫn còn.
-- Đơn `COMPLETED` và `NO_SHOW` giữ `is_locked = 1` (slot đã qua, không ảnh hưởng ai).
+- Khi đơn **đang giữ chỗ hoặc hợp lệ**: `dang_khoa = 1` → chỉ một dòng được tồn tại cho cùng (sân, ngày, giờ). INSERT thứ hai báo `ER_DUP_ENTRY`.
+- Khi đơn **bị hủy hoặc hết hạn**: UPDATE `dang_khoa = NULL`. MySQL cho phép **nhiều giá trị NULL** trong UNIQUE index, nên slot được giải phóng nhưng dòng lịch sử vẫn còn.
+- Đơn `COMPLETED` và `NO_SHOW` giữ `dang_khoa = 1` (slot đã qua, không ảnh hưởng ai).
 
 Hai người đặt cùng lúc: cả hai cùng INSERT, DB cho một người thành công, người kia nhận `ER_DUP_ENTRY` → backend trả `409 SLOT_TAKEN`. Không cần khóa thủ công.
 
-## 4. Vì sao có từng bảng
+## 4. Vì sao có từng bảng (13 bảng chuẩn tiếng Việt không dấu)
 
 | Bảng | Nghiệp vụ | Mức |
 |---|---|---|
-| `users` | Tài khoản cả 3 role (cột `role`) | P0 |
-| `court_types` | Loại sân (bóng đá mini, cầu lông...), gắn bảng giá | P0 |
-| `courts` | Sân cụ thể, trạng thái hoạt động/bảo trì | P0 |
-| `time_slots` | Khung giờ cố định. Cấu hình được thay vì hard-code | P0 |
-| `slot_prices` | Ma trận giá `loại sân × khung giờ × ngày thường/cuối tuần` | P0 |
-| `bookings` | Đơn đặt sân: ai, sân nào, ngày nào, tổng tiền, trạng thái | P0 |
-| `booking_slots` | Từng giờ của đơn + giá snapshot + khóa chống trùng | P0 |
-| `payments` | Mỗi giao dịch thanh toán/hoàn tiền (có thể có nhiều dòng/đơn: 1 thu + 1 hoàn) | P0 |
-| `booking_status_logs` | Lịch sử đổi trạng thái (ai, lúc nào) | P1 |
-| `reviews` | Đánh giá 1–5 sao sau khi hoàn thành | P1 |
-| `services`, `booking_services` | Dịch vụ đi kèm (thuê vợt, nước...), không tồn kho | P2 |
+| `nguoi_dung` | Tài khoản cả 3 role (cột `vai_tro`) | P0 |
+| `loai_san` | Loại sân (bóng đá mini, cầu lông...), gắn bảng giá; có `phan_loai = EVENT` cho khu tiệc | P0 |
+| `san` | Sân cụ thể hoặc phòng tiệc / BBQ, có `suc_chua` và trạng thái hoạt động/bảo trì | P0 |
+| `khung_gio` | Khung giờ cố định 1 giờ (06:00 -> 22:00) | P0 |
+| `gia_khung_gio` | Ma trận giá `loại sân × khung giờ × ngày thường/cuối tuần` | P0 |
+| `don_dat` | Đơn đặt sân: ai, sân nào, ngày nào, tiền sân, tiền dịch vụ, trạng thái | P0 |
+| `chi_tiet_khung_gio_dat` | Từng giờ của đơn + giá snapshot + khóa chống trùng `dang_khoa` | P0 |
+| `thanh_toan` | Mỗi giao dịch thu tiền sân, thu tiền dịch vụ, hoàn tiền | P0 |
+| `nhat_ky_trang_thai_don` | Lịch sử đổi trạng thái đơn (ai, lúc nào) | P1 |
+| `danh_gia` | Đánh giá 1–5 sao sau khi hoàn thành | P1 |
+| `dich_vu` | Danh mục dịch vụ: đồ uống (`DRINK`), thuê đồ (`RENTAL`), gói tiệc (`PACKAGE`) | P1★ |
+| `yeu_cau_dich_vu` | Một lần gọi dịch vụ gắn với đơn sân (`REQUESTED → DELIVERED / CANCELLED`) | P1★ |
+| `chi_tiet_yeu_cau_dich_vu` | Từng dòng dịch vụ + giá snapshot + thời điểm trả đồ thuê | P1★ |
 
-**Dữ liệu dùng chung (cấu hình):** `court_types`, `courts`, `time_slots`, `slot_prices`, `services`. Admin sửa, mọi client đọc.
-**Dữ liệu giao dịch:** `bookings`, `booking_slots`, `payments`, `reviews`.
-**Dữ liệu lịch sử (chỉ thêm, không sửa):** `booking_status_logs`, `payments`.
+## 5. DDL (từ `database/schema.sql`)
 
-## 5. DDL (copy vào `database/schema.sql`)
-
-```sql
-CREATE DATABASE IF NOT EXISTS sport_booking
-  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE sport_booking;
-
--- ===== 1. users =====
-CREATE TABLE users (
-  id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  full_name     VARCHAR(100) NOT NULL,
-  phone         VARCHAR(15)  NOT NULL,
-  email         VARCHAR(150) NULL,
-  password_hash VARCHAR(255) NOT NULL,
-  role          ENUM('CUSTOMER','STAFF','ADMIN') NOT NULL DEFAULT 'CUSTOMER',
-  status        ENUM('ACTIVE','LOCKED') NOT NULL DEFAULT 'ACTIVE',
-  created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  UNIQUE KEY uq_users_phone (phone),
-  UNIQUE KEY uq_users_email (email),
-  KEY idx_users_role_status (role, status)
-) ENGINE=InnoDB;
-
--- ===== 2. court_types =====
-CREATE TABLE court_types (
-  id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  name        VARCHAR(100) NOT NULL,
-  description VARCHAR(500) NULL,
-  is_active   TINYINT(1) NOT NULL DEFAULT 1,
-  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  UNIQUE KEY uq_court_types_name (name)
-) ENGINE=InnoDB;
-
--- ===== 3. courts =====
-CREATE TABLE courts (
-  id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  court_type_id INT UNSIGNED NOT NULL,
-  name          VARCHAR(100) NOT NULL,
-  description   VARCHAR(1000) NULL,
-  image_url     VARCHAR(500) NULL,
-  status        ENUM('ACTIVE','MAINTENANCE','INACTIVE') NOT NULL DEFAULT 'ACTIVE',
-  created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  UNIQUE KEY uq_courts_name (name),
-  KEY idx_courts_type_status (court_type_id, status),
-  CONSTRAINT fk_courts_type FOREIGN KEY (court_type_id) REFERENCES court_types (id)
-) ENGINE=InnoDB;
-
--- ===== 4. time_slots =====
-CREATE TABLE time_slots (
-  id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  start_time TIME NOT NULL,
-  end_time   TIME NOT NULL,
-  is_active  TINYINT(1) NOT NULL DEFAULT 1,
-  PRIMARY KEY (id),
-  UNIQUE KEY uq_time_slots_start (start_time),
-  CONSTRAINT chk_time_slots_range CHECK (end_time > start_time)
-) ENGINE=InnoDB;
-
--- ===== 5. slot_prices =====
-CREATE TABLE slot_prices (
-  id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  court_type_id INT UNSIGNED NOT NULL,
-  time_slot_id  INT UNSIGNED NOT NULL,
-  day_type      ENUM('WEEKDAY','WEEKEND') NOT NULL,
-  price         INT UNSIGNED NOT NULL,
-  PRIMARY KEY (id),
-  UNIQUE KEY uq_slot_prices (court_type_id, time_slot_id, day_type),
-  CONSTRAINT fk_sp_type FOREIGN KEY (court_type_id) REFERENCES court_types (id),
-  CONSTRAINT fk_sp_slot FOREIGN KEY (time_slot_id)  REFERENCES time_slots (id)
-) ENGINE=InnoDB;
-
--- ===== 6. bookings =====
-CREATE TABLE bookings (
-  id             INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  booking_code   VARCHAR(12) NOT NULL,
-  user_id        INT UNSIGNED NULL,
-  guest_name     VARCHAR(100) NULL,
-  guest_phone    VARCHAR(15)  NULL,
-  court_id       INT UNSIGNED NOT NULL,
-  booking_date   DATE NOT NULL,
-  start_time     TIME NOT NULL,
-  end_time       TIME NOT NULL,
-  total_amount   INT UNSIGNED NOT NULL,
-  status         ENUM('PENDING','CONFIRMED','COMPLETED','CANCELLED','EXPIRED','NO_SHOW')
-                 NOT NULL DEFAULT 'PENDING',
-  payment_method ENUM('CASH','BANK_TRANSFER','VNPAY') NOT NULL,
-  payment_status ENUM('UNPAID','PAID','REFUNDED') NOT NULL DEFAULT 'UNPAID',
-  source         ENUM('APP','STAFF') NOT NULL DEFAULT 'APP',
-  note           VARCHAR(500) NULL,
-  expires_at     DATETIME NULL,
-  cancelled_at   DATETIME NULL,
-  cancel_reason  VARCHAR(500) NULL,
-  created_by     INT UNSIGNED NULL,
-  created_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  UNIQUE KEY uq_bookings_code (booking_code),
-  KEY idx_bookings_court_date (court_id, booking_date),
-  KEY idx_bookings_user_status (user_id, status),
-  KEY idx_bookings_status_expires (status, expires_at),
-  KEY idx_bookings_date_status (booking_date, status),
-  CONSTRAINT fk_bookings_user  FOREIGN KEY (user_id)    REFERENCES users (id),
-  CONSTRAINT fk_bookings_court FOREIGN KEY (court_id)   REFERENCES courts (id),
-  CONSTRAINT fk_bookings_staff FOREIGN KEY (created_by) REFERENCES users (id),
-  CONSTRAINT chk_bookings_customer CHECK (user_id IS NOT NULL OR guest_phone IS NOT NULL),
-  CONSTRAINT chk_bookings_time CHECK (end_time > start_time)
-) ENGINE=InnoDB;
-
--- ===== 7. booking_slots =====
-CREATE TABLE booking_slots (
-  id           INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  booking_id   INT UNSIGNED NOT NULL,
-  court_id     INT UNSIGNED NOT NULL,
-  slot_date    DATE NOT NULL,
-  time_slot_id INT UNSIGNED NOT NULL,
-  price        INT UNSIGNED NOT NULL,
-  is_locked    TINYINT NULL DEFAULT 1,   -- 1 = đang giữ slot, NULL = đã nhả (hủy/hết hạn)
-  PRIMARY KEY (id),
-  UNIQUE KEY uq_slot_active (court_id, slot_date, time_slot_id, is_locked),
-  KEY idx_bs_booking (booking_id),
-  CONSTRAINT fk_bs_booking FOREIGN KEY (booking_id)   REFERENCES bookings (id),
-  CONSTRAINT fk_bs_court   FOREIGN KEY (court_id)     REFERENCES courts (id),
-  CONSTRAINT fk_bs_slot    FOREIGN KEY (time_slot_id) REFERENCES time_slots (id)
-) ENGINE=InnoDB;
-
--- ===== 8. payments =====
-CREATE TABLE payments (
-  id              INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  booking_id      INT UNSIGNED NOT NULL,
-  type            ENUM('PAYMENT','REFUND') NOT NULL,
-  method          ENUM('CASH','BANK_TRANSFER','VNPAY') NOT NULL,
-  amount          INT UNSIGNED NOT NULL,
-  status          ENUM('PENDING','SUCCESS','FAILED') NOT NULL DEFAULT 'PENDING',
-  transaction_ref VARCHAR(100) NULL,
-  processed_by    INT UNSIGNED NULL,      -- nhân viên xác nhận (NULL nếu hệ thống/cổng thanh toán)
-  note            VARCHAR(500) NULL,
-  created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  processed_at    DATETIME NULL,          -- lúc giao dịch thành công
-  PRIMARY KEY (id),
-  KEY idx_payments_booking (booking_id),
-  KEY idx_payments_status_type (status, type),
-  KEY idx_payments_processed_at (processed_at),
-  CONSTRAINT fk_pay_booking FOREIGN KEY (booking_id)   REFERENCES bookings (id),
-  CONSTRAINT fk_pay_staff   FOREIGN KEY (processed_by) REFERENCES users (id)
-) ENGINE=InnoDB;
-
--- ===== 9. booking_status_logs (P1) =====
-CREATE TABLE booking_status_logs (
-  id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  booking_id  INT UNSIGNED NOT NULL,
-  from_status ENUM('PENDING','CONFIRMED','COMPLETED','CANCELLED','EXPIRED','NO_SHOW') NULL,
-  to_status   ENUM('PENDING','CONFIRMED','COMPLETED','CANCELLED','EXPIRED','NO_SHOW') NOT NULL,
-  changed_by  INT UNSIGNED NULL,          -- NULL = hệ thống (job hết hạn)
-  note        VARCHAR(500) NULL,
-  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  KEY idx_bsl_booking (booking_id),
-  CONSTRAINT fk_bsl_booking FOREIGN KEY (booking_id) REFERENCES bookings (id),
-  CONSTRAINT fk_bsl_user    FOREIGN KEY (changed_by) REFERENCES users (id)
-) ENGINE=InnoDB;
-
--- ===== 10. reviews (P1) =====
-CREATE TABLE reviews (
-  id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  booking_id INT UNSIGNED NOT NULL,
-  user_id    INT UNSIGNED NOT NULL,
-  rating     TINYINT UNSIGNED NOT NULL,
-  comment    VARCHAR(1000) NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  UNIQUE KEY uq_reviews_booking (booking_id),
-  KEY idx_reviews_user (user_id),
-  CONSTRAINT fk_rv_booking FOREIGN KEY (booking_id) REFERENCES bookings (id),
-  CONSTRAINT fk_rv_user    FOREIGN KEY (user_id)    REFERENCES users (id),
-  CONSTRAINT chk_rv_rating CHECK (rating BETWEEN 1 AND 5)
-) ENGINE=InnoDB;
-
--- ===== 11–12. P2: dịch vụ đi kèm (chỉ tạo khi làm P2) =====
-CREATE TABLE services (
-  id        INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  name      VARCHAR(100) NOT NULL,
-  unit      VARCHAR(30)  NOT NULL DEFAULT 'cái',
-  price     INT UNSIGNED NOT NULL,
-  is_active TINYINT(1) NOT NULL DEFAULT 1,
-  PRIMARY KEY (id),
-  UNIQUE KEY uq_services_name (name)
-) ENGINE=InnoDB;
-
-CREATE TABLE booking_services (
-  id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  booking_id INT UNSIGNED NOT NULL,
-  service_id INT UNSIGNED NOT NULL,
-  quantity   INT UNSIGNED NOT NULL,
-  unit_price INT UNSIGNED NOT NULL,       -- snapshot
-  PRIMARY KEY (id),
-  KEY idx_bsv_booking (booking_id),
-  CONSTRAINT fk_bsv_booking FOREIGN KEY (booking_id) REFERENCES bookings (id),
-  CONSTRAINT fk_bsv_service FOREIGN KEY (service_id) REFERENCES services (id),
-  CONSTRAINT chk_bsv_qty CHECK (quantity > 0)
-) ENGINE=InnoDB;
-```
+Xem trực tiếp nội dung hoàn chỉnh trong file [schema.sql](file:///d:/MonHoc/DatLichSanTheThao/database/schema.sql).
 
 ## 6. Danh mục Enum (nguồn sự thật cho Web, Mobile, Backend)
 
 | Trường | Giá trị | Ý nghĩa |
 |---|---|---|
-| `users.role` | `CUSTOMER`, `STAFF`, `ADMIN` | Vai trò |
-| `users.status` | `ACTIVE`, `LOCKED` | Tài khoản hoạt động/khóa |
-| `courts.status` | `ACTIVE`, `MAINTENANCE`, `INACTIVE` | Đang dùng / bảo trì (tạm không đặt) / ẩn hẳn |
-| `slot_prices.day_type` | `WEEKDAY`, `WEEKEND` | Thứ 2–6 / Thứ 7, CN |
-| `bookings.status` | `PENDING`, `CONFIRMED`, `COMPLETED`, `CANCELLED`, `EXPIRED`, `NO_SHOW` | Xem State Diagram |
-| `bookings.payment_method` | `CASH`, `BANK_TRANSFER`, `VNPAY` | VNPAY là P2 |
-| `bookings.payment_status` | `UNPAID`, `PAID`, `REFUNDED` | Cache trạng thái thanh toán |
-| `bookings.source` | `APP`, `STAFF` | Khách tự đặt / nhân viên đặt hộ |
-| `payments.type` | `PAYMENT`, `REFUND` | Thu / hoàn |
-| `payments.status` | `PENDING`, `SUCCESS`, `FAILED` | Trạng thái giao dịch |
+| `nguoi_dung.vai_tro` | `CUSTOMER`, `STAFF`, `ADMIN` | Vai trò tài khoản |
+| `nguoi_dung.trang_thai` | `ACTIVE`, `LOCKED` | Hoạt động / Khóa |
+| `loai_san.phan_loai` | `SPORT`, `EVENT` | Sân thể thao / Khu sự kiện, tiệc (BR-30) |
+| `san.trang_thai` | `ACTIVE`, `MAINTENANCE`, `INACTIVE` | Đang dùng / Bảo trì / Ẩn |
+| `gia_khung_gio.loai_ngay` | `WEEKDAY`, `WEEKEND` | Ngày thường (T2-T6) / Cuối tuần (T7, CN) |
+| `don_dat.trang_thai` | `PENDING`, `CONFIRMED`, `COMPLETED`, `CANCELLED`, `EXPIRED`, `NO_SHOW` | Vòng đời đơn đặt |
+| `don_dat.phuong_thuc_thanh_toan` | `CASH`, `BANK_TRANSFER`, `VNPAY` | Tiền mặt / Chuyển khoản / VNPAY (P2) |
+| `don_dat.trang_thai_thanh_toan` | `UNPAID`, `PAID`, `REFUNDED` | Trạng thái thanh toán tiền sân |
+| `don_dat.nguon_don` | `APP`, `STAFF` | Khách tự đặt / Nhân viên đặt hộ |
+| `thanh_toan.loai_giao_dich` | `PAYMENT`, `REFUND` | Thu tiền / Hoàn tiền |
+| `thanh_toan.muc_dich` | `COURT`, `SERVICE` | Giao dịch tiền sân / tiền dịch vụ |
+| `thanh_toan.trang_thai` | `PENDING`, `SUCCESS`, `FAILED` | Trạng thái giao dịch |
+| `dich_vu.phan_loai` | `DRINK`, `RENTAL`, `PACKAGE` | Đồ uống / Thuê đồ / Gói tiệc |
+| `dich_vu.trang_thai` | `ACTIVE`, `OUT_OF_STOCK`, `INACTIVE` | Đang bán / Tạm hết / Ngừng bán |
+| `yeu_cau_dich_vu.trang_thai` | `REQUESTED`, `DELIVERED`, `CANCELLED` | Chờ giao / Đã giao / Đã hủy |
+| `yeu_cau_dich_vu.nguon` | `APP`, `STAFF` | Khách gọi trên app / Nhân viên nhập hộ |
 
-**Đồng bộ `bookings.payment_status` với `payments`:**
-- Có dòng `PAYMENT` + `SUCCESS` → `PAID`
-- Có dòng `REFUND` + `SUCCESS` → `REFUNDED`
-- Dòng `REFUND` + `PENDING` (chờ nhân viên hoàn) → vẫn giữ `PAID` cho tới khi xác nhận hoàn xong.
-Backend cập nhật cột này trong cùng transaction với `payments`. Cột này chỉ để lọc nhanh.
+## 7. Truy vấn quan trọng (áp dụng bảng tiếng Việt không dấu)
 
-## 7. Truy vấn quan trọng (tham khảo cho Service)
-
-**7.1 Lịch trống của một sân trong một ngày** (service bổ sung thêm trạng thái PAST / MAINTENANCE / NO_PRICE bằng code)
+**7.1 Lịch trống của một sân trong một ngày**
 ```sql
-SELECT ts.id AS time_slot_id, ts.start_time, ts.end_time, sp.price,
-       (bs.id IS NOT NULL) AS is_booked
-FROM time_slots ts
-JOIN courts c ON c.id = :courtId
-LEFT JOIN slot_prices sp
-       ON sp.court_type_id = c.court_type_id
-      AND sp.time_slot_id  = ts.id
-      AND sp.day_type      = :dayType
-LEFT JOIN booking_slots bs
-       ON bs.court_id = c.id AND bs.slot_date = :date
-      AND bs.time_slot_id = ts.id AND bs.is_locked = 1
-WHERE ts.is_active = 1
-ORDER BY ts.start_time;
+SELECT kg.id AS khung_gio_id, kg.gio_bat_dau, kg.gio_ket_thuc, gkg.gia,
+       (ctkg.id IS NOT NULL) AS da_dat
+FROM khung_gio kg
+JOIN san s ON s.id = :sanId
+LEFT JOIN gia_khung_gio gkg
+       ON gkg.loai_san_id  = s.loai_san_id
+      AND gkg.khung_gio_id = kg.id
+      AND gkg.loai_ngay    = :loaiNgay
+LEFT JOIN chi_tiet_khung_gio_dat ctkg
+       ON ctkg.san_id       = s.id
+      AND ctkg.ngay_dat     = :ngayDat
+      AND ctkg.khung_gio_id = kg.id
+      AND ctkg.dang_khoa    = 1
+WHERE kg.hoat_dong = 1
+ORDER BY kg.gio_bat_dau;
 ```
 
-**7.2 Hết hạn các đơn giữ chỗ quá hạn** (trong 1 transaction, chạy mỗi 60 giây)
+**7.2 Hết hạn các đơn giữ chỗ quá hạn** (chạy mỗi 60 giây)
 ```sql
-SELECT id FROM bookings WHERE status = 'PENDING' AND expires_at < NOW() FOR UPDATE;
--- với từng id (hoặc IN (...)):
-UPDATE bookings SET status = 'EXPIRED', cancelled_at = NOW()
- WHERE id IN (...) AND status = 'PENDING';
-UPDATE booking_slots SET is_locked = NULL WHERE booking_id IN (...);
-INSERT INTO booking_status_logs (booking_id, from_status, to_status, changed_by, note)
+SELECT id FROM don_dat WHERE trang_thai = 'PENDING' AND het_han_luc < NOW() FOR UPDATE;
+-- Cập nhật đơn:
+UPDATE don_dat SET trang_thai = 'EXPIRED', huy_luc = NOW() WHERE id IN (...) AND trang_thai = 'PENDING';
+UPDATE chi_tiet_khung_gio_dat SET dang_khoa = NULL WHERE don_dat_id IN (...);
+INSERT INTO nhat_ky_trang_thai_don (don_dat_id, trang_thai_truoc, trang_thai_sau, nguoi_thuc_hien_id, ghi_chu)
 VALUES (?, 'PENDING', 'EXPIRED', NULL, 'Hết hạn giữ chỗ');
 ```
 
-**7.3 Doanh thu theo ngày** (doanh thu thực = thu – hoàn)
+**7.3 Doanh thu theo ngày, tách tiền sân và dịch vụ**
 ```sql
-SELECT DATE(processed_at) AS d,
-       SUM(CASE WHEN type = 'PAYMENT' THEN amount ELSE -amount END) AS revenue
-FROM payments
-WHERE status = 'SUCCESS' AND processed_at >= :from AND processed_at < :toExclusive
-GROUP BY DATE(processed_at) ORDER BY d;
+SELECT DATE(ngay_xu_ly) AS d, muc_dich,
+       SUM(CASE WHEN loai_giao_dich = 'PAYMENT' THEN so_tien ELSE -so_tien END) AS doanh_thu
+FROM thanh_toan
+WHERE trang_thai = 'SUCCESS' AND ngay_xu_ly >= :tuNgay AND ngay_xu_ly < :denNgay
+GROUP BY DATE(ngay_xu_ly), muc_dich ORDER BY d;
 ```
 
-**7.4 Tỷ lệ lấp đầy** = số slot đã đặt / tổng slot có thể đặt
+**7.4 Tỷ lệ lấp đầy**
 ```sql
--- tử số
-SELECT COUNT(*) FROM booking_slots bs
-JOIN bookings b ON b.id = bs.booking_id
-WHERE bs.is_locked = 1 AND b.status IN ('CONFIRMED','COMPLETED','NO_SHOW')
-  AND bs.slot_date BETWEEN :from AND :to;
--- mẫu số (service tính)
--- = số sân ACTIVE × số time_slots active × số ngày trong khoảng
+SELECT COUNT(*) FROM chi_tiet_khung_gio_dat ctkg
+JOIN don_dat dd ON dd.id = ctkg.don_dat_id
+WHERE ctkg.dang_khoa = 1 AND dd.trang_thai IN ('CONFIRMED','COMPLETED','NO_SHOW')
+  AND ctkg.ngay_dat BETWEEN :tuNgay AND :denNgay;
 ```
 
 **7.5 Số đơn hoạt động của khách** (BR-08)
 ```sql
-SELECT COUNT(*) FROM bookings
-WHERE user_id = :uid AND status IN ('PENDING','CONFIRMED')
-  AND TIMESTAMP(booking_date, end_time) > NOW();
+SELECT COUNT(*) FROM don_dat
+WHERE nguoi_dung_id = :uid AND trang_thai IN ('PENDING','CONFIRMED')
+  AND TIMESTAMP(ngay_dat, gio_ket_thuc) > NOW();
 ```
 
-**7.6 Sân có đơn tương lai không** (BR-05, trước khi chuyển bảo trì/ẩn)
+**7.6 Sân có đơn tương lai không** (BR-05)
 ```sql
-SELECT COUNT(*) FROM bookings
-WHERE court_id = :courtId AND status IN ('PENDING','CONFIRMED')
-  AND TIMESTAMP(booking_date, end_time) > NOW();
+SELECT COUNT(*) FROM don_dat
+WHERE san_id = :sanId AND trang_thai IN ('PENDING','CONFIRMED')
+  AND TIMESTAMP(ngay_dat, gio_ket_thuc) > NOW();
 ```
 
-## 8. Dữ liệu mẫu (`database/seed.sql`, gợi ý)
+**7.7 Hóa đơn của một đơn**
+```sql
+SELECT dd.tien_san, dd.tien_dich_vu,
+       dd.tien_san + dd.tien_dich_vu AS tong_cong,
+       COALESCE(SUM(CASE WHEN tt.loai_giao_dich = 'PAYMENT' AND tt.trang_thai = 'SUCCESS' THEN tt.so_tien END), 0) AS da_tra,
+       COALESCE(SUM(CASE WHEN tt.loai_giao_dich = 'PAYMENT' AND tt.trang_thai = 'SUCCESS' AND tt.muc_dich = 'SERVICE' THEN tt.so_tien END), 0) AS dich_vu_da_tra
+FROM don_dat dd
+LEFT JOIN thanh_toan tt ON tt.don_dat_id = dd.id
+WHERE dd.id = :id
+GROUP BY dd.id;
+```
 
-- `time_slots`: 16 dòng, 06:00–07:00 … 21:00–22:00.
-- `court_types`: Bóng đá mini 5 người, Cầu lông, Tennis, Pickleball.
-- `courts`: 2 sân bóng (Sân 5A, 5B), 3 sân cầu lông (CL1–CL3), 1 sân tennis, 1 pickleball.
-- `slot_prices`: mỗi loại sân × 16 khung × 2 day_type. Gợi ý: giờ cao điểm 17:00–21:00 và cuối tuần giá cao hơn.
-- `users`: **không seed mật khẩu cứng.** Dùng script `npm run seed:admin` đọc `ADMIN_PHONE`, `ADMIN_PASSWORD` từ `.env`, băm bằng bcrypt rồi INSERT.
-- Một vài `users` CUSTOMER và `bookings` mẫu để demo báo cáo.
+**7.8 Hàng đợi yêu cầu dịch vụ chờ giao**
+```sql
+SELECT ycdv.id, ycdv.ngay_tao, ycdv.ghi_chu, dd.ma_don_dat, dd.ngay_dat, dd.gio_bat_dau, dd.gio_ket_thuc, s.ten AS ten_san
+FROM yeu_cau_dich_vu ycdv
+JOIN don_dat dd ON dd.id = ycdv.don_dat_id
+JOIN san s ON s.id = dd.san_id
+WHERE ycdv.trang_thai = 'REQUESTED'
+ORDER BY ycdv.ngay_tao;
+```
 
-## 9. Quy tắc toàn vẹn bổ sung (service phải tuân thủ, DB không tự bắt)
+**7.9 Đồ thuê chưa nhận lại của một đơn** (BR-28)
+```sql
+SELECT ctycdv.id, dv.ten, ctycdv.so_luong
+FROM chi_tiet_yeu_cau_dich_vu ctycdv
+JOIN yeu_cau_dich_vu ycdv ON ycdv.id = ctycdv.yeu_cau_dich_vu_id AND ycdv.trang_thai = 'DELIVERED'
+JOIN dich_vu dv ON dv.id = ctycdv.dich_vu_id AND dv.phan_loai = 'RENTAL'
+WHERE ycdv.don_dat_id = :id AND ctycdv.tra_luc IS NULL;
+```
 
-- `bookings.start_time` = `start_time` của khung giờ đầu; `end_time` = `end_time` của khung giờ cuối; `total_amount` = tổng `booking_slots.price`.
-- Các khung giờ trong một đơn phải **liền kề** (`end_time` slot trước = `start_time` slot sau) và `booking_slots.court_id`, `slot_date` = `bookings.court_id`, `booking_date`.
-- `reviews`: chỉ khi `bookings.status = 'COMPLETED'`, `reviews.user_id = bookings.user_id`.
-- Đơn `source='APP'` luôn có `user_id`. Đơn `source='STAFF'` có `created_by`, và có `user_id` hoặc `guest_phone`.
+**7.10 Cập nhật cache `tien_dich_vu`** (BR-25, BR-26)
+```sql
+UPDATE don_dat dd
+SET dd.tien_dich_vu = COALESCE((
+  SELECT SUM(ctycdv.so_luong * ctycdv.don_gia)
+  FROM yeu_cau_dich_vu ycdv JOIN chi_tiet_yeu_cau_dich_vu ctycdv ON ctycdv.yeu_cau_dich_vu_id = ycdv.id
+  WHERE ycdv.don_dat_id = dd.id AND ycdv.trang_thai = 'DELIVERED'), 0)
+WHERE dd.id = :id;
+```
+
+**7.11 Dịch vụ bán chạy**
+```sql
+SELECT dv.id, dv.ten, dv.phan_loai, SUM(ctycdv.so_luong) AS so_luong, SUM(ctycdv.so_luong * ctycdv.don_gia) AS doanh_so
+FROM chi_tiet_yeu_cau_dich_vu ctycdv
+JOIN yeu_cau_dich_vu ycdv ON ycdv.id = ctycdv.yeu_cau_dich_vu_id AND ycdv.trang_thai = 'DELIVERED'
+JOIN dich_vu dv ON dv.id = ctycdv.dich_vu_id
+WHERE ycdv.giao_luc >= :tuNgay AND ycdv.giao_luc < :denNgay
+GROUP BY dv.id, dv.ten, dv.phan_loai
+ORDER BY doanh_so DESC LIMIT 10;
+```
+
+**7.12 Đơn quá giờ chưa xử lý** (BR-33, STF-02)
+```sql
+SELECT COUNT(*) FROM don_dat
+WHERE trang_thai = 'CONFIRMED' AND TIMESTAMP(ngay_dat, gio_ket_thuc) < NOW();
+```

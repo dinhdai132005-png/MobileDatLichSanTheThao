@@ -1,22 +1,22 @@
 // =====================================================================
-// TIỆN ÍCH JWT — Tham chiếu: Plant/AGENT.md mục 6
+// JWT — payload { sub: userId, role }, hạn JWT_EXPIRES_IN (AGENT.md mục 6)
 // =====================================================================
 import jwt from 'jsonwebtoken';
-import { ENV } from '../config/env';
-import { VaiTroNguoiDung } from '../types';
+import { MOI_TRUONG } from '../config/moitruong';
+import { VaiTro } from '../types';
 
-export interface JwtPayload {
-  sub: number;              // id người dùng
-  role: VaiTroNguoiDung;    // CUSTOMER | STAFF | ADMIN
+export interface NoiDungToken {
+  sub: number;
+  role: VaiTro;
 }
 
-export function signToken(nguoiDungId: number, role: VaiTroNguoiDung): string {
-  const duLieuToken: JwtPayload = { sub: nguoiDungId, role };
-  return jwt.sign(duLieuToken, ENV.JWT_SECRET, {
-    expiresIn: ENV.JWT_EXPIRES_IN as any,
+export function kyToken(nguoiDungId: number, role: VaiTro): string {
+  const noiDung: NoiDungToken = { sub: nguoiDungId, role };
+  return jwt.sign(noiDung, MOI_TRUONG.JWT_SECRET, {
+    expiresIn: MOI_TRUONG.JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'],
   });
 }
 
-export function verifyToken(token: string): JwtPayload {
-  return jwt.verify(token, ENV.JWT_SECRET) as unknown as JwtPayload;
+export function xacMinhToken(token: string): NoiDungToken {
+  return jwt.verify(token, MOI_TRUONG.JWT_SECRET) as unknown as NoiDungToken;
 }

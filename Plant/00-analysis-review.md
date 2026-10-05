@@ -77,17 +77,18 @@ Danh mục đầy đủ ở `03-actors-functions.md` mục 4 (mã CUS-xx, STF-xx
 
 ## 9. Database được đề xuất
 
-8 bảng P0 + 2 bảng P1 (+ 2 bảng P2):
+8 bảng P0 + 5 bảng P1 (tổng 13 bảng):
 
 - **P0:** `users`, `court_types`, `courts`, `time_slots`, `slot_prices`, `bookings`, `booking_slots`, `payments`
 - **P1:** `booking_status_logs`, `reviews`
-- **P2:** `services`, `booking_services`
+- **P1★ (dịch vụ phát sinh, theo góp ý giảng viên):** `services`, `service_orders`, `service_order_items`
+- Khu sự kiện/tiệc **không có bảng riêng**: là `court_types.category = 'EVENT'` (xem mục 15).
 
 Mỗi bảng đều có lý do nghiệp vụ (xem `01-database.md` mục 4). Không có bảng "cho đẹp sơ đồ". **Không có** bảng `roles`, `permissions`, `notifications`, `vouchers`, `branches`. Lý do ở mục 11.
 
 ## 10. API được đề xuất
 
-REST `/api/v1`, chia theo đối tượng: **public/auth**, **customer**, `/staff/*` (STAFF + ADMIN), `/admin/*` (ADMIN). Khoảng 55 endpoint, đặc tả ở `06-api.md`.
+REST `/api/v1`, chia theo đối tượng: **public/auth**, **customer**, `/staff/*` (STAFF + ADMIN), `/admin/*` (ADMIN). Khoảng 75 endpoint, đặc tả ở `06-api.md`.
 
 ## 11. Những phần nên BỎ (và lý do)
 
@@ -102,7 +103,7 @@ REST `/api/v1`, chia theo đối tượng: **public/auth**, **customer**, `/staf
 | Realtime (WebSocket) | Làm mới lưới bằng nút "Tải lại" hoặc polling 30 giây là đủ |
 | Refresh token, quên mật khẩu qua email | Cần SMTP, thêm bảng và luồng. Admin có thể đặt lại mật khẩu thủ công |
 | Chặn bảo trì theo giờ/ngày (court_blocks) | Dùng trạng thái sân `MAINTENANCE` đơn giản hơn (BR-05) |
-| Quản lý tồn kho dịch vụ | Dịch vụ (P2) chỉ có giá, không tồn kho |
+| Quản lý tồn kho dịch vụ | Dịch vụ phát sinh (P1★) chỉ có giá cố định, nhân viên bật tắt "tạm hết hàng"; kiểm kê nhập/xuất kho là một hệ thống khác |
 | Đa ngôn ngữ, dark mode | Không phải trọng tâm |
 
 ## 12. Những phần nên BỔ SUNG (so với một thiết kế "ngây thơ")
@@ -141,9 +142,48 @@ REST `/api/v1`, chia theo đối tượng: **public/auth**, **customer**, `/staf
 | Hỏi quyền, bảo mật | Nắm: JWT, bcrypt, role middleware server-side, SQL tham số hóa |
 | Hỏi "nếu server sập giữa lúc đặt" | Transaction: hoặc có cả `bookings`+`booking_slots` hoặc không có gì |
 
-Danh sách 30 câu hỏi và đáp án: `09-defense-guide.md`.
+Danh sách hơn 35 câu hỏi và đáp án: `09-defense-guide.md`.
 
 ---
+
+## 15. Cập nhật v1.1: góp ý của giảng viên về dịch vụ phát sinh và khu sự kiện
+
+**Góp ý:** khách đặt đồ uống và thuê đồ ngay trong app, nhân viên mang ra, lúc về cộng vào hóa đơn; có thể kèm dịch vụ tiệc hoặc khu tổ chức sự kiện ăn uống để thu thêm phí.
+
+**Đánh giá:** góp ý hợp lý và sát thực tế. Bản v1.0 có lỗ hổng: không ghi nhận được những gì khách dùng trong buổi chơi, nên doanh thu và hóa đơn thiếu phần phát sinh. Đã tiếp thu **toàn bộ ý chính**, nhưng thu hẹp phạm vi cài đặt để không làm đồ án phình to.
+
+| Ý của giảng viên | Cách thiết kế (có lý do) |
+|---|---|
+| Khách đặt đồ uống, thuê đồ trên app | Khách gọi dịch vụ cho **đơn sân đang `CONFIRMED`** (CUS-12). Gắn với đơn để biết giao cho ai, ở sân nào, và tính vào đúng hóa đơn |
+| Nhân viên mang ra | **Hàng đợi yêu cầu dịch vụ** trên Web (STF-11); bấm "Đã giao" khi mang ra. Không dùng realtime, làm mới 30 giây |
+| Lúc về cộng vào hóa đơn | `service_amount` chỉ cộng các yêu cầu **đã giao**; nhân viên **nhận lại đồ thuê** (STF-13), **thu tiền dịch vụ** (STF-14), rồi hoàn thành đơn. Hóa đơn tính khi đọc, không tạo bảng riêng |
+| Dịch vụ tiệc | Loại dịch vụ `PACKAGE` (gói tiệc nước, BBQ, trang trí...), gọi như dịch vụ khác, giá cố định |
+| Khu tổ chức sự kiện ăn uống, thu thêm phí | **Loại sân `EVENT`** (phòng tiệc, khu BBQ) đặt theo giờ y hệt sân thể thao, thu phí thuê khu vực; kèm gói tiệc/đồ uống để thu thêm |
+
+**Điều chỉnh nghiệp vụ kéo theo (đã sửa trong tài liệu):**
+- Quy tắc "thanh toán toàn phần một lần" (BR-11) chỉ còn áp dụng cho **tiền sân**. Tiền dịch vụ thu riêng khi kết thúc (BR-26) nên không xung đột với việc khách gọi thêm đồ sau khi đã trả tiền sân.
+- Điều kiện hoàn thành đơn (BR-12) bổ sung BR-28: không còn yêu cầu chờ giao, đã nhận lại đồ thuê, đã thu đủ tiền dịch vụ.
+- Không cho hủy đơn sân khi đã giao dịch vụ (BR-29) để tránh hoàn tiền sân trong khi khách đã dùng đồ.
+- `bookings.total_amount` đổi tên `court_amount` (tránh hiểu nhầm là tổng hóa đơn), thêm `service_amount`; `payments` thêm `purpose`.
+
+**Cố ý KHÔNG làm (và vì sao):** quản lý tồn kho (cần nhập/xuất kho, kiểm kê), tính phí thuê theo giờ hoặc quá giờ (cần đồng hồ theo từng món), đền bù mất/hỏng, khách thanh toán dịch vụ online trong app (cần cổng thanh toán, hoàn tiền), duyệt/báo giá riêng cho sự kiện, thực đơn tiệc tùy biến theo từng sự kiện, đặt cọc sự kiện. Tất cả là hướng mở rộng; khi bảo vệ nên nêu rõ đây là giới hạn đã biết (`09-defense-guide.md`).
+
+**Rủi ro mới cần lưu ý:**
+
+| Rủi ro | Cách giữ an toàn |
+|---|---|
+| Tiền dịch vụ lệch với `payments` | Chỉ có **một** nơi tính (`utils/invoice.ts`), cache `service_amount` cập nhật cùng transaction với khóa đơn |
+| Hai nhân viên cùng giao/thu một yêu cầu | `SELECT ... FOR UPDATE` đơn sân + `UPDATE ... WHERE status = ?` |
+| Nhân viên quên thu hồi đồ thuê | `complete` bị chặn nếu còn đồ chưa trả (BR-28) |
+| Phạm vi phình to | Khu sự kiện dùng lại loại sân; không thêm module đặt chỗ riêng |
+
+## 16. Cập nhật v1.2: rà soát luồng liền mạch Mobile ↔ Web
+
+Sau khi bổ sung dịch vụ phát sinh, đã **đi qua từng bước của một buổi vận hành thực tế** thay vì chỉ đối chiếu mã giữa các file. Kết quả (chi tiết ở `11-end-to-end-flows.md` mục 5–6):
+
+- **1 bế tắc nghiệp vụ thật:** khách dùng dịch vụ rồi bỏ đi không trả thì đơn không thể hoàn thành, hủy hay no-show → đã thêm **đóng đơn có công nợ** (ADMIN, BR-33).
+- **7 điểm lệch khác:** nhân viên không đặt được slot đang diễn ra (endpoint lịch trống áp quy tắc khách); tìm khách theo SĐT bị xếp nhầm mức P1 trong khi P0 cần; hoàn tiền thiếu nơi nhận (`refundInfo`); khách mất mật khẩu không có lối vào lại; đơn quá giờ nằm im không ai nhắc; Mobile không tự làm mới; seed thiếu dữ liệu dịch vụ/khu sự kiện.
+- **Đánh giá lại phạm vi:** tất cả bản sửa đều nhỏ (một cột `closed_with_debt`, vài endpoint, vài quy tắc), không thêm bảng mới ngoài 13 bảng. Cố ý **không** làm: hoàn tiền dịch vụ đã thu, đổi giờ đơn, thông báo đẩy/realtime, quên mật khẩu qua email.
 
 ## KẾT LUẬN (theo mục 17 của đề bài)
 

@@ -1,6 +1,6 @@
 # 07 — KIẾN TRÚC HỆ THỐNG, CÔNG NGHỆ, DỮ LIỆU DÙNG CHUNG
 
-> Trạng thái: **ĐỀ XUẤT / CHƯA TRIỂN KHAI**. Việc project hiện có đã theo kiến trúc này chưa: **CHƯA ĐỦ DỮ LIỆU** (đối chiếu bằng `10-sync-check.md` mục 6).
+> Trạng thái: **ĐỀ XUẤT / CHƯA TRIỂN KHAI** (v1.2: module dịch vụ phát sinh, hóa đơn, đóng đơn có công nợ; quy tắc làm mới 30 giây). Việc project hiện có đã theo kiến trúc này chưa: **CHƯA ĐỦ DỮ LIỆU** (đối chiếu bằng `10-sync-check.md` mục 6).
 
 ## 1. Kiến trúc tổng thể
 
@@ -53,7 +53,7 @@ backend/
     ├── routes/
     │   ├── index.ts               # gắn các router dưới /api/v1
     │   ├── auth.routes.ts
-    │   ├── catalog.routes.ts      # court-types, courts, time-slots, config/public
+    │   ├── catalog.routes.ts      # court-types, courts, time-slots, services, config/public
     │   ├── booking.routes.ts      # /bookings (CUSTOMER)
     │   ├── staff.routes.ts        # /staff/*
     │   └── admin.routes.ts        # /admin/*
@@ -62,7 +62,8 @@ backend/
     │   ├── auth.service.ts
     │   ├── catalog.service.ts
     │   ├── booking.service.ts     # đặt, hủy, lịch trống, đặt tại quầy
-    │   ├── payment.service.ts     # ghi nhận thanh toán, hoàn tiền
+    │   ├── payment.service.ts     # ghi nhận thanh toán tiền sân, hoàn tiền, thu tiền dịch vụ
+    │   ├── service-order.service.ts # gọi, giao, hủy yêu cầu dịch vụ, nhận lại đồ thuê, danh mục dịch vụ
     │   ├── staff.service.ts       # dashboard, schedule, customers
     │   ├── admin.service.ts       # CRUD cấu hình, tài khoản
     │   └── report.service.ts
@@ -72,7 +73,7 @@ backend/
     │   ├── validate.middleware.ts
     │   └── error.middleware.ts
     ├── validators/                # zod schema theo module
-    ├── utils/
+    ├── utils/                     # gồm invoice.ts: buildInvoice(), recalcServiceAmount()
     ├── jobs/expire-bookings.job.ts
     └── types/                     # kiểu TS dùng chung (AuthUser, enum...)
 ```
@@ -181,9 +182,25 @@ MySQL 8.0.16+ (bắt buộc `CHECK`), công cụ quản trị tùy chọn (MySQL
 **Không** tạo package `shared` dùng chung giữa 3 project (phức tạp build/monorepo tooling). Mỗi FE giữ thư mục `types/` tự viết theo `06-api.md`.
 
 ### 6.2 Dữ liệu cấu hình (admin sửa, mọi client đọc)
-`court_types`, `courts`, `time_slots`, `slot_prices` (và `services` ở P2). Client có thể cache vài phút; sau khi admin sửa giá thì lịch trống lần tải sau đã dùng giá mới.
+`court_types`, `courts`, `time_slots`, `slot_prices`, `services`. Client có thể cache vài phút; sau khi admin sửa giá thì lịch trống lần tải sau đã dùng giá mới.
 
-## 7. Triển khai (đề xuất cho đồ án)
+## 7. Module dịch vụ phát sinh và hóa đơn (v1.1)
+
+Không thêm tầng hay công nghệ mới; vẫn Route → Controller → Service:
+
+| Thành phần | Vai trò |
+|---|---|
+| `service-order.service.ts` | Danh mục dịch vụ, tạo yêu cầu (khách/nhân viên), giao, hủy, nhận lại đồ thuê |
+| `payment.service.ts` | Thêm hàm thu tiền dịch vụ (`purpose = 'SERVICE'`) bên cạnh thu tiền sân và hoàn tiền |
+| `utils/invoice.ts` | `buildInvoice(conn, bookingId)`: tính hóa đơn từ `bookings`, `service_orders`, `payments` (dùng chung cho endpoint của khách và nhân viên). `recalcServiceAmount(conn, bookingId)`: cập nhật cache `bookings.service_amount` (truy vấn 7.10 `01-database.md`) |
+
+Quy tắc: **mọi nơi** làm đổi tiền dịch vụ (giao, hủy yêu cầu đã giao, nhập hộ) phải gọi `recalcServiceAmount` trong cùng transaction với việc khóa đơn sân (`SELECT ... FOR UPDATE`). **Hóa đơn không lưu thành bảng**, luôn tính tại thời điểm đọc.
+
+**Đồng bộ Mobile–Web:** không WebSocket; hai FE dùng chung hằng số `POLL_INTERVAL_MS = 30000` (xem `11-end-to-end-flows.md` mục 1–2). Backend không cần thêm gì ngoài API sẵn có.
+
+Luồng dữ liệu của một buổi chơi có dịch vụ: `bookings` (tiền sân) ← `service_orders` ← `service_order_items` (giá snapshot) → `service_amount` (cache, chỉ yêu cầu đã giao) → hóa đơn → `payments` (`COURT` và `SERVICE`).
+
+## 8. Triển khai (đề xuất cho đồ án)
 
 - **Chạy cục bộ** là đủ: MySQL cài sẵn (XAMPP/MySQL Server), backend `npm run dev` cổng 4000, web `npm run dev` cổng 5173, mobile `npx expo start` (điện thoại thật cùng Wi-Fi: API URL dùng IP máy tính, không dùng `localhost`).
 - Cấu hình URL API ở FE bằng biến môi trường (`VITE_API_URL`, `EXPO_PUBLIC_API_URL`).
