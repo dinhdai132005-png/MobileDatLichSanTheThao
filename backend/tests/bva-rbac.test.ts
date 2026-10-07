@@ -6,6 +6,7 @@
 import request from 'supertest';
 import { app } from '../src/app';
 import { csdl } from '../src/config/csdl';
+import { congNgay, layNgayHomNay } from '../src/utils/thoigian';
 
 // Cố định múi giờ UTC+7
 process.env.TZ = 'Asia/Ho_Chi_Minh';
@@ -66,8 +67,7 @@ describe('Kiểm thử Giá trị biên (BVA) & Ma trận RBAC đa chiều', () 
   }
 
   function layNgayTuongLai(soNgay: number): string {
-    const d = new Date(Date.now() + soNgay * 24 * 60 * 60 * 1000);
-    return new Date(d.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })).toISOString().substring(0, 10);
+    return congNgay(layNgayHomNay(), soNgay);
   }
 
   beforeAll(async () => {

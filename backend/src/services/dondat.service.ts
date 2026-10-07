@@ -23,6 +23,7 @@ import {
   dinhDangIso,
 } from '../utils/thoigian';
 import { NguoiDungXacThuc, PhuongThucThanhToan, TrangThaiKhungGio } from '../types';
+import { DichVuService } from './dichvu.service';
 
 export class DonDatService {
   /** BR-22: Sinh mã đơn ngẫu nhiên BK + 8 ký tự chữ hoa/số */
@@ -318,7 +319,15 @@ export class DonDatService {
   }
 
   /** CUS-08: Lấy danh sách đơn của tôi (lọc nhiều trạng thái cách nhau dấu phẩy) */
-  static async layDanhSachDonCuaToi(nguoiDungId: number, chuoiTrangThai?: string) {
+  static async layDanhSachDonCuaToi(
+    nguoiDungId: number,
+    tuyChonHoacTrangThai?: string | { status?: string; page?: number; limit?: number }
+  ) {
+    const chuoiTrangThai =
+      typeof tuyChonHoacTrangThai === 'string'
+        ? tuyChonHoacTrangThai
+        : tuyChonHoacTrangThai?.status;
+
     let sql = `
       SELECT dd.id, dd.ma_don_dat AS booking_code, dd.san_id AS court_id, s.ten AS court_name,
              ls.ten AS court_type_name, dd.ngay_dat AS booking_date,
@@ -335,7 +344,7 @@ export class DonDatService {
     `;
     const params: any[] = [nguoiDungId];
 
-    if (chuoiTrangThai) {
+    if (chuoiTrangThai && typeof chuoiTrangThai === 'string') {
       const danhSach = chuoiTrangThai.split(',').map((s) => s.trim().toUpperCase()).filter(Boolean);
       if (danhSach.length > 0) {
         const ph = danhSach.map(() => '?').join(',');
@@ -504,11 +513,12 @@ export class DonDatService {
       // 2. Nhả slot (dang_khoa = NULL)
       await conn.execute('UPDATE chi_tiet_khung_gio_dat SET dang_khoa = NULL WHERE don_dat_id = ?', [donId]);
 
-      // 3. Tự động hủy các yêu cầu dịch vụ REQUESTED
-      await conn.execute(
-        `UPDATE yeu_cau_dich_vu SET trang_thai = 'CANCELLED', huy_luc = NOW(), ly_do_huy = 'Hủy tự động theo đơn sân'
-         WHERE don_dat_id = ? AND trang_thai = 'REQUESTED'`,
-        [donId]
+      // 3. Tự động hủy các yêu cầu dịch vụ REQUESTED và giải phóng tồn kho
+      await DichVuService.giaiPhongTonKhoDonHuy(
+        conn,
+        donId,
+        nguoiDung.id,
+        reason ? `Khách hủy đơn: ${reason}` : 'Hủy tự động theo đơn sân'
       );
 
       // 4. BR-10 & BR-34: Nếu đã PAID, tạo thanh_toan REFUND PENDING

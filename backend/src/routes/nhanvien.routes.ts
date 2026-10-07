@@ -55,3 +55,6 @@ nhanVienRouter.post('/service-order-items/:id/return', dichVuController.traDoThu
 nhanVienRouter.get('/bookings/:id/invoice', dichVuController.layHoaDonNhanVien);
 nhanVienRouter.post('/bookings/:id/service-payments', kiemTraDuLieu(luocDoThuTienDichVu), dichVuController.thuTienDichVu);
 nhanVienRouter.patch('/services/:id/availability', kiemTraDuLieu(luocDoBatTatDichVuNhanVien), dichVuController.batTatTamHetHang);
+
+// Tồn kho vận hành
+nhanVienRouter.get('/inventory', dichVuController.layDanhSachTonKho);

@@ -24,7 +24,11 @@ import {
   luocDoDichVu,
   luocDoCapNhatDichVu,
   luocDoDoiTrangThaiDichVu,
+  luocDoNhapKho,
+  luocDoDieuChinhKho,
+  luocDoNguongCanhBao,
 } from '../validators/quantri.validator';
+import { dichVuController } from '../controllers/dichvu.controller';
 
 export const quanTriRouter = Router();
 
@@ -78,3 +82,10 @@ quanTriRouter.get('/reports/summary', baoCaoController.layTongQuan);
 quanTriRouter.get('/reports/revenue', baoCaoController.layBaoCaoDoanhThu);
 quanTriRouter.get('/reports/court-usage', baoCaoController.layBaoCaoSuDungSan);
 quanTriRouter.get('/reports/services', baoCaoController.layBaoCaoDichVu);
+
+// Quản lý tồn kho (Admin)
+quanTriRouter.get('/inventory', dichVuController.layDanhSachTonKho);
+quanTriRouter.get('/inventory/transactions', dichVuController.layLichSuBienDongKho);
+quanTriRouter.post('/inventory/import', kiemTraDuLieu(luocDoNhapKho), dichVuController.nhapKho);
+quanTriRouter.post('/inventory/adjust', kiemTraDuLieu(luocDoDieuChinhKho), dichVuController.dieuChinhKho);
+quanTriRouter.patch('/inventory/:serviceId/threshold', kiemTraDuLieu(luocDoNguongCanhBao), dichVuController.capNhatNguongCanhBao);

@@ -7,9 +7,10 @@ import { csdl } from '../config/csdl';
 import { voiGiaoDich } from '../utils/giaodich';
 import { LoiApi } from '../utils/loi';
 import { chuyenCamel } from '../utils/chuyendoicamel';
-import { taoMaDonDat } from '../utils/thoigian';
+import { taoMaDonDat, layNgayHomNay, layGioHienTai } from '../utils/thoigian';
 import { ghiNhatKyTrangThai } from '../utils/nhatky';
 import { taoHoaDon, layDoThueChuaTra, laySoTienDaThu } from '../utils/hoadon';
+import { DichVuService } from './dichvu.service';
 
 export class NhanVienService {
   /**
@@ -17,10 +18,8 @@ export class NhanVienService {
    */
   async layDashboard(ngayHomNay: string) {
     // Thời điểm hiện tại (UTC+7)
-    const bayGio = new Date();
-    const bayGioVN = new Date(bayGio.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-    const ngayHienTaiStr = bayGioVN.toISOString().substring(0, 10);
-    const gioHienTaiStr = bayGioVN.toTimeString().substring(0, 8);
+    const ngayHienTaiStr = layNgayHomNay();
+    const gioHienTaiStr = layGioHienTai() + ':00';
 
     // 1. Thống kê đơn theo trạng thái hôm nay
     const [thongKeDon] = await csdl.execute<RowDataPacket[]>(
@@ -249,10 +248,8 @@ export class NhanVienService {
     const setSlotDaDat = new Set<number>(slotDaDatRows.map((r: any) => r.khung_gio_id));
 
     // Thời điểm hiện tại (UTC+7)
-    const bayGio = new Date();
-    const bayGioVN = new Date(bayGio.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-    const ngayHienTaiStr = bayGioVN.toISOString().substring(0, 10);
-    const gioHienTaiStr = bayGioVN.toTimeString().substring(0, 5);
+    const ngayHienTaiStr = layNgayHomNay();
+    const gioHienTaiStr = layGioHienTai();
 
     const slots = khungGioRows.map((kg: any) => {
       let status: 'AVAILABLE' | 'BOOKED' | 'PAST' | 'MAINTENANCE' | 'NO_PRICE' = 'AVAILABLE';
@@ -337,10 +334,8 @@ export class NhanVienService {
 
     if (tuyChon.overdue) {
       // BR-33 & TC-63 & STF-04: Đơn CONFIRMED đã qua giờ kết thúc
-      const bayGio = new Date();
-      const bayGioVN = new Date(bayGio.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-      const ngayHienTai = bayGioVN.toISOString().substring(0, 10);
-      const gioHienTai = bayGioVN.toTimeString().substring(0, 8);
+      const ngayHienTai = layNgayHomNay();
+      const gioHienTai = layGioHienTai() + ':00';
       whereSql += ` AND dd.trang_thai = 'CONFIRMED' AND (dd.ngay_dat < ? OR (dd.ngay_dat = ? AND dd.gio_ket_thuc < ?))`;
       params.push(ngayHienTai, ngayHienTai, gioHienTai);
     }
@@ -473,9 +468,8 @@ export class NhanVienService {
       }
 
       // Kiểm tra slot không được là quá khứ theo quy tắc nhân viên: end_time <= now
-      const bayGioVN = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-      const ngayHienTaiStr = bayGioVN.toISOString().substring(0, 10);
-      const gioHienTaiStr = bayGioVN.toTimeString().substring(0, 5);
+      const ngayHienTaiStr = layNgayHomNay();
+      const gioHienTaiStr = layGioHienTai();
 
       if (duLieu.bookingDate < ngayHienTaiStr) {
         throw new LoiApi(422, 'SLOT_IN_PAST', 'Không thể đặt ngày trong quá khứ');
@@ -723,9 +717,8 @@ export class NhanVienService {
       }
 
       // Phải đến hoặc qua giờ bắt đầu (BR-12)
-      const bayGioVN = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-      const ngayHienTaiStr = bayGioVN.toISOString().substring(0, 10);
-      const gioHienTaiStr = bayGioVN.toTimeString().substring(0, 5);
+      const ngayHienTaiStr = layNgayHomNay();
+      const gioHienTaiStr = layGioHienTai();
       const gioBatDauStr = (don.gio_bat_dau as string).substring(0, 5);
 
       if (don.ngay_dat > ngayHienTaiStr || (don.ngay_dat === ngayHienTaiStr && gioBatDauStr > gioHienTaiStr)) {
@@ -796,9 +789,8 @@ export class NhanVienService {
       }
 
       // Phải sau giờ bắt đầu
-      const bayGioVN = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-      const ngayHienTaiStr = bayGioVN.toISOString().substring(0, 10);
-      const gioHienTaiStr = bayGioVN.toTimeString().substring(0, 5);
+      const ngayHienTaiStr = layNgayHomNay();
+      const gioHienTaiStr = layGioHienTai();
       const gioBatDauStr = (don.gio_bat_dau as string).substring(0, 5);
 
       if (don.ngay_dat > ngayHienTaiStr || (don.ngay_dat === ngayHienTaiStr && gioBatDauStr > gioHienTaiStr)) {
@@ -872,6 +864,14 @@ export class NhanVienService {
       await ketNoi.execute(
         `UPDATE chi_tiet_khung_gio_dat SET dang_khoa = NULL WHERE don_dat_id = ?`,
         [donDatId]
+      );
+
+      // Tự động hủy các yêu cầu dịch vụ REQUESTED và giải phóng tồn kho
+      await DichVuService.giaiPhongTonKhoDonHuy(
+        ketNoi,
+        donDatId,
+        nhanVienId,
+        duLieu.reason ? `Nhân viên hủy đơn: ${duLieu.reason}` : 'Nhân viên hủy đơn'
       );
 
       let refundPending = false;

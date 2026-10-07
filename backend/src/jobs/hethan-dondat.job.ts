@@ -6,6 +6,7 @@ import { RowDataPacket } from 'mysql2/promise';
 import { csdl } from '../config/csdl';
 import { voiGiaoDich } from '../utils/giaodich';
 import { ghiNhatKyTrangThai } from '../utils/nhatky';
+import { DichVuService } from '../services/dichvu.service';
 
 export async function quetDonHetHan(): Promise<number> {
   try {
@@ -43,6 +44,14 @@ export async function quetDonHetHan(): Promise<number> {
         await ketNoi.execute(
           `UPDATE chi_tiet_khung_gio_dat SET dang_khoa = NULL WHERE don_dat_id = ?`,
           [don.id]
+        );
+
+        // Giải phóng tồn kho dịch vụ nếu có yêu cầu REQUESTED
+        await DichVuService.giaiPhongTonKhoDonHuy(
+          ketNoi,
+          don.id,
+          null,
+          'Hệ thống tự động hủy do hết hạn giữ chỗ (30 phút)'
         );
 
         // Ghi nhật ký trạng thái

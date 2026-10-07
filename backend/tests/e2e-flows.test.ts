@@ -35,6 +35,12 @@ describe('Luồng Tích Hợp End-to-End Vận Hành (E1 -> E5 - Plant/11)', () 
 
     // 1. Xóa toàn bộ dữ liệu đơn của khách vãng lai
     await csdl.execute(
+      `DELETE FROM bien_dong_kho WHERE don_dat_id IN (
+        SELECT id FROM don_dat WHERE so_dien_thoai_khach = ?
+      )`,
+      [sdtVangLai]
+    );
+    await csdl.execute(
       `DELETE FROM chi_tiet_yeu_cau_dich_vu WHERE yeu_cau_dich_vu_id IN (
         SELECT id FROM yeu_cau_dich_vu WHERE don_dat_id IN (
           SELECT id FROM don_dat WHERE so_dien_thoai_khach = ?

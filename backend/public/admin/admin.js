@@ -249,6 +249,7 @@ function switchTab(tabId) {
   else if (tabId === 'timeslots') loadTimeSlots();
   else if (tabId === 'prices') loadPricingMatrix();
   else if (tabId === 'services') loadAdminServices();
+  else if (tabId === 'inventory') loadInventory();
   else if (tabId === 'staff') loadStaff();
   else if (tabId === 'reports') loadReports();
 }
@@ -1844,8 +1845,199 @@ async function loadInitialData() {
     if (currentTab === 'dashboard') loadDashboard();
     else if (currentTab === 'schedule') loadSchedule();
     else if (currentTab === 'service-orders') loadServiceOrders();
+    else if (currentTab === 'inventory') loadInventory();
     else if (currentTab === 'refunds') loadRefunds();
   }, 30000);
+}
+
+// ================= 17. TAB QUẢN LÝ TỒN KHO & BIẾN ĐỘNG (STAFF & ADMIN) =================
+let cachedInventory = [];
+
+async function loadInventory() {
+  try {
+    const endpoint = currentUser && currentUser.role === 'ADMIN' ? '/admin/inventory' : '/staff/inventory';
+    const res = await apiFetch(endpoint);
+    cachedInventory = res.data || [];
+
+    const tbody = document.getElementById('inventory-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (cachedInventory.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:var(--text-muted); padding:20px;">Không có dịch vụ nào trong kho</td></tr>';
+      return;
+    }
+
+    cachedInventory.forEach((item) => {
+      const tr = document.createElement('tr');
+      const isAdmin = currentUser && currentUser.role === 'ADMIN';
+
+      let statusBadge = '<span class="badge" style="background:rgba(16, 185, 129, 0.2); color:#34D399;">Đủ hàng</span>';
+      if (item.stockStatus === 'OUT_OF_STOCK') {
+        statusBadge = '<span class="badge" style="background:rgba(239, 68, 68, 0.2); color:#F87171;">Hết hàng</span>';
+      } else if (item.stockStatus === 'LOW_STOCK') {
+        statusBadge = '<span class="badge" style="background:rgba(245, 158, 11, 0.2); color:#FBBF24;">Sắp hết</span>';
+      }
+
+      tr.innerHTML = `
+        <td style="font-family:var(--font-mono); font-weight:700;">#${item.serviceId || item.id}</td>
+        <td style="font-weight:700;">${item.serviceName}</td>
+        <td><span class="badge" style="background:rgba(59, 130, 246, 0.2); color:#60A5FA;">${item.type}</span></td>
+        <td>${item.unit}</td>
+        <td style="font-family:var(--font-mono);">${formatMoney(item.price)}</td>
+        <td style="font-weight:800; font-family:var(--font-mono);">${item.quantity}</td>
+        <td style="color:#FBBF24; font-family:var(--font-mono);">${item.reservedQuantity}</td>
+        <td style="font-weight:800; color:${item.availableQuantity > 0 ? '#34D399' : '#F87171'}; font-family:var(--font-mono);">${item.availableQuantity}</td>
+        <td style="font-family:var(--font-mono);">${item.threshold}</td>
+        <td>${statusBadge}</td>
+        <td class="admin-only" style="${isAdmin ? '' : 'display:none;'}">
+          <button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="moModalNhapKhoChon(${item.serviceId || item.id})">📥 Nhập</button>
+          <button class="btn btn-outline" style="padding:4px 8px; font-size:11px; margin-left:4px;" onclick="moModalDieuChinhKhoChon(${item.serviceId || item.id})">⚖️ Chỉnh</button>
+          <button class="btn btn-outline" style="padding:4px 8px; font-size:11px; margin-left:4px;" onclick="capNhatNguongKho(${item.serviceId || item.id}, ${item.threshold}, '${item.serviceName}')">⚙️ Ngưỡng</button>
+          <button class="btn btn-outline" style="padding:4px 8px; font-size:11px; margin-left:4px;" onclick="xemLichSuKho(${item.serviceId || item.id})">📜 Log</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    applyUserUI();
+  } catch (err) {
+    showToast('Lỗi tải danh sách tồn kho: ' + err.message, true);
+  }
+}
+
+function napOptionDichVu(selectId, defaultId = null) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  sel.innerHTML = '';
+  cachedInventory.forEach((item) => {
+    const opt = document.createElement('option');
+    opt.value = item.serviceId || item.id;
+    opt.textContent = `[#${item.serviceId || item.id}] ${item.serviceName} (Khả dụng: ${item.availableQuantity} ${item.unit})`;
+    if (defaultId && (item.serviceId === defaultId || item.id === defaultId)) {
+      opt.selected = true;
+    }
+    sel.appendChild(opt);
+  });
+}
+
+function moModalNhapKho() {
+  napOptionDichVu('nhap-kho-service-id');
+  document.getElementById('nhap-kho-quantity').value = '';
+  document.getElementById('nhap-kho-note').value = '';
+  openModal('modal-nhap-kho');
+}
+
+function moModalNhapKhoChon(serviceId) {
+  napOptionDichVu('nhap-kho-service-id', serviceId);
+  document.getElementById('nhap-kho-quantity').value = '';
+  document.getElementById('nhap-kho-note').value = '';
+  openModal('modal-nhap-kho');
+}
+
+async function xuLyNhapKho(e) {
+  e.preventDefault();
+  const serviceId = Number(document.getElementById('nhap-kho-service-id').value);
+  const quantity = Number(document.getElementById('nhap-kho-quantity').value);
+  const note = document.getElementById('nhap-kho-note').value.trim();
+
+  try {
+    await apiFetch('/admin/inventory/import', {
+      method: 'POST',
+      body: JSON.stringify({ serviceId, quantity, note }),
+    });
+    showToast('Nhập kho thành công!');
+    closeModal('modal-nhap-kho');
+    loadInventory();
+  } catch (err) {
+    showToast('Lỗi nhập kho: ' + err.message, true);
+  }
+}
+
+function moModalDieuChinhKho() {
+  napOptionDichVu('dc-kho-service-id');
+  document.getElementById('dc-kho-quantity').value = '';
+  document.getElementById('dc-kho-reason').value = '';
+  openModal('modal-dieu-chinh-kho');
+}
+
+function moModalDieuChinhKhoChon(serviceId) {
+  napOptionDichVu('dc-kho-service-id', serviceId);
+  document.getElementById('dc-kho-quantity').value = '';
+  document.getElementById('dc-kho-reason').value = '';
+  openModal('modal-dieu-chinh-kho');
+}
+
+async function xuLyDieuChinhKho(e) {
+  e.preventDefault();
+  const serviceId = Number(document.getElementById('dc-kho-service-id').value);
+  const type = document.getElementById('dc-kho-type').value;
+  const quantity = Number(document.getElementById('dc-kho-quantity').value);
+  const reason = document.getElementById('dc-kho-reason').value.trim();
+
+  try {
+    await apiFetch('/admin/inventory/adjust', {
+      method: 'POST',
+      body: JSON.stringify({ serviceId, type, quantity, reason }),
+    });
+    showToast('Điều chỉnh kho thành công!');
+    closeModal('modal-dieu-chinh-kho');
+    loadInventory();
+  } catch (err) {
+    showToast('Lỗi điều chỉnh kho: ' + err.message, true);
+  }
+}
+
+async function capNhatNguongKho(serviceId, currentThreshold, serviceName) {
+  const newThresholdStr = prompt(`Cập nhật ngưỡng cảnh báo kho cho [${serviceName}] (ngưỡng hiện tại: ${currentThreshold}):`, currentThreshold);
+  if (newThresholdStr === null) return;
+  const threshold = Number(newThresholdStr);
+  if (isNaN(threshold) || threshold < 0) return showToast('Ngưỡng không hợp lệ', true);
+
+  try {
+    await apiFetch(`/admin/inventory/${serviceId}/threshold`, {
+      method: 'PATCH',
+      body: JSON.stringify({ threshold }),
+    });
+    showToast('Đã cập nhật ngưỡng cảnh báo kho!');
+    loadInventory();
+  } catch (err) {
+    showToast('Lỗi cập nhật ngưỡng: ' + err.message, true);
+  }
+}
+
+async function xemLichSuKho(serviceId = null) {
+  try {
+    const url = serviceId ? `/admin/inventory/transactions?serviceId=${serviceId}` : '/admin/inventory/transactions';
+    const res = await apiFetch(url);
+    const transactions = res.data?.items || [];
+
+    const tbody = document.getElementById('lich-su-kho-tbody');
+    tbody.innerHTML = '';
+
+    if (transactions.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:20px;">Chưa có biến động kho nào</td></tr>';
+    } else {
+      transactions.forEach((tx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="font-size:12px;">${formatDateTime(tx.createdAt)}</td>
+          <td style="font-weight:700;">${tx.serviceName}</td>
+          <td><span class="badge" style="background:rgba(59, 130, 246, 0.2); color:#60A5FA;">${tx.type}</span></td>
+          <td style="font-weight:800; font-family:var(--font-mono);">${tx.quantity}</td>
+          <td style="font-family:var(--font-mono);">${tx.quantityBefore}</td>
+          <td style="font-weight:800; font-family:var(--font-mono);">${tx.quantityAfter}</td>
+          <td>${tx.performerName || 'Hệ thống'}</td>
+          <td style="font-size:12px; color:var(--text-muted);">${tx.note || '—'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    openModal('modal-lich-su-kho');
+  } catch (err) {
+    showToast('Lỗi tải lịch sử biến động kho: ' + err.message, true);
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

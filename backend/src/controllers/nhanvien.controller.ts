@@ -7,26 +7,24 @@ import { batDongBo } from '../utils/batdongbo';
 import { phanHoiThanhCong, phanHoiTaoThanhCong } from '../utils/phanhoi';
 import { nhanVienService } from '../services/nhanvien.service';
 import { donDatService } from '../services/dondat.service';
+import { layNgayHomNay } from '../utils/thoigian';
 
 export class NhanVienController {
   layDashboard = batDongBo(async (req: Request, res: Response) => {
-    const bayGioVN = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-    const ngayHomNay = (req.query.date as string) || bayGioVN.toISOString().substring(0, 10);
+    const ngayHomNay = (req.query.date as string) || layNgayHomNay();
     const ketQua = await nhanVienService.layDashboard(ngayHomNay);
     phanHoiThanhCong(res, ketQua);
   });
 
   layLichLuoi = batDongBo(async (req: Request, res: Response) => {
-    const bayGioVN = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-    const date = (req.query.date as string) || bayGioVN.toISOString().substring(0, 10);
+    const date = (req.query.date as string) || layNgayHomNay();
     const ketQua = await nhanVienService.layLichLuoi(date);
     phanHoiThanhCong(res, ketQua);
   });
 
   layLichTrongNhanVien = batDongBo(async (req: Request, res: Response) => {
     const id = Number(req.params.id);
-    const bayGioVN = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-    const date = (req.query.date as string) || bayGioVN.toISOString().substring(0, 10);
+    const date = (req.query.date as string) || layNgayHomNay();
     const ketQua = await nhanVienService.layLichTrongNhanVien(id, date);
     phanHoiThanhCong(res, ketQua);
   });

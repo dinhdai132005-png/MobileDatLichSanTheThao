@@ -10,6 +10,7 @@ import { chuyenCamel } from '../utils/chuyendoicamel';
 import { bamMatKhau } from '../utils/matkhau';
 import { ghiNhatKyTrangThai } from '../utils/nhatky';
 import { taoHoaDon } from '../utils/hoadon';
+import { layNgayHomNay, layGioHienTai } from '../utils/thoigian';
 
 export class QuanTriService {
   // ===================================================================
@@ -182,9 +183,8 @@ export class QuanTriService {
       if (loaiMoi.length === 0) throw LoiApi.khongTimThay('Không tìm thấy loại sân mới');
 
       // Chặn đổi mục đích sử dụng nếu sân còn đơn đặt trong tương lai
-      const bayGioVN = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-      const ngayHienTaiStr = bayGioVN.toISOString().substring(0, 10);
-      const gioHienTaiStr = bayGioVN.toTimeString().substring(0, 5);
+      const ngayHienTaiStr = layNgayHomNay();
+      const gioHienTaiStr = layGioHienTai();
 
       const [futureRows] = await csdl.execute<RowDataPacket[]>(
         `SELECT COUNT(*) AS total
@@ -245,9 +245,8 @@ export class QuanTriService {
 
   async doiTrangThaiSan(id: number, status: 'ACTIVE' | 'MAINTENANCE' | 'INACTIVE') {
     if (status !== 'ACTIVE') {
-      const bayGioVN = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-      const ngayHienTaiStr = bayGioVN.toISOString().substring(0, 10);
-      const gioHienTaiStr = bayGioVN.toTimeString().substring(0, 5);
+      const ngayHienTaiStr = layNgayHomNay();
+      const gioHienTaiStr = layGioHienTai();
 
       const [futureRows] = await csdl.execute<RowDataPacket[]>(
         `SELECT COUNT(*) AS total
@@ -548,9 +547,8 @@ export class QuanTriService {
       }
 
       // Phải đến hoặc qua giờ bắt đầu
-      const bayGioVN = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-      const ngayHienTaiStr = bayGioVN.toISOString().substring(0, 10);
-      const gioHienTaiStr = bayGioVN.toTimeString().substring(0, 5);
+      const ngayHienTaiStr = layNgayHomNay();
+      const gioHienTaiStr = layGioHienTai();
       const gioBatDauStr = (don.gio_bat_dau as string).substring(0, 5);
 
       if (don.ngay_dat > ngayHienTaiStr || (don.ngay_dat === ngayHienTaiStr && gioBatDauStr > gioHienTaiStr)) {
@@ -610,6 +608,14 @@ export class QuanTriService {
         duLieu.description || null,
         duLieu.imageUrl || null,
       ]
+    );
+
+    // Khởi tạo bản ghi tồn kho tương ứng
+    await csdl.execute(
+      `INSERT INTO ton_kho_dich_vu (dich_vu_id, so_luong, so_luong_dang_giu, nguong_canh_bao)
+       VALUES (?, 0, 0, 5)
+       ON DUPLICATE KEY UPDATE id = id`,
+      [res.insertId]
     );
 
     return {

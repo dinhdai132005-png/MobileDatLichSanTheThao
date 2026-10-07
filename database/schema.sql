@@ -10,6 +10,8 @@ CREATE DATABASE IF NOT EXISTS sport_booking
 USE sport_booking;
 
 SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS bien_dong_kho;
+DROP TABLE IF EXISTS ton_kho_dich_vu;
 DROP TABLE IF EXISTS chi_tiet_yeu_cau_dich_vu;
 DROP TABLE IF EXISTS yeu_cau_dich_vu;
 DROP TABLE IF EXISTS dich_vu;
@@ -276,3 +278,48 @@ CREATE TABLE chi_tiet_yeu_cau_dich_vu (
   CONSTRAINT fk_ctycdv_nguoi_tra FOREIGN KEY (nguoi_nhan_tra_id)  REFERENCES nguoi_dung (id),
   CONSTRAINT chk_ctycdv_so_luong CHECK (so_luong BETWEEN 1 AND 20)
 ) ENGINE=InnoDB;
+
+-- ===== 14. ton_kho_dich_vu (Quản lý số lượng tồn kho và giữ chỗ của dịch vụ) =====
+CREATE TABLE ton_kho_dich_vu (
+  id                  INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  dich_vu_id          INT UNSIGNED NOT NULL,
+  so_luong            INT NOT NULL DEFAULT 0,
+  so_luong_dang_giu   INT NOT NULL DEFAULT 0,
+  nguong_canh_bao     INT NOT NULL DEFAULT 5,
+  ngay_tao            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  ngay_cap_nhat       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_ton_kho_dich_vu (dich_vu_id),
+  KEY idx_ton_kho_so_luong (so_luong, so_luong_dang_giu),
+  CONSTRAINT fk_ton_kho_dich_vu FOREIGN KEY (dich_vu_id) REFERENCES dich_vu (id) ON DELETE CASCADE,
+  CONSTRAINT chk_ton_kho_so_luong CHECK (so_luong >= 0),
+  CONSTRAINT chk_ton_kho_dang_giu CHECK (so_luong_dang_giu >= 0),
+  CONSTRAINT chk_ton_kho_nguong CHECK (nguong_canh_bao >= 0),
+  CONSTRAINT chk_ton_kho_hop_le CHECK (so_luong_dang_giu <= so_luong)
+) ENGINE=InnoDB;
+
+-- ===== 15. bien_dong_kho (Nhật ký truy vết giao dịch biến động tồn kho) =====
+CREATE TABLE bien_dong_kho (
+  id                  INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  ton_kho_dich_vu_id  INT UNSIGNED NOT NULL,
+  dich_vu_id          INT UNSIGNED NOT NULL,
+  loai_bien_dong      ENUM('IMPORT','ADJUST_IN','ADJUST_OUT','RESERVE','RELEASE','DELIVER','RETURN') NOT NULL,
+  so_luong            INT NOT NULL,
+  so_luong_truoc      INT NOT NULL,
+  so_luong_sau        INT NOT NULL,
+  don_dat_id          INT UNSIGNED NULL,
+  yeu_cau_dich_vu_id  INT UNSIGNED NULL,
+  nguoi_thuc_hien_id  INT UNSIGNED NULL,
+  ghi_chu             VARCHAR(500) NULL,
+  ngay_tao            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_bdk_ton_kho (ton_kho_dich_vu_id),
+  KEY idx_bdk_dich_vu (dich_vu_id),
+  KEY idx_bdk_loai_ngay (loai_bien_dong, ngay_tao),
+  CONSTRAINT fk_bdk_ton_kho FOREIGN KEY (ton_kho_dich_vu_id) REFERENCES ton_kho_dich_vu (id) ON DELETE CASCADE,
+  CONSTRAINT fk_bdk_dich_vu FOREIGN KEY (dich_vu_id) REFERENCES dich_vu (id) ON DELETE CASCADE,
+  CONSTRAINT fk_bdk_don_dat FOREIGN KEY (don_dat_id) REFERENCES don_dat (id) ON DELETE SET NULL,
+  CONSTRAINT fk_bdk_yeu_cau FOREIGN KEY (yeu_cau_dich_vu_id) REFERENCES yeu_cau_dich_vu (id) ON DELETE SET NULL,
+  CONSTRAINT fk_bdk_nguoi_dung FOREIGN KEY (nguoi_thuc_hien_id) REFERENCES nguoi_dung (id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+

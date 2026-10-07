@@ -19,6 +19,7 @@ describe('Kiểm thử Dịch vụ, Hóa đơn & Đóng đơn công nợ', () =>
 
   async function donDep() {
     if (donDatId) {
+      await csdl.execute('DELETE FROM bien_dong_kho WHERE don_dat_id = ?', [donDatId]);
       await csdl.execute('DELETE FROM chi_tiet_yeu_cau_dich_vu WHERE yeu_cau_dich_vu_id IN (SELECT id FROM yeu_cau_dich_vu WHERE don_dat_id = ?)', [donDatId]);
       await csdl.execute('DELETE FROM yeu_cau_dich_vu WHERE don_dat_id = ?', [donDatId]);
       await csdl.execute('DELETE FROM thanh_toan WHERE don_dat_id = ?', [donDatId]);

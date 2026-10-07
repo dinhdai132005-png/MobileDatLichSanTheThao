@@ -1,8 +1,8 @@
 // =====================================================================
-// SERVICE DỊCH VỤ — Quản lý menu, gọi dịch vụ, giao nhận, thanh toán, đồ thuê
-// Đáp ứng: plant/06-api.md mục 4.1, 4.2, 4.3, 5.13, 5.14, 5.15, 5.16, 5.17, 5.18
+// SERVICE DỊCH VỤ & TỒN KHO — Quản lý menu, tồn kho, biến động kho, gọi dịch vụ, giao nhận, hoàn trả
+// Đáp ứng: Master Prompt mục X, XI, XII, XIII, XIV, XV, XVI, XVII; plant/06-api.md
 // =====================================================================
-import { RowDataPacket, ResultSetHeader } from 'mysql2/promise';
+import { RowDataPacket, ResultSetHeader, PoolConnection } from 'mysql2/promise';
 import { csdl } from '../config/csdl';
 import { voiGiaoDich } from '../utils/giaodich';
 import { LoiApi } from '../utils/loi';
@@ -21,51 +21,75 @@ export interface DuLieuGoiDichVu {
   note?: string | null;
 }
 
+export interface TuyChonDanhSachTonKho {
+  search?: string;
+  type?: 'DRINK' | 'RENTAL' | 'PACKAGE';
+  stockStatus?: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK';
+}
+
+export interface TuyChonLichSuBienDongKho {
+  serviceId?: number;
+  type?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  limit?: number;
+}
+
 export class DichVuService {
   /**
-   * Danh mục dịch vụ (Công khai và nội bộ)
-   * Công khai: chỉ hiển thị ACTIVE và OUT_OF_STOCK (BR-23)
+   * Danh mục dịch vụ (Công khai cho khách hàng)
+   * Khách hàng chỉ thấy trạng thái khả dụng (isAvailable), không lộ số lượng tồn kho (Master Prompt XIV)
    */
   async layDanhSachDichVu(tuyChon: TuyChonDanhSachDichVu = {}) {
     let sql = `
-      SELECT id, ten AS name, phan_loai AS type, don_vi_tinh AS unit,
-             don_gia AS price, mo_ta AS description, hinh_anh AS image_url,
-             trang_thai AS status, ngay_tao AS created_at, ngay_cap_nhat AS updated_at
-      FROM dich_vu
+      SELECT dv.id, dv.ten AS name, dv.phan_loai AS type, dv.don_vi_tinh AS unit,
+             dv.don_gia AS price, dv.mo_ta AS description, dv.hinh_anh AS image_url,
+             dv.trang_thai AS status, dv.ngay_tao AS created_at, dv.ngay_cap_nhat AS updated_at,
+             COALESCE(tk.so_luong, 0) - COALESCE(tk.so_luong_dang_giu, 0) AS available_quantity
+      FROM dich_vu dv
+      LEFT JOIN ton_kho_dich_vu tk ON tk.dich_vu_id = dv.id
       WHERE 1=1
     `;
     const params: any[] = [];
 
     if (!tuyChon.tatCaTrangThai) {
       if (tuyChon.status) {
-        sql += ` AND trang_thai = ?`;
+        sql += ` AND dv.trang_thai = ?`;
         params.push(tuyChon.status);
       } else {
         // Mặc định công khai: hiển thị ACTIVE và OUT_OF_STOCK, ẩn INACTIVE
-        sql += ` AND trang_thai IN ('ACTIVE', 'OUT_OF_STOCK')`;
+        sql += ` AND dv.trang_thai IN ('ACTIVE', 'OUT_OF_STOCK')`;
       }
     } else if (tuyChon.status) {
-      sql += ` AND trang_thai = ?`;
+      sql += ` AND dv.trang_thai = ?`;
       params.push(tuyChon.status);
     }
 
     if (tuyChon.type) {
-      sql += ` AND phan_loai = ?`;
+      sql += ` AND dv.phan_loai = ?`;
       params.push(tuyChon.type);
     }
 
     if (tuyChon.search) {
-      sql += ` AND ten LIKE ?`;
+      sql += ` AND dv.ten LIKE ?`;
       params.push(`%${tuyChon.search.trim()}%`);
     }
 
-    sql += ` ORDER BY phan_loai ASC, ten ASC`;
+    sql += ` ORDER BY dv.phan_loai ASC, dv.ten ASC`;
 
     const [rows] = await csdl.execute<RowDataPacket[]>(sql, params);
-    return chuyenCamel<any[]>(rows).map((dv) => ({
-      ...dv,
-      price: Number(dv.price),
-    }));
+    return chuyenCamel<any[]>(rows).map((dv) => {
+      const avail = Number(dv.availableQuantity);
+      const isAvailable = dv.status === 'ACTIVE' && avail > 0;
+      // Khách hàng không thấy số lượng tồn kho nội bộ (Master Prompt Section XIV)
+      const { availableQuantity, ...publicDv } = dv;
+      return {
+        ...publicDv,
+        price: Number(dv.price),
+        isAvailable,
+      };
+    });
   }
 
   /**
@@ -73,10 +97,13 @@ export class DichVuService {
    */
   async layChiTietDichVu(dichVuId: number) {
     const [rows] = await csdl.execute<RowDataPacket[]>(
-      `SELECT id, ten AS name, phan_loai AS type, don_vi_tinh AS unit,
-              don_gia AS price, mo_ta AS description, hinh_anh AS image_url,
-              trang_thai AS status, ngay_tao AS created_at, ngay_cap_nhat AS updated_at
-       FROM dich_vu WHERE id = ? LIMIT 1`,
+      `SELECT dv.id, dv.ten AS name, dv.phan_loai AS type, dv.don_vi_tinh AS unit,
+              dv.don_gia AS price, dv.mo_ta AS description, dv.hinh_anh AS image_url,
+              dv.trang_thai AS status, dv.ngay_tao AS created_at, dv.ngay_cap_nhat AS updated_at,
+              COALESCE(tk.so_luong, 0) - COALESCE(tk.so_luong_dang_giu, 0) AS available_quantity
+       FROM dich_vu dv
+       LEFT JOIN ton_kho_dich_vu tk ON tk.dich_vu_id = dv.id
+       WHERE dv.id = ? LIMIT 1`,
       [dichVuId]
     );
 
@@ -85,12 +112,311 @@ export class DichVuService {
     }
 
     const dv = chuyenCamel<any>(rows[0]);
-    return { ...dv, price: Number(dv.price) };
+    const isAvailable = dv.status === 'ACTIVE' && Number(dv.availableQuantity) > 0;
+    const { availableQuantity, ...publicDv } = dv;
+    return { ...publicDv, price: Number(dv.price), isAvailable };
+  }
+
+  /**
+   * Lấy danh sách tồn kho phục vụ vận hành và quản trị (STAFF & ADMIN)
+   * Master Prompt Section XIV, XVII
+   */
+  async layDanhSachTonKho(tuyChon: TuyChonDanhSachTonKho = {}) {
+    let sql = `
+      SELECT tk.id, tk.dich_vu_id AS service_id, dv.ten AS service_name,
+             dv.phan_loai AS type, dv.don_vi_tinh AS unit, dv.don_gia AS price,
+             dv.trang_thai AS service_status,
+             tk.so_luong AS quantity, tk.so_luong_dang_giu AS reserved_quantity,
+             (tk.so_luong - tk.so_luong_dang_giu) AS available_quantity,
+             tk.nguong_canh_bao AS threshold,
+             tk.ngay_cap_nhat AS updated_at
+      FROM ton_kho_dich_vu tk
+      JOIN dich_vu dv ON dv.id = tk.dich_vu_id
+      WHERE 1=1
+    `;
+    const params: any[] = [];
+
+    if (tuyChon.type) {
+      sql += ` AND dv.phan_loai = ?`;
+      params.push(tuyChon.type);
+    }
+
+    if (tuyChon.search) {
+      sql += ` AND dv.ten LIKE ?`;
+      params.push(`%${tuyChon.search.trim()}%`);
+    }
+
+    sql += ` ORDER BY dv.phan_loai ASC, dv.ten ASC`;
+
+    const [rows] = await csdl.execute<RowDataPacket[]>(sql, params);
+    const items = chuyenCamel<any[]>(rows).map((row) => {
+      const quantity = Number(row.quantity);
+      const reservedQuantity = Number(row.reservedQuantity);
+      const availableQuantity = Number(row.availableQuantity);
+      const threshold = Number(row.threshold);
+
+      let stockStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' = 'IN_STOCK';
+      if (availableQuantity <= 0) {
+        stockStatus = 'OUT_OF_STOCK';
+      } else if (availableQuantity <= threshold) {
+        stockStatus = 'LOW_STOCK';
+      }
+
+      return {
+        ...row,
+        id: row.serviceId,
+        serviceId: row.serviceId,
+        inventoryId: row.id,
+        price: Number(row.price),
+        quantity,
+        reservedQuantity,
+        availableQuantity,
+        threshold,
+        stockStatus,
+      };
+    });
+
+    if (tuyChon.stockStatus) {
+      return items.filter((it) => it.stockStatus === tuyChon.stockStatus);
+    }
+
+    return items;
+  }
+
+  /**
+   * Lấy lịch sử giao dịch biến động tồn kho (ADMIN ONLY)
+   * Master Prompt Section XIII, XIV
+   */
+  async layLichSuBienDongKho(tuyChon: TuyChonLichSuBienDongKho = {}) {
+    const page = Math.max(1, tuyChon.page || 1);
+    const limit = Math.min(100, Math.max(1, tuyChon.limit || 20));
+    const offset = (page - 1) * limit;
+
+    let whereSql = 'WHERE 1=1';
+    const params: any[] = [];
+
+    if (tuyChon.serviceId) {
+      whereSql += ' AND bdk.dich_vu_id = ?';
+      params.push(tuyChon.serviceId);
+    }
+
+    if (tuyChon.type) {
+      whereSql += ' AND bdk.loai_bien_dong = ?';
+      params.push(tuyChon.type);
+    }
+
+    if (tuyChon.dateFrom) {
+      whereSql += ' AND bdk.ngay_tao >= ?';
+      params.push(`${tuyChon.dateFrom} 00:00:00`);
+    }
+
+    if (tuyChon.dateTo) {
+      whereSql += ' AND bdk.ngay_tao <= ?';
+      params.push(`${tuyChon.dateTo} 23:59:59`);
+    }
+
+    const [countRows] = await csdl.execute<RowDataPacket[]>(
+      `SELECT COUNT(*) AS total FROM bien_dong_kho bdk ${whereSql}`,
+      params
+    );
+    const total = Number(countRows[0].total);
+
+    const [rows] = await csdl.execute<RowDataPacket[]>(
+      `SELECT bdk.id, bdk.ton_kho_dich_vu_id, bdk.dich_vu_id AS service_id,
+              dv.ten AS service_name, dv.phan_loai AS service_type,
+              bdk.loai_bien_dong AS type, bdk.so_luong AS quantity,
+              bdk.so_luong_truoc AS quantity_before, bdk.so_luong_sau AS quantity_after,
+              bdk.don_dat_id AS booking_id, dd.ma_don_dat AS booking_code,
+              bdk.yeu_cau_dich_vu_id AS service_order_id,
+              bdk.nguoi_thuc_hien_id AS performer_id, u.ho_ten AS performer_name,
+              bdk.ghi_chu AS note, bdk.ngay_tao AS created_at
+       FROM bien_dong_kho bdk
+       JOIN dich_vu dv ON dv.id = bdk.dich_vu_id
+       LEFT JOIN don_dat dd ON dd.id = bdk.don_dat_id
+       LEFT JOIN nguoi_dung u ON u.id = bdk.nguoi_thuc_hien_id
+       ${whereSql}
+       ORDER BY bdk.id DESC
+       LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
+
+    return {
+      items: chuyenCamel<any[]>(rows).map((r) => ({
+        ...r,
+        quantity: Number(r.quantity),
+        quantityBefore: Number(r.quantityBefore),
+        quantityAfter: Number(r.quantityAfter),
+      })),
+      page,
+      limit,
+      total,
+    };
+  }
+
+  /**
+   * Nhập kho dịch vụ (ADMIN ONLY)
+   * Master Prompt Section XIV, LVI
+   */
+  async nhapKho(
+    adminId: number,
+    duLieu: { serviceId: number; quantity: number; note?: string | null }
+  ) {
+    if (duLieu.quantity <= 0) {
+      throw new LoiApi(400, 'VALIDATION_ERROR', 'Số lượng nhập kho phải lớn hơn 0');
+    }
+
+    return await voiGiaoDich(async (ketNoi) => {
+      const [tkRows] = await ketNoi.execute<RowDataPacket[]>(
+        `SELECT id, dich_vu_id, so_luong, so_luong_dang_giu, nguong_canh_bao
+         FROM ton_kho_dich_vu WHERE dich_vu_id = ? FOR UPDATE`,
+        [duLieu.serviceId]
+      );
+
+      if (tkRows.length === 0) {
+        throw LoiApi.khongTimThay('Không tìm thấy bản ghi tồn kho cho dịch vụ này');
+      }
+
+      const tk = tkRows[0];
+      const soLuongTruoc = Number(tk.so_luong);
+      const soLuongSau = soLuongTruoc + duLieu.quantity;
+
+      await ketNoi.execute(
+        `UPDATE ton_kho_dich_vu SET so_luong = ? WHERE id = ?`,
+        [soLuongSau, tk.id]
+      );
+
+      await ketNoi.execute(
+        `INSERT INTO bien_dong_kho (
+           ton_kho_dich_vu_id, dich_vu_id, loai_bien_dong, so_luong,
+           so_luong_truoc, so_luong_sau, nguoi_thuc_hien_id, ghi_chu
+         ) VALUES (?, ?, 'IMPORT', ?, ?, ?, ?, ?)`,
+        [
+          tk.id,
+          duLieu.serviceId,
+          duLieu.quantity,
+          soLuongTruoc,
+          soLuongSau,
+          adminId,
+          duLieu.note || 'Nhập thêm hàng vào kho',
+        ]
+      );
+
+      return {
+        serviceId: duLieu.serviceId,
+        quantity: soLuongSau,
+        quantityBefore: soLuongTruoc,
+        quantityAfter: soLuongSau,
+        importedQuantity: duLieu.quantity,
+        availableQuantity: soLuongSau - Number(tk.so_luong_dang_giu),
+      };
+    });
+  }
+
+  /**
+   * Điều chỉnh tăng/giảm kho (ADMIN ONLY)
+   * Master Prompt Section XIV, LVI
+   */
+  async dieuChinhKho(
+    adminId: number,
+    duLieu: {
+      serviceId: number;
+      type: 'ADJUST_IN' | 'ADJUST_OUT';
+      quantity: number;
+      reason: string;
+    }
+  ) {
+    if (duLieu.quantity <= 0) {
+      throw new LoiApi(400, 'VALIDATION_ERROR', 'Số lượng điều chỉnh phải lớn hơn 0');
+    }
+
+    return await voiGiaoDich(async (ketNoi) => {
+      const [tkRows] = await ketNoi.execute<RowDataPacket[]>(
+        `SELECT id, dich_vu_id, so_luong, so_luong_dang_giu, nguong_canh_bao
+         FROM ton_kho_dich_vu WHERE dich_vu_id = ? FOR UPDATE`,
+        [duLieu.serviceId]
+      );
+
+      if (tkRows.length === 0) {
+        throw LoiApi.khongTimThay('Không tìm thấy bản ghi tồn kho cho dịch vụ này');
+      }
+
+      const tk = tkRows[0];
+      const soLuongTruoc = Number(tk.so_luong);
+      const soLuongDangGiu = Number(tk.so_luong_dang_giu);
+      let soLuongSau = soLuongTruoc;
+
+      if (duLieu.type === 'ADJUST_IN') {
+        soLuongSau = soLuongTruoc + duLieu.quantity;
+      } else if (duLieu.type === 'ADJUST_OUT') {
+        const khaDung = soLuongTruoc - soLuongDangGiu;
+        if (khaDung < duLieu.quantity) {
+          throw new LoiApi(
+            422,
+            'INSUFFICIENT_STOCK',
+            `Số lượng khả dụng không đủ để điều chỉnh giảm kho (khả dụng: ${khaDung}, yêu cầu giảm: ${duLieu.quantity})`
+          );
+        }
+        soLuongSau = soLuongTruoc - duLieu.quantity;
+      }
+
+      await ketNoi.execute(
+        `UPDATE ton_kho_dich_vu SET so_luong = ? WHERE id = ?`,
+        [soLuongSau, tk.id]
+      );
+
+      await ketNoi.execute(
+        `INSERT INTO bien_dong_kho (
+           ton_kho_dich_vu_id, dich_vu_id, loai_bien_dong, so_luong,
+           so_luong_truoc, so_luong_sau, nguoi_thuc_hien_id, ghi_chu
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          tk.id,
+          duLieu.serviceId,
+          duLieu.type,
+          duLieu.quantity,
+          soLuongTruoc,
+          soLuongSau,
+          adminId,
+          duLieu.reason,
+        ]
+      );
+
+      return {
+        serviceId: duLieu.serviceId,
+        quantity: soLuongSau,
+        adjustmentType: duLieu.type,
+        quantityBefore: soLuongTruoc,
+        quantityAfter: soLuongSau,
+        adjustedQuantity: duLieu.quantity,
+        availableQuantity: soLuongSau - soLuongDangGiu,
+      };
+    });
+  }
+
+  /**
+   * Cập nhật ngưỡng cảnh báo tồn kho (ADMIN ONLY)
+   */
+  async capNhatNguongCanhBao(serviceId: number, threshold: number) {
+    if (threshold < 0) {
+      throw new LoiApi(400, 'VALIDATION_ERROR', 'Ngưỡng cảnh báo không được âm');
+    }
+
+    const [res] = await csdl.execute<ResultSetHeader>(
+      `UPDATE ton_kho_dich_vu SET nguong_canh_bao = ? WHERE dich_vu_id = ?`,
+      [threshold, serviceId]
+    );
+
+    if (res.affectedRows === 0) {
+      throw LoiApi.khongTimThay('Không tìm thấy bản ghi tồn kho');
+    }
+
+    return { serviceId, threshold };
   }
 
   /**
    * Khách hàng gọi dịch vụ cho đơn của mình (POST /bookings/:id/service-orders)
    * Nhân viên thêm dịch vụ tại quầy (POST /staff/bookings/:id/service-orders)
+   * Tích hợp kiểm tra tồn kho, khóa hàng (RESERVE) và xuất kho (DELIVER) (Master Prompt XV, XVI)
    */
   async taoYeuCauDichVu(
     nguoiDungId: number,
@@ -166,7 +492,38 @@ export class DichVuService {
         }
       }
 
-      // 3. Chuẩn bị dữ liệu ghi nhận
+      // 3. Khóa và kiểm tra tồn kho cho từng món (Master Prompt XV: SELECT ... FOR UPDATE)
+      for (const item of duLieu.items) {
+        const [tkRows] = await ketNoi.execute<RowDataPacket[]>(
+          `SELECT id, dich_vu_id, so_luong, so_luong_dang_giu, nguong_canh_bao
+           FROM ton_kho_dich_vu WHERE dich_vu_id = ? FOR UPDATE`,
+          [item.serviceId]
+        );
+
+        if (tkRows.length === 0) {
+          throw new LoiApi(
+            422,
+            'SERVICE_NOT_AVAILABLE',
+            `Dịch vụ #${item.serviceId} chưa được cấu hình tồn kho`
+          );
+        }
+
+        const tk = tkRows[0];
+        const soLuong = Number(tk.so_luong);
+        const soLuongDangGiu = Number(tk.so_luong_dang_giu);
+        const khaDung = soLuong - soLuongDangGiu;
+
+        if (khaDung < item.quantity) {
+          const tenDv = dvMap.get(item.serviceId)?.ten || `#${item.serviceId}`;
+          throw new LoiApi(
+            422,
+            'INSUFFICIENT_STOCK',
+            `Dịch vụ "${tenDv}" không đủ số lượng tồn kho (khả dụng: ${khaDung}, yêu cầu: ${item.quantity})`
+          );
+        }
+      }
+
+      // 4. Chuẩn bị tạo yêu cầu dịch vụ
       const trangThaiYeuCau = laNhanVien ? 'DELIVERED' : 'REQUESTED';
       const nguonYeuCau = laNhanVien ? 'STAFF' : 'APP';
       const nguoiGiaoId = laNhanVien ? nguoiDungId : null;
@@ -206,6 +563,50 @@ export class DichVuService {
           lineAmount: thanhTien,
           returnedAt: null,
         });
+
+        // 5. Cập nhật tồn kho theo vai trò
+        const [tkRows] = await ketNoi.execute<RowDataPacket[]>(
+          `SELECT id, so_luong, so_luong_dang_giu FROM ton_kho_dich_vu WHERE dich_vu_id = ?`,
+          [item.serviceId]
+        );
+        const tk = tkRows[0];
+
+        if (laNhanVien) {
+          // Nhân viên tạo tại quầy: đi thẳng vào DELIVERED -> Trừ trực tiếp vào kho thực
+          const soLuongTruoc = Number(tk.so_luong);
+          const soLuongSau = Math.max(0, soLuongTruoc - item.quantity);
+          await ketNoi.execute(
+            `UPDATE ton_kho_dich_vu SET so_luong = ? WHERE id = ?`,
+            [soLuongSau, tk.id]
+          );
+          await ketNoi.execute(
+            `INSERT INTO bien_dong_kho (
+               ton_kho_dich_vu_id, dich_vu_id, loai_bien_dong, so_luong,
+               so_luong_truoc, so_luong_sau, don_dat_id, yeu_cau_dich_vu_id,
+               nguoi_thuc_hien_id, ghi_chu
+             ) VALUES (?, ?, 'DELIVER', ?, ?, ?, ?, ?, ?, 'Nhân viên giao dịch vụ tại quầy')`,
+            [tk.id, item.serviceId, item.quantity, soLuongTruoc, soLuongSau, donDatId, yeuCauId, nguoiDungId]
+          );
+        } else {
+          // Khách hàng đặt trên App: trạng thái REQUESTED -> Giữ chỗ tồn kho (RESERVE)
+          const dangGiuTruoc = Number(tk.so_luong_dang_giu);
+          const dangGiuSau = dangGiuTruoc + item.quantity;
+          const khaDungTruoc = Number(tk.so_luong) - dangGiuTruoc;
+          const khaDungSau = khaDungTruoc - item.quantity;
+
+          await ketNoi.execute(
+            `UPDATE ton_kho_dich_vu SET so_luong_dang_giu = ? WHERE id = ?`,
+            [dangGiuSau, tk.id]
+          );
+          await ketNoi.execute(
+            `INSERT INTO bien_dong_kho (
+               ton_kho_dich_vu_id, dich_vu_id, loai_bien_dong, so_luong,
+               so_luong_truoc, so_luong_sau, don_dat_id, yeu_cau_dich_vu_id,
+               nguoi_thuc_hien_id, ghi_chu
+             ) VALUES (?, ?, 'RESERVE', ?, ?, ?, ?, ?, ?, 'Khách hàng giữ chỗ dịch vụ')`,
+            [tk.id, item.serviceId, item.quantity, khaDungTruoc, khaDungSau, donDatId, yeuCauId, nguoiDungId]
+          );
+        }
       }
 
       // Nếu nhân viên thêm tại quầy: trạng thái là DELIVERED -> cập nhật ngay tien_dich_vu của don_dat
@@ -234,6 +635,7 @@ export class DichVuService {
 
   /**
    * Khách hàng hủy yêu cầu dịch vụ chưa giao (POST /bookings/:id/service-orders/:orderId/cancel)
+   * Tự động giải phóng tồn kho đã giữ (RELEASE) (Master Prompt XVI)
    */
   async huyYeuCauBoiKhach(nguoiDungId: number, donDatId: number, orderId: number, lyDo?: string | null) {
     return await voiGiaoDich(async (ketNoi) => {
@@ -264,11 +666,43 @@ export class DichVuService {
         );
       }
 
+      // Giải phóng tồn kho giữ chỗ (RELEASE)
+      const [items] = await ketNoi.execute<RowDataPacket[]>(
+        `SELECT dich_vu_id, so_luong FROM chi_tiet_yeu_cau_dich_vu WHERE yeu_cau_dich_vu_id = ?`,
+        [orderId]
+      );
+
+      for (const it of items) {
+        const [tkRows] = await ketNoi.execute<RowDataPacket[]>(
+          `SELECT id, so_luong, so_luong_dang_giu FROM ton_kho_dich_vu WHERE dich_vu_id = ? FOR UPDATE`,
+          [it.dich_vu_id]
+        );
+        if (tkRows.length > 0) {
+          const tk = tkRows[0];
+          const dangGiuMoi = Math.max(0, Number(tk.so_luong_dang_giu) - Number(it.so_luong));
+          const khaDungTruoc = Number(tk.so_luong) - Number(tk.so_luong_dang_giu);
+          const khaDungSau = Number(tk.so_luong) - dangGiuMoi;
+
+          await ketNoi.execute(
+            `UPDATE ton_kho_dich_vu SET so_luong_dang_giu = ? WHERE id = ?`,
+            [dangGiuMoi, tk.id]
+          );
+          await ketNoi.execute(
+            `INSERT INTO bien_dong_kho (
+               ton_kho_dich_vu_id, dich_vu_id, loai_bien_dong, so_luong,
+               so_luong_truoc, so_luong_sau, don_dat_id, yeu_cau_dich_vu_id,
+               nguoi_thuc_hien_id, ghi_chu
+             ) VALUES (?, ?, 'RELEASE', ?, ?, ?, ?, ?, ?, 'Khách hủy yêu cầu, giải phóng tồn kho đã giữ')`,
+            [tk.id, it.dich_vu_id, it.so_luong, khaDungTruoc, khaDungSau, donDatId, orderId, nguoiDungId]
+          );
+        }
+      }
+
       await ketNoi.execute(
         `UPDATE yeu_cau_dich_vu
          SET trang_thai = 'CANCELLED', huy_luc = NOW(), ly_do_huy = ?
          WHERE id = ?`,
-        [lyDo || 'Khách hàng hủy', orderId]
+        [lyDo || 'Khách hàng hủy trên ứng dụng', orderId]
       );
 
       return { success: true, message: 'Đã hủy yêu cầu dịch vụ thành công' };
@@ -393,6 +827,7 @@ export class DichVuService {
 
   /**
    * Nhân viên xác nhận đã giao dịch vụ (POST /staff/service-orders/:id/deliver)
+   * Tự động trừ kho thực tế và giảm giữ chỗ (DELIVER) (Master Prompt XVI)
    */
   async xacNhanGiaoHang(nhanVienId: number, orderId: number) {
     return await voiGiaoDich(async (ketNoi) => {
@@ -431,6 +866,38 @@ export class DichVuService {
         );
       }
 
+      // Chuyển kho từ giữ chỗ sang đã giao (DELIVER)
+      const [items] = await ketNoi.execute<RowDataPacket[]>(
+        `SELECT dich_vu_id, so_luong FROM chi_tiet_yeu_cau_dich_vu WHERE yeu_cau_dich_vu_id = ?`,
+        [orderId]
+      );
+
+      for (const it of items) {
+        const [tkRows] = await ketNoi.execute<RowDataPacket[]>(
+          `SELECT id, so_luong, so_luong_dang_giu FROM ton_kho_dich_vu WHERE dich_vu_id = ? FOR UPDATE`,
+          [it.dich_vu_id]
+        );
+        if (tkRows.length > 0) {
+          const tk = tkRows[0];
+          const soLuongTruoc = Number(tk.so_luong);
+          const soLuongSau = Math.max(0, soLuongTruoc - Number(it.so_luong));
+          const dangGiuSau = Math.max(0, Number(tk.so_luong_dang_giu) - Number(it.so_luong));
+
+          await ketNoi.execute(
+            `UPDATE ton_kho_dich_vu SET so_luong = ?, so_luong_dang_giu = ? WHERE id = ?`,
+            [soLuongSau, dangGiuSau, tk.id]
+          );
+          await ketNoi.execute(
+            `INSERT INTO bien_dong_kho (
+               ton_kho_dich_vu_id, dich_vu_id, loai_bien_dong, so_luong,
+               so_luong_truoc, so_luong_sau, don_dat_id, yeu_cau_dich_vu_id,
+               nguoi_thuc_hien_id, ghi_chu
+             ) VALUES (?, ?, 'DELIVER', ?, ?, ?, ?, ?, ?, 'Bàn giao dịch vụ ra sân')`,
+            [tk.id, it.dich_vu_id, it.so_luong, soLuongTruoc, soLuongSau, yc.don_dat_id, orderId, nhanVienId]
+          );
+        }
+      }
+
       // Cập nhật yêu cầu
       await ketNoi.execute(
         `UPDATE yeu_cau_dich_vu
@@ -458,6 +925,7 @@ export class DichVuService {
 
   /**
    * Nhân viên hủy yêu cầu dịch vụ (POST /staff/service-orders/:id/cancel)
+   * Tự động giải phóng hoặc hoàn trả tồn kho (RELEASE hoặc RETURN)
    */
   async nhanVienHuyYeuCau(nhanVienId: number, orderId: number, lyDo: string) {
     return await voiGiaoDich(async (ketNoi) => {
@@ -497,6 +965,56 @@ export class DichVuService {
         );
       }
 
+      // Xử lý hoàn kho
+      const [items] = await ketNoi.execute<RowDataPacket[]>(
+        `SELECT dich_vu_id, so_luong FROM chi_tiet_yeu_cau_dich_vu WHERE yeu_cau_dich_vu_id = ?`,
+        [orderId]
+      );
+
+      for (const it of items) {
+        const [tkRows] = await ketNoi.execute<RowDataPacket[]>(
+          `SELECT id, so_luong, so_luong_dang_giu FROM ton_kho_dich_vu WHERE dich_vu_id = ? FOR UPDATE`,
+          [it.dich_vu_id]
+        );
+        if (tkRows.length > 0) {
+          const tk = tkRows[0];
+          if (yc.trang_thai === 'REQUESTED') {
+            // Giảm số lượng giữ chỗ (RELEASE)
+            const dangGiuSau = Math.max(0, Number(tk.so_luong_dang_giu) - Number(it.so_luong));
+            const khaDungTruoc = Number(tk.so_luong) - Number(tk.so_luong_dang_giu);
+            const khaDungSau = Number(tk.so_luong) - dangGiuSau;
+            await ketNoi.execute(
+              `UPDATE ton_kho_dich_vu SET so_luong_dang_giu = ? WHERE id = ?`,
+              [dangGiuSau, tk.id]
+            );
+            await ketNoi.execute(
+              `INSERT INTO bien_dong_kho (
+                 ton_kho_dich_vu_id, dich_vu_id, loai_bien_dong, so_luong,
+                 so_luong_truoc, so_luong_sau, don_dat_id, yeu_cau_dich_vu_id,
+                 nguoi_thuc_hien_id, ghi_chu
+               ) VALUES (?, ?, 'RELEASE', ?, ?, ?, ?, ?, ?, 'Nhân viên hủy yêu cầu chờ giao')`,
+              [tk.id, it.dich_vu_id, it.so_luong, khaDungTruoc, khaDungSau, yc.don_dat_id, orderId, nhanVienId]
+            );
+          } else if (yc.trang_thai === 'DELIVERED') {
+            // Hoàn lại kho thực tế (RETURN)
+            const soLuongTruoc = Number(tk.so_luong);
+            const soLuongSau = soLuongTruoc + Number(it.so_luong);
+            await ketNoi.execute(
+              `UPDATE ton_kho_dich_vu SET so_luong = ? WHERE id = ?`,
+              [soLuongSau, tk.id]
+            );
+            await ketNoi.execute(
+              `INSERT INTO bien_dong_kho (
+                 ton_kho_dich_vu_id, dich_vu_id, loai_bien_dong, so_luong,
+                 so_luong_truoc, so_luong_sau, don_dat_id, yeu_cau_dich_vu_id,
+                 nguoi_thuc_hien_id, ghi_chu
+               ) VALUES (?, ?, 'RETURN', ?, ?, ?, ?, ?, ?, 'Nhân viên hủy yêu cầu đã giao, hoàn kho')`,
+              [tk.id, it.dich_vu_id, it.so_luong, soLuongTruoc, soLuongSau, yc.don_dat_id, orderId, nhanVienId]
+            );
+          }
+        }
+      }
+
       await ketNoi.execute(
         `UPDATE yeu_cau_dich_vu
          SET trang_thai = 'CANCELLED', huy_luc = NOW(), ly_do_huy = ?
@@ -515,11 +1033,13 @@ export class DichVuService {
 
   /**
    * Nhân viên nhận lại đồ thuê (POST /staff/service-order-items/:id/return)
+   * Tự động cộng lại kho (RETURN) (Master Prompt XI, XVI)
    */
   async traDoThue(nhanVienId: number, itemId: number) {
     return await voiGiaoDich(async (ketNoi) => {
       const [rows] = await ketNoi.execute<RowDataPacket[]>(
-        `SELECT ct.id, ct.tra_luc, dv.phan_loai, ycdv.trang_thai AS yc_status
+        `SELECT ct.id, ct.dich_vu_id, ct.so_luong, ct.tra_luc, dv.phan_loai,
+                ycdv.don_dat_id, ycdv.id AS yeu_cau_dich_vu_id, ycdv.trang_thai AS yc_status
          FROM chi_tiet_yeu_cau_dich_vu ct
          JOIN dich_vu dv ON dv.id = ct.dich_vu_id
          JOIN yeu_cau_dich_vu ycdv ON ycdv.id = ct.yeu_cau_dich_vu_id
@@ -548,10 +1068,35 @@ export class DichVuService {
         throw new LoiApi(409, 'ALREADY_RETURNED', 'Đồ thuê này đã được xác nhận trả trước đó');
       }
 
+      // Đánh dấu đã nhận lại
       await ketNoi.execute(
         `UPDATE chi_tiet_yeu_cau_dich_vu SET tra_luc = NOW(), nguoi_nhan_tra_id = ? WHERE id = ?`,
         [nhanVienId, itemId]
       );
+
+      // Cộng lại tồn kho (RETURN)
+      const [tkRows] = await ketNoi.execute<RowDataPacket[]>(
+        `SELECT id, so_luong FROM ton_kho_dich_vu WHERE dich_vu_id = ? FOR UPDATE`,
+        [item.dich_vu_id]
+      );
+      if (tkRows.length > 0) {
+        const tk = tkRows[0];
+        const soLuongTruoc = Number(tk.so_luong);
+        const soLuongSau = soLuongTruoc + Number(item.so_luong);
+
+        await ketNoi.execute(
+          `UPDATE ton_kho_dich_vu SET so_luong = ? WHERE id = ?`,
+          [soLuongSau, tk.id]
+        );
+        await ketNoi.execute(
+          `INSERT INTO bien_dong_kho (
+             ton_kho_dich_vu_id, dich_vu_id, loai_bien_dong, so_luong,
+             so_luong_truoc, so_luong_sau, don_dat_id, yeu_cau_dich_vu_id,
+             nguoi_thuc_hien_id, ghi_chu
+           ) VALUES (?, ?, 'RETURN', ?, ?, ?, ?, ?, ?, 'Khách hàng hoàn trả đồ thuê')`,
+          [tk.id, item.dich_vu_id, item.so_luong, soLuongTruoc, soLuongSau, item.don_dat_id, item.yeu_cau_dich_vu_id, nhanVienId]
+        );
+      }
 
       const [updated] = await ketNoi.execute<RowDataPacket[]>(
         `SELECT id, tra_luc AS returned_at FROM chi_tiet_yeu_cau_dich_vu WHERE id = ?`,
@@ -652,6 +1197,59 @@ export class DichVuService {
     }
 
     return await taoHoaDon(csdl, donDatId);
+  }
+
+  /**
+   * Tiện ích giải phóng toàn bộ tồn kho giữ chỗ khi một đơn đặt bị hủy hoặc hết hạn
+   */
+  static async giaiPhongTonKhoDonHuy(
+    ketNoi: PoolConnection,
+    donDatId: number,
+    nguoiThucHienId: number | null,
+    lyDo: string
+  ) {
+    const [ycRows] = await ketNoi.execute<RowDataPacket[]>(
+      `SELECT id FROM yeu_cau_dich_vu WHERE don_dat_id = ? AND trang_thai = 'REQUESTED'`,
+      [donDatId]
+    );
+
+    for (const yc of ycRows) {
+      const [items] = await ketNoi.execute<RowDataPacket[]>(
+        `SELECT dich_vu_id, so_luong FROM chi_tiet_yeu_cau_dich_vu WHERE yeu_cau_dich_vu_id = ?`,
+        [yc.id]
+      );
+
+      for (const it of items) {
+        const [tkRows] = await ketNoi.execute<RowDataPacket[]>(
+          `SELECT id, so_luong, so_luong_dang_giu FROM ton_kho_dich_vu WHERE dich_vu_id = ? FOR UPDATE`,
+          [it.dich_vu_id]
+        );
+        if (tkRows.length > 0) {
+          const tk = tkRows[0];
+          const dangGiuSau = Math.max(0, Number(tk.so_luong_dang_giu) - Number(it.so_luong));
+          const khaDungTruoc = Number(tk.so_luong) - Number(tk.so_luong_dang_giu);
+          const khaDungSau = Number(tk.so_luong) - dangGiuSau;
+
+          await ketNoi.execute(
+            `UPDATE ton_kho_dich_vu SET so_luong_dang_giu = ? WHERE id = ?`,
+            [dangGiuSau, tk.id]
+          );
+          await ketNoi.execute(
+            `INSERT INTO bien_dong_kho (
+               ton_kho_dich_vu_id, dich_vu_id, loai_bien_dong, so_luong,
+               so_luong_truoc, so_luong_sau, don_dat_id, yeu_cau_dich_vu_id,
+               nguoi_thuc_hien_id, ghi_chu
+             ) VALUES (?, ?, 'RELEASE', ?, ?, ?, ?, ?, ?, ?)`,
+            [tk.id, it.dich_vu_id, it.so_luong, khaDungTruoc, khaDungSau, donDatId, yc.id, nguoiThucHienId, lyDo]
+          );
+        }
+      }
+
+      await ketNoi.execute(
+        `UPDATE yeu_cau_dich_vu SET trang_thai = 'CANCELLED', huy_luc = NOW(), ly_do_huy = ? WHERE id = ?`,
+        [lyDo, yc.id]
+      );
+    }
   }
 }
 

@@ -34,6 +34,12 @@ export function layPhutHienTai(thoiDiem: Date = new Date()): number {
   return Number(p.hour) * 60 + Number(p.minute);
 }
 
+/** Giờ hiện tại (giờ VN) dạng HH:mm */
+export function layGioHienTai(thoiDiem: Date = new Date()): string {
+  const p = layThanhPhan(thoiDiem);
+  return `${p.hour}:${p.minute}`;
+}
+
 /** Chuỗi ngày hợp lệ dạng YYYY-MM-DD và tồn tại trên lịch */
 export function laNgayHopLe(ngay: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(ngay)) return false;

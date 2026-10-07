@@ -8,6 +8,8 @@
 USE sport_booking;
 
 SET FOREIGN_KEY_CHECKS = 0;
+TRUNCATE TABLE bien_dong_kho;
+TRUNCATE TABLE ton_kho_dich_vu;
 TRUNCATE TABLE chi_tiet_yeu_cau_dich_vu;
 TRUNCATE TABLE yeu_cau_dich_vu;
 TRUNCATE TABLE dich_vu;
@@ -94,3 +96,23 @@ INSERT INTO nguoi_dung (id, ho_ten, so_dien_thoai, email, mat_khau_hash, vai_tro
 (2, 'Nguyễn Văn Nhân Viên', '0900000002', 'staff@sportbooking.vn', '$2b$10$ekRWDm2FiINV0o1EKLPOYO.1dEriRVNCRZSPWs2fmkRnRvGP8kFKK', 'STAFF', 'ACTIVE'),
 (3, 'Trần Khách Hàng A', '0911111111', 'khach_a@gmail.com', '$2b$10$ekRWDm2FiINV0o1EKLPOYO.1dEriRVNCRZSPWs2fmkRnRvGP8kFKK', 'CUSTOMER', 'ACTIVE'),
 (4, 'Lê Khách Hàng B', '0922222222', 'khach_b@gmail.com', '$2b$10$ekRWDm2FiINV0o1EKLPOYO.1dEriRVNCRZSPWs2fmkRnRvGP8kFKK', 'CUSTOMER', 'ACTIVE');
+
+-- 7. Khởi tạo tồn kho ban đầu cho 11 dịch vụ
+INSERT INTO ton_kho_dich_vu (id, dich_vu_id, so_luong, so_luong_dang_giu, nguong_canh_bao) VALUES
+(1,  1,  100, 0, 10), -- Nước suối
+(2,  2,  50,  0, 5),  -- Nước tăng lực
+(3,  3,  200, 0, 20), -- Trà đá
+(4,  4,  80,  0, 10), -- Bia lon
+(5,  5,  20,  0, 5),  -- Thuê vợt cầu lông
+(6,  6,  15,  0, 3),  -- Thuê giày
+(7,  7,  10,  0, 2),  -- Thuê bóng
+(8,  8,  30,  0, 5),  -- Áo bib
+(9,  9,  10,  0, 2),  -- Gói tiệc nước 10 người
+(10, 10, 5,   0, 1),  -- Gói BBQ 10 người
+(11, 11, 5,   0, 1);  -- Trang trí sinh nhật
+
+-- 8. Ghi nhận giao dịch nhập kho ban đầu (IMPORT)
+INSERT INTO bien_dong_kho (ton_kho_dich_vu_id, dich_vu_id, loai_bien_dong, so_luong, so_luong_truoc, so_luong_sau, nguoi_thuc_hien_id, ghi_chu)
+SELECT id, dich_vu_id, 'IMPORT', so_luong, 0, so_luong, 2, 'Khởi tạo tồn kho ban đầu của hệ thống'
+FROM ton_kho_dich_vu;
+

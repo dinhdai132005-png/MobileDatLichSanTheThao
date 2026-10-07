@@ -84,6 +84,7 @@
       letter-spacing: -0.02em;
       background: linear-gradient(90deg, #FFFFFF, #94A3B8);
       -webkit-background-clip: text;
+      background-clip: text;
       -webkit-text-fill-color: transparent;
     }
     .brand-subtitle {
@@ -629,6 +630,7 @@
       <button class="nav-btn" onclick="switchTab('bookings')">📋 Danh Sách Đơn Đặt</button>
       <button class="nav-btn" onclick="switchTab('walkin')">⚡ Đặt Sân Tại Quầy</button>
       <button class="nav-btn" onclick="switchTab('service-orders')">🍵 Hàng Đợi Dịch Vụ</button>
+      <button class="nav-btn" onclick="switchTab('inventory')">📦 Quản Lý Tồn Kho</button>
       <button class="nav-btn" onclick="switchTab('refunds')">💸 Xử Lý Hoàn Tiền</button>
       <button class="nav-btn" onclick="switchTab('customers')">🧑‍🤝‍🧑 Khách Hàng</button>
 
@@ -1226,6 +1228,45 @@
           </table>
         </div>
       </section>
+
+      <!-- TAB INVENTORY: QUẢN LÝ TỒN KHO & BIẾN ĐỘNG (STAFF & ADMIN) -->
+      <section id="tab-inventory" class="tab-content">
+        <div class="section-header">
+          <div>
+            <h1 class="section-title">Quản Lý Tồn Kho & Kiểm Soát Giữ Chỗ</h1>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+              Theo dõi số lượng thực tế, số lượng đang giữ (Hold), khả dụng và ngưỡng cảnh báo an toàn.
+            </p>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <button class="btn btn-outline" onclick="loadInventory()">🔄 Làm Mới Kho</button>
+            <button class="btn btn-primary admin-only" onclick="moModalNhapKho()">📥 Nhập Kho (IMPORT)</button>
+            <button class="btn btn-outline admin-only" onclick="moModalDieuChinhKho()">⚖️ Điều Chỉnh Kho</button>
+            <button class="btn btn-outline admin-only" onclick="xemLichSuKho()">📜 Lịch Sử Biến Động</button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Tên Dịch Vụ</th>
+                <th>Phân Loại</th>
+                <th>Đơn Vị</th>
+                <th>Đơn Giá</th>
+                <th>Tổng Tồn</th>
+                <th>Đang Giữ</th>
+                <th>Khả Dụng</th>
+                <th>Ngưỡng</th>
+                <th>Trạng Thái</th>
+                <th class="admin-only">Thao Tác Quản Trị</th>
+              </tr>
+            </thead>
+            <tbody id="inventory-tbody"></tbody>
+          </table>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -1364,6 +1405,96 @@
           💾 Xác Nhận Chuyển Đổi Mục Đích Sử Dụng Sân
         </button>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: NHẬP KHO DỊCH VỤ -->
+  <div class="modal-overlay" id="modal-nhap-kho">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">📥 Nhập Thêm Hàng Vào Kho (IMPORT)</h3>
+        <button class="btn-close" onclick="closeModal('modal-nhap-kho')">&times;</button>
+      </div>
+      <form id="form-nhap-kho" onsubmit="xuLyNhapKho(event)">
+        <div class="form-group">
+          <label class="form-label">Chọn Dịch Vụ Cần Nhập</label>
+          <select id="nhap-kho-service-id" class="form-select" required></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Số Lượng Nhập (Số nguyên dương)</label>
+          <input type="number" id="nhap-kho-quantity" class="form-input" min="1" max="10000" placeholder="VD: 50" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ghi Chú Nhập Kho</label>
+          <input type="text" id="nhap-kho-note" class="form-input" placeholder="VD: Nhập lô hàng từ nhà cung cấp" />
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; margin-top: 10px;">
+          💾 Xác Nhận Nhập Kho
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ĐIỀU CHỈNH KHO (ADJUST_IN / ADJUST_OUT) -->
+  <div class="modal-overlay" id="modal-dieu-chinh-kho">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">⚖️ Điều Chỉnh Tồn Kho (Kiểm Kê / Hao Hụt)</h3>
+        <button class="btn-close" onclick="closeModal('modal-dieu-chinh-kho')">&times;</button>
+      </div>
+      <form id="form-dieu-chinh-kho" onsubmit="xuLyDieuChinhKho(event)">
+        <div class="form-group">
+          <label class="form-label">Chọn Dịch Vụ</label>
+          <select id="dc-kho-service-id" class="form-select" required></select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Loại Điều Chỉnh</label>
+            <select id="dc-kho-type" class="form-select" required>
+              <option value="ADJUST_IN">Tăng tồn kho (Dư thừa kiểm kê)</option>
+              <option value="ADJUST_OUT">Giảm tồn kho (Hư hỏng / Hao hụt)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Số Lượng Điều Chỉnh</label>
+            <input type="number" id="dc-kho-quantity" class="form-input" min="1" max="1000" placeholder="VD: 5" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Lý Do Điều Chỉnh (Bắt buộc tối thiểu 3 ký tự)</label>
+          <input type="text" id="dc-kho-reason" class="form-input" placeholder="VD: Bị vỡ trong quá trình vận chuyển" required minlength="3" />
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; margin-top: 10px;">
+          💾 Xác Nhận Điều Chỉnh Kho
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: LỊCH SỬ BIẾN ĐỘNG KHO (AUDIT LOG) -->
+  <div class="modal-overlay" id="modal-lich-su-kho">
+    <div class="modal-card modal-card-lg">
+      <div class="modal-header">
+        <h3 class="modal-title">📜 Nhật Ký Biến Động Kho (Audit Log)</h3>
+        <button class="btn-close" onclick="closeModal('modal-lich-su-kho')">&times;</button>
+      </div>
+      <div class="table-container" style="max-height: 500px; overflow-y: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Thời Gian</th>
+              <th>Dịch Vụ</th>
+              <th>Loại Biến Động</th>
+              <th>Số Lượng</th>
+              <th>Trước</th>
+              <th>Sau</th>
+              <th>Người Thực Hiện</th>
+              <th>Ghi Chú</th>
+            </tr>
+          </thead>
+          <tbody id="lich-su-kho-tbody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 

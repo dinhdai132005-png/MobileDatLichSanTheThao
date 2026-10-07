@@ -5,7 +5,7 @@
 import { Platform, NativeModules } from 'react-native';
 
 // IP mặc định của máy tính chạy Backend trên mạng WiFi nội bộ
-export const DEFAULT_DEV_HOST = '10.129.233.192';
+export const DEFAULT_DEV_HOST = '192.168.1.15';
 export const SERVER_PORT = 4000;
 
 function getDevHost(): string {

@@ -85,3 +85,21 @@ export const luocDoCapNhatDichVu = luocDoDichVu.partial();
 export const luocDoDoiTrangThaiDichVu = z.object({
   status: z.enum(['ACTIVE', 'OUT_OF_STOCK', 'INACTIVE']),
 });
+
+export const luocDoNhapKho = z.object({
+  serviceId: z.number().int().positive('Mã dịch vụ không hợp lệ'),
+  quantity: z.number().int().positive('Số lượng nhập phải là số nguyên dương'),
+  note: z.string().max(500).optional().nullable(),
+});
+
+export const luocDoDieuChinhKho = z.object({
+  serviceId: z.number().int().positive('Mã dịch vụ không hợp lệ'),
+  type: z.enum(['ADJUST_IN', 'ADJUST_OUT']),
+  quantity: z.number().int().positive('Số lượng điều chỉnh phải là số nguyên dương'),
+  reason: z.string().trim().min(3, 'Lý do điều chỉnh tối thiểu 3 ký tự').max(500),
+});
+
+export const luocDoNguongCanhBao = z.object({
+  threshold: z.number().int().nonnegative('Ngưỡng cảnh báo không được âm'),
+});
+

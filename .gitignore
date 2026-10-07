@@ -10,3 +10,15 @@ dist/
 # Tệp nội bộ - không đưa lên GitHub
 AGENTS.md
 .agents/
+
+# Visual Paradigm Local Cache & Credentials
+.vpprefdata/
+**/.vpprefdata/
+.lock
+**/.lock
+teamworkUser.xml
+**/teamworkUser.xml
+teamwork_client/
+**/teamwork_client/
+tmp/
+**/tmp/
