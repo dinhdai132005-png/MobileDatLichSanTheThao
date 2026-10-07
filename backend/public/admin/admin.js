@@ -695,9 +695,9 @@ async function loadServiceOrders() {
 
   try {
     const res = await apiFetch(url);
-    const orders = res.data || [];
+    const orders = Array.isArray(res.data) ? res.data : (res.data?.items || []);
     renderServiceOrdersTable(orders);
-    loadServiceAvailability();
+    await loadServiceAvailability();
   } catch (err) {
     showToast('Lỗi tải hàng đợi dịch vụ: ' + err.message, true);
   }
@@ -707,15 +707,17 @@ function renderServiceOrdersTable(orders) {
   const tbody = document.getElementById('service-orders-tbody');
   tbody.innerHTML = '';
 
-  if (orders.length === 0) {
+  const orderList = Array.isArray(orders) ? orders : (orders?.items || []);
+
+  if (orderList.length === 0) {
     tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding:20px;">Hiện không có yêu cầu dịch vụ nào</td></tr>';
     return;
   }
 
-  orders.forEach((so) => {
+  orderList.forEach((so) => {
     const tr = document.createElement('tr');
     const itemsText = (so.items || [])
-      .map((it) => `<div style="font-size:12.5px;">• <strong>${it.serviceName}</strong> × ${it.quantity} (${formatMoney(it.unitPrice)})</div>`)
+      .map((it) => `<div style="font-size:12.5px;">• <strong>${it.name || it.serviceName || 'Dịch vụ'}</strong> × ${it.quantity} (${formatMoney(it.unitPrice)})</div>`)
       .join('');
 
     const actions = so.status === 'REQUESTED'
@@ -725,11 +727,17 @@ function renderServiceOrdersTable(orders) {
          </div>`
       : `<span style="font-size:12px; color:var(--text-muted);">${so.status}</span>`;
 
+    const bookingId = so.booking?.id || so.bookingId;
+    const bookingCode = so.booking?.bookingCode || so.bookingCode || '—';
+    const courtName = so.booking?.courtName || so.courtName || '—';
+    const customerName = so.booking?.customerName || so.customerName || 'Khách';
+    const customerPhone = so.booking?.customerPhone || so.customerPhone || '';
+
     tr.innerHTML = `
       <td style="font-weight:700; font-family:var(--font-mono);">#${so.id}</td>
-      <td style="font-weight:600; color:var(--primary); cursor:pointer;" onclick="viewDetail(${so.bookingId})">${so.bookingCode}</td>
-      <td>${so.courtName}</td>
-      <td>${so.customerName || 'Khách'}<br><span style="font-size:11px; color:var(--text-muted);">${so.customerPhone || ''}</span></td>
+      <td style="font-weight:600; color:var(--primary); cursor:pointer;" onclick="viewDetail(${bookingId})">${bookingCode}</td>
+      <td>${courtName}</td>
+      <td>${customerName}<br><span style="font-size:11px; color:var(--text-muted);">${customerPhone}</span></td>
       <td>${itemsText}</td>
       <td style="font-style:italic; font-size:12px;">${so.note || '—'}</td>
       <td style="font-size:12px;">${formatDateTime(so.createdAt)}</td>
@@ -771,9 +779,14 @@ async function huyYeuCauDichVu(orderId) {
 async function loadServiceAvailability() {
   try {
     const res = await apiFetch('/services');
-    cachedServices = res.data || [];
+    cachedServices = Array.isArray(res.data) ? res.data : (res.data?.items || []);
     const tbody = document.getElementById('service-availability-tbody');
     tbody.innerHTML = '';
+
+    if (cachedServices.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">Không có dịch vụ nào</td></tr>';
+      return;
+    }
 
     cachedServices.forEach((sv) => {
       const tr = document.createElement('tr');
@@ -785,7 +798,7 @@ async function loadServiceAvailability() {
       tr.innerHTML = `
         <td style="font-family:var(--font-mono); font-weight:700;">${sv.id}</td>
         <td style="font-weight:600;">${sv.name}</td>
-        <td><span class="badge" style="background:rgba(59, 130, 246, 0.2); color:#60A5FA;">${sv.category}</span></td>
+        <td><span class="badge" style="background:rgba(59, 130, 246, 0.2); color:#60A5FA;">${sv.category || sv.type || 'Dịch vụ'}</span></td>
         <td style="font-weight:700;">${formatMoney(sv.price)} / ${sv.unit}</td>
         <td>${isAvailable ? '<span style="color:#10B981; font-weight:700;">● Còn hàng (ACTIVE)</span>' : '<span style="color:#F59E0B; font-weight:700;">● Tạm hết hàng (OUT_OF_STOCK)</span>'}</td>
         <td>${toggleBtn}</td>
