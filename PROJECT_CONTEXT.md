@@ -711,14 +711,16 @@ Hệ thống quản lý tồn kho chuyên sâu được chuẩn hóa tại bản
 - **Số lượng khả dụng thực tế:** `availableQuantity = so_luong - so_luong_dang_giu`.
 - **Bất biến toàn vẹn:** `so_luong_dang_giu <= so_luong` và `availableQuantity >= 0`.
 - **Cơ chế khóa dòng chống xung đột:** Mọi thao tác biến động kho chạy trong giao dịch dữ liệu ACID và sử dụng `SELECT ... FOR UPDATE` trên dòng tồn kho tương ứng.
-- **Cảnh báo tồn kho:**
-  - `availableQuantity <= 0` -> Trạng thái tính toán: `OUT_OF_STOCK`.
-  - `0 < availableQuantity <= nguong_canh_bao` -> Trạng thái tính toán: `LOW_STOCK`.
-  - `availableQuantity > nguong_canh_bao` -> Trạng thái tính toán: `IN_STOCK`.
+- **Cảnh báo và trạng thái tồn kho (Thứ tự ưu tiên theo BR Master Prompt):**
+  - `dich_vu.trang_thai = 'INACTIVE'` -> Trạng thái tính toán luôn là `INACTIVE` (Ngưng bán), có độ ưu tiên cao nhất, ghi đè toàn bộ số lượng vật lý còn trong kho. Hệ thống khóa toàn bộ nghiệp vụ nhập kho (`POST /admin/inventory/import`) hoặc điều chỉnh kho (`POST /admin/inventory/adjust`) với mã lỗi `422 SERVICE_INACTIVE`.
+  - Nếu `dich_vu.trang_thai = 'ACTIVE'`:
+    - `availableQuantity <= 0` -> Trạng thái tính toán: `OUT_OF_STOCK`.
+    - `0 < availableQuantity <= nguong_canh_bao` -> Trạng thái tính toán: `LOW_STOCK`.
+    - `availableQuantity > nguong_canh_bao` -> Trạng thái tính toán: `IN_STOCK`.
 - **Quyền hạn kho rõ ràng:**
   - `CUSTOMER`: Chỉ thấy cờ `isAvailable: boolean`, hoàn toàn không thấy số lượng tồn, ngưỡng cảnh báo hay lịch sử kho.
   - `STAFF`: Xem số lượng tồn phục vụ vận hành tại quầy (`GET /staff/inventory`), thực hiện giao hàng (DELIVER), nhận lại đồ thuê (RETURN). Tuyệt đối không được nhập kho (IMPORT) hay điều chỉnh kho (ADJUST).
-  - `ADMIN`: Toàn quyền nhập kho (`POST /admin/inventory/import`), điều chỉnh tăng/giảm (`POST /admin/inventory/adjust`), cập nhật ngưỡng (`PATCH /admin/inventory/:id/threshold`), và xem toàn bộ nhật ký biến động kho (`GET /admin/inventory/transactions`).
+  - `ADMIN`: Toàn quyền nhập kho (`POST /admin/inventory/import`), điều chỉnh tăng/giảm (`POST /admin/inventory/adjust`), cập nhật ngưỡng (`PATCH /admin/inventory/:id/threshold`), và xem toàn bộ nhật ký biến động kho (`GET /admin/inventory/transactions`). Các sản phẩm `INACTIVE` bị ẩn khỏi dropdown nhập kho và vô hiệu hóa nút thao tác.
 
 ---
 

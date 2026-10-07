@@ -22,7 +22,7 @@ export type TrangThaiDichVu = 'ACTIVE' | 'OUT_OF_STOCK' | 'INACTIVE';
 export type TrangThaiYeuCauDichVu = 'REQUESTED' | 'DELIVERED' | 'CANCELLED';
 
 export type LoaiBienDongKho = 'IMPORT' | 'ADJUST_IN' | 'ADJUST_OUT' | 'RESERVE' | 'RELEASE' | 'DELIVER' | 'RETURN';
-export type TrangThaiTonKho = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK';
+export type TrangThaiTonKho = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'INACTIVE';
 
 export type TrangThaiKhungGio = 'AVAILABLE' | 'BOOKED' | 'PAST' | 'MAINTENANCE' | 'NO_PRICE';
 

@@ -25,7 +25,7 @@ describe('Kiểm thử Đồng bộ Toàn Hệ Thống (Mobile Customer <-> Staf
   let staffId: number;
 
   const ngayDat = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10);
-  const ngayDatDebt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10);
+  const ngayDatDebt = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10);
 
   async function donDep() {
     const phones = [sdtCustomer, sdtStaff];
@@ -119,6 +119,7 @@ describe('Kiểm thử Đồng bộ Toàn Hệ Thống (Mobile Customer <-> Staf
 
   beforeAll(async () => {
     await donDep();
+    await csdl.execute('UPDATE ton_kho_dich_vu SET so_luong = 100, so_luong_dang_giu = 0 WHERE dich_vu_id IN (1, 2, 5)');
 
     // 1. Tạo tài khoản Khách hàng Mobile
     const resCustReg = await request(app).post('/api/v1/auth/register').send({
@@ -395,7 +396,7 @@ describe('Kiểm thử Đồng bộ Toàn Hệ Thống (Mobile Customer <-> Staf
         .post(`/api/v1/bookings/${debtBookingId}/service-orders`)
         .set('Authorization', `Bearer ${tokenCustomer}`)
         .send({
-          items: [{ serviceId: 2, quantity: 2 }], // 2 Redbull
+          items: [{ serviceId: 1, quantity: 2 }], // 2 Nước suối Aquafina
         });
       expect(resOrder.status).toBe(201);
       const orderId = resOrder.body.data.id;

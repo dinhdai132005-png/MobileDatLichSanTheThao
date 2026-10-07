@@ -12,8 +12,8 @@ describe('Kiểm thử Đơn đặt & Nghiệp vụ Nhân viên (TC-21 -> TC-27)
   let tokenKhach: string;
   let tokenStaff: string;
 
-  // Ngày mai (nằm trong dải 14 ngày của BR-03)
-  const ngayDat = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().substring(0, 10);
+  // Cách 2 ngày (luôn đảm bảo > 6 tiếng theo BR-09)
+  const ngayDat = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10);
   const courtId = 1;
 
   async function donDep() {

@@ -289,6 +289,33 @@ describe('Quản lý Tồn kho & Kiểm thử tranh chấp đồng thời (Inven
       const item = resInv.body.data.find((d: any) => d.id === testServiceId);
       expect(item.stockStatus).toBe('LOW_STOCK');
     });
+
+    it('Dịch vụ bị đổi sang INACTIVE (Ngưng bán) -> Tồn kho hiển thị stockStatus = INACTIVE và Chặn nhập kho 422', async () => {
+      // 1. Tạm chuyển dịch vụ sang INACTIVE
+      await csdl.execute("UPDATE dich_vu SET trang_thai = 'INACTIVE' WHERE id = ?", [testServiceId]);
+
+      // 2. Tra cứu tồn kho (Staff & Admin) -> stockStatus phải là INACTIVE
+      const resInv = await request(app)
+        .get('/api/v1/staff/inventory')
+        .set('Authorization', `Bearer ${tokenStaff}`);
+      const item = resInv.body.data.find((d: any) => d.id === testServiceId);
+      expect(item.stockStatus).toBe('INACTIVE');
+
+      // 3. Thử gọi API nhập kho -> Bị từ chối 422 SERVICE_INACTIVE
+      const resImport = await request(app)
+        .post('/api/v1/admin/inventory/import')
+        .set('Authorization', `Bearer ${tokenAdmin}`)
+        .send({
+          serviceId: testServiceId,
+          quantity: 10,
+          note: 'Thử nhập hàng cho dịch vụ ngưng bán',
+        });
+      expect(resImport.status).toBe(422);
+      expect(resImport.body.errorCode).toBe('SERVICE_INACTIVE');
+
+      // Khôi phục lại ACTIVE để các test phía sau tiếp tục chạy
+      await csdl.execute("UPDATE dich_vu SET trang_thai = 'ACTIVE' WHERE id = ?", [testServiceId]);
+    });
   });
 
   describe('3. Đặt dịch vụ & Giữ chỗ kho (RESERVE, RELEASE, DELIVER, RETURN)', () => {

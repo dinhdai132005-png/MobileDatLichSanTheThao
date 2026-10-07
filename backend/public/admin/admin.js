@@ -1873,7 +1873,9 @@ async function loadInventory() {
       const isAdmin = currentUser && currentUser.role === 'ADMIN';
 
       let statusBadge = '<span class="badge" style="background:rgba(16, 185, 129, 0.2); color:#34D399;">Đủ hàng</span>';
-      if (item.stockStatus === 'OUT_OF_STOCK') {
+      if (item.serviceStatus === 'INACTIVE' || item.stockStatus === 'INACTIVE') {
+        statusBadge = '<span class="badge" style="background:rgba(239, 68, 68, 0.2); color:#F87171; border:1px solid rgba(239, 68, 68, 0.4);">🚫 Ngưng bán</span>';
+      } else if (item.stockStatus === 'OUT_OF_STOCK') {
         statusBadge = '<span class="badge" style="background:rgba(239, 68, 68, 0.2); color:#F87171;">Hết hàng</span>';
       } else if (item.stockStatus === 'LOW_STOCK') {
         statusBadge = '<span class="badge" style="background:rgba(245, 158, 11, 0.2); color:#FBBF24;">Sắp hết</span>';
@@ -1891,8 +1893,12 @@ async function loadInventory() {
         <td style="font-family:var(--font-mono);">${item.threshold}</td>
         <td>${statusBadge}</td>
         <td class="admin-only" style="${isAdmin ? '' : 'display:none;'}">
-          <button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="moModalNhapKhoChon(${item.serviceId || item.id})">📥 Nhập</button>
-          <button class="btn btn-outline" style="padding:4px 8px; font-size:11px; margin-left:4px;" onclick="moModalDieuChinhKhoChon(${item.serviceId || item.id})">⚖️ Chỉnh</button>
+          ${(item.serviceStatus === 'INACTIVE' || item.stockStatus === 'INACTIVE') ? `
+            <span style="font-size:11px; color:#F87171; font-weight:600; font-style:italic;">(Ngưng bán)</span>
+          ` : `
+            <button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="moModalNhapKhoChon(${item.serviceId || item.id})">📥 Nhập</button>
+            <button class="btn btn-outline" style="padding:4px 8px; font-size:11px; margin-left:4px;" onclick="moModalDieuChinhKhoChon(${item.serviceId || item.id})">⚖️ Chỉnh</button>
+          `}
           <button class="btn btn-outline" style="padding:4px 8px; font-size:11px; margin-left:4px;" onclick="capNhatNguongKho(${item.serviceId || item.id}, ${item.threshold}, '${item.serviceName}')">⚙️ Ngưỡng</button>
           <button class="btn btn-outline" style="padding:4px 8px; font-size:11px; margin-left:4px;" onclick="xemLichSuKho(${item.serviceId || item.id})">📜 Log</button>
         </td>
@@ -1910,7 +1916,12 @@ function napOptionDichVu(selectId, defaultId = null) {
   const sel = document.getElementById(selectId);
   if (!sel) return;
   sel.innerHTML = '';
-  cachedInventory.forEach((item) => {
+  const activeItems = cachedInventory.filter((item) => item.serviceStatus !== 'INACTIVE' && item.stockStatus !== 'INACTIVE');
+  if (activeItems.length === 0) {
+    sel.innerHTML = '<option value="">-- Không có dịch vụ nào đang bán --</option>';
+    return;
+  }
+  activeItems.forEach((item) => {
     const opt = document.createElement('option');
     opt.value = item.serviceId || item.id;
     opt.textContent = `[#${item.serviceId || item.id}] ${item.serviceName} (Khả dụng: ${item.availableQuantity} ${item.unit})`;
@@ -1929,6 +1940,10 @@ function moModalNhapKho() {
 }
 
 function moModalNhapKhoChon(serviceId) {
+  const item = cachedInventory.find((i) => (i.serviceId || i.id) === serviceId);
+  if (item && (item.serviceStatus === 'INACTIVE' || item.stockStatus === 'INACTIVE')) {
+    return showToast(`Dịch vụ [${item.serviceName}] đang ở trạng thái Ngưng bán. Vui lòng mở bán lại trước khi nhập kho!`, true);
+  }
   napOptionDichVu('nhap-kho-service-id', serviceId);
   document.getElementById('nhap-kho-quantity').value = '';
   document.getElementById('nhap-kho-note').value = '';
@@ -1962,6 +1977,10 @@ function moModalDieuChinhKho() {
 }
 
 function moModalDieuChinhKhoChon(serviceId) {
+  const item = cachedInventory.find((i) => (i.serviceId || i.id) === serviceId);
+  if (item && (item.serviceStatus === 'INACTIVE' || item.stockStatus === 'INACTIVE')) {
+    return showToast(`Dịch vụ [${item.serviceName}] đang ở trạng thái Ngưng bán. Vui lòng mở bán lại trước khi điều chỉnh!`, true);
+  }
   napOptionDichVu('dc-kho-service-id', serviceId);
   document.getElementById('dc-kho-quantity').value = '';
   document.getElementById('dc-kho-reason').value = '';

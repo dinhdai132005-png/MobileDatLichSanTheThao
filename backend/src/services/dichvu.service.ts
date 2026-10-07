@@ -24,7 +24,7 @@ export interface DuLieuGoiDichVu {
 export interface TuyChonDanhSachTonKho {
   search?: string;
   type?: 'DRINK' | 'RENTAL' | 'PACKAGE';
-  stockStatus?: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK';
+  stockStatus?: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'INACTIVE';
 }
 
 export interface TuyChonLichSuBienDongKho {
@@ -155,8 +155,10 @@ export class DichVuService {
       const availableQuantity = Number(row.availableQuantity);
       const threshold = Number(row.threshold);
 
-      let stockStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' = 'IN_STOCK';
-      if (availableQuantity <= 0) {
+      let stockStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'INACTIVE' = 'IN_STOCK';
+      if (row.serviceStatus === 'INACTIVE') {
+        stockStatus = 'INACTIVE';
+      } else if (availableQuantity <= 0) {
         stockStatus = 'OUT_OF_STOCK';
       } else if (availableQuantity <= threshold) {
         stockStatus = 'LOW_STOCK';
@@ -276,6 +278,22 @@ export class DichVuService {
         throw LoiApi.khongTimThay('Không tìm thấy bản ghi tồn kho cho dịch vụ này');
       }
 
+      // Kiểm tra trạng thái dịch vụ (chặn nhập kho cho dịch vụ đã ngưng bán)
+      const [dvRows] = await ketNoi.execute<RowDataPacket[]>(
+        `SELECT id, ten, trang_thai FROM dich_vu WHERE id = ?`,
+        [duLieu.serviceId]
+      );
+      if (dvRows.length === 0) {
+        throw LoiApi.khongTimThay('Không tìm thấy dịch vụ');
+      }
+      if (dvRows[0].trang_thai === 'INACTIVE') {
+        throw new LoiApi(
+          422,
+          'SERVICE_INACTIVE',
+          `Dịch vụ [${dvRows[0].ten}] đã ngưng bán, không thể nhập thêm hàng vào kho`
+        );
+      }
+
       const tk = tkRows[0];
       const soLuongTruoc = Number(tk.so_luong);
       const soLuongSau = soLuongTruoc + duLieu.quantity;
@@ -338,6 +356,22 @@ export class DichVuService {
 
       if (tkRows.length === 0) {
         throw LoiApi.khongTimThay('Không tìm thấy bản ghi tồn kho cho dịch vụ này');
+      }
+
+      // Kiểm tra trạng thái dịch vụ (chặn điều chỉnh kho cho dịch vụ đã ngưng bán)
+      const [dvRows] = await ketNoi.execute<RowDataPacket[]>(
+        `SELECT id, ten, trang_thai FROM dich_vu WHERE id = ?`,
+        [duLieu.serviceId]
+      );
+      if (dvRows.length === 0) {
+        throw LoiApi.khongTimThay('Không tìm thấy dịch vụ');
+      }
+      if (dvRows[0].trang_thai === 'INACTIVE') {
+        throw new LoiApi(
+          422,
+          'SERVICE_INACTIVE',
+          `Dịch vụ [${dvRows[0].ten}] đã ngưng bán, không thể điều chỉnh tồn kho`
+        );
       }
 
       const tk = tkRows[0];
