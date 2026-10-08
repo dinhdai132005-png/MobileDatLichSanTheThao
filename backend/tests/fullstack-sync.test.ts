@@ -119,6 +119,7 @@ describe('Kiểm thử Đồng bộ Toàn Hệ Thống (Mobile Customer <-> Staf
 
   beforeAll(async () => {
     await donDep();
+    await csdl.execute("UPDATE dich_vu SET trang_thai = 'ACTIVE' WHERE id IN (1, 2, 5)");
     await csdl.execute('UPDATE ton_kho_dich_vu SET so_luong = 100, so_luong_dang_giu = 0 WHERE dich_vu_id IN (1, 2, 5)');
 
     // 1. Tạo tài khoản Khách hàng Mobile

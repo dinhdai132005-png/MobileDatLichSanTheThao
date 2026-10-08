@@ -149,6 +149,7 @@ describe('Luồng Tích Hợp End-to-End Vận Hành (E1 -> E5 - Plant/11)', () 
 
   beforeAll(async () => {
     await donDep();
+    await csdl.execute("UPDATE dich_vu SET trang_thai = 'ACTIVE' WHERE id IN (1, 2, 5)");
     await csdl.execute('UPDATE ton_kho_dich_vu SET so_luong = 100, so_luong_dang_giu = 0 WHERE dich_vu_id IN (1, 2, 5)');
 
     // 1. Tạo Khách E1

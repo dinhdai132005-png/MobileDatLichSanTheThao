@@ -1417,8 +1417,20 @@ async function doiTrangThaiNhanVien(id, status) {
 
 // ================= 16. TAB BÁO CÁO (ADMIN - ADM-07, BR-32, TC-58) =================
 async function loadReports() {
-  const from = document.getElementById('rep-from').value;
-  const to = document.getElementById('rep-to').value;
+  const fromEl = document.getElementById('rep-from');
+  const toEl = document.getElementById('rep-to');
+
+  if (fromEl && !fromEl.value) {
+    const today = new Date();
+    fromEl.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+  }
+  if (toEl && !toEl.value) {
+    const today = new Date();
+    toEl.value = today.toISOString().substring(0, 10);
+  }
+
+  const from = fromEl ? fromEl.value : '';
+  const to = toEl ? toEl.value : '';
 
   const params = new URLSearchParams();
   if (from) params.append('from', from);
@@ -1433,30 +1445,41 @@ async function loadReports() {
 
     const rev = revRes.data || {};
     const sum = summaryRes.data || {};
-    const services = servicesRes.data || [];
+    const services = Array.isArray(servicesRes.data)
+      ? servicesRes.data
+      : (servicesRes.data?.topServices || servicesRes.data?.items || []);
 
-    document.getElementById('rep-court-rev').textContent = formatMoney(rev.courtRevenue || 0);
-    document.getElementById('rep-service-rev').textContent = formatMoney(rev.serviceRevenue || 0);
-    document.getElementById('rep-refund-rev').textContent = formatMoney(rev.refundAmount || 0);
-    document.getElementById('rep-net-rev').textContent = formatMoney(rev.netRevenue || (Number(rev.courtRevenue || 0) + Number(rev.serviceRevenue || 0) - Number(rev.refundAmount || 0)));
-    document.getElementById('rep-occupancy').textContent = `${sum.occupancyRate ?? 0}%`;
-    document.getElementById('rep-debt-closed').textContent = sum.debtClosedBookings ?? 0;
+    const courtRev = Number(rev.courtRevenue ?? sum.revenue?.court ?? 0);
+    const serviceRev = Number(rev.serviceRevenue ?? sum.revenue?.service ?? 0);
+    const refundRev = Number(rev.refundAmount ?? 0);
+    const netRev = Number(rev.totalRevenue ?? sum.revenue?.total ?? (courtRev + serviceRev - refundRev));
+
+    document.getElementById('rep-court-rev').textContent = formatMoney(courtRev);
+    document.getElementById('rep-service-rev').textContent = formatMoney(serviceRev);
+    document.getElementById('rep-refund-rev').textContent = formatMoney(refundRev);
+    document.getElementById('rep-net-rev').textContent = formatMoney(netRev);
+    document.getElementById('rep-occupancy').textContent = `${sum.occupancyRate ?? sum.tyLeLapDay ?? 0}%`;
+    document.getElementById('rep-debt-closed').textContent = sum.debtClosed?.count ?? sum.debtClosedBookings ?? 0;
 
     // Chi tiết theo ngày
     const tbody = document.getElementById('rep-tbody');
     tbody.innerHTML = '';
-    const daily = rev.daily || [];
+    const daily = Array.isArray(rev.items) ? rev.items : (Array.isArray(rev.daily) ? rev.daily : []);
     if (daily.length === 0) {
       tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:20px;">Không có dữ liệu trong kỳ báo cáo</td></tr>';
     } else {
       daily.forEach((d) => {
         const tr = document.createElement('tr');
+        const cRev = d.court?.revenue ?? d.courtRevenue ?? 0;
+        const sRev = d.service?.revenue ?? d.serviceRevenue ?? 0;
+        const refAmt = (d.court?.refunded || 0) + (d.service?.refunded || 0) || (d.refundAmount || 0);
+        const net = d.revenue ?? d.netRevenue ?? (cRev + sRev - refAmt);
         tr.innerHTML = `
           <td style="font-weight:700;">${formatDate(d.date)}</td>
-          <td>${formatMoney(d.courtRevenue)}</td>
-          <td>${formatMoney(d.serviceRevenue)}</td>
-          <td style="color:var(--danger);">${formatMoney(d.refundAmount)}</td>
-          <td style="font-weight:800; color:#34D399;">${formatMoney(d.netRevenue)}</td>
+          <td>${formatMoney(cRev)}</td>
+          <td>${formatMoney(sRev)}</td>
+          <td style="color:var(--danger);">${formatMoney(refAmt)}</td>
+          <td style="font-weight:800; color:#34D399;">${formatMoney(net)}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -1471,11 +1494,11 @@ async function loadReports() {
       services.forEach((s) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td style="font-family:var(--font-mono); font-weight:700;">#${s.serviceId}</td>
-          <td style="font-weight:700;">${s.serviceName}</td>
-          <td><span class="badge" style="background:rgba(59, 130, 246, 0.2); color:#60A5FA;">${s.category}</span></td>
-          <td style="font-weight:800;">${s.totalQuantity} ${s.unit || ''}</td>
-          <td style="font-weight:800; color:var(--info);">${formatMoney(s.totalRevenue)}</td>
+          <td style="font-family:var(--font-mono); font-weight:700;">#${s.serviceId || s.id}</td>
+          <td style="font-weight:700;">${s.name || s.serviceName}</td>
+          <td><span class="badge" style="background:rgba(59, 130, 246, 0.2); color:#60A5FA;">${s.type || s.category || 'Dịch vụ'}</span></td>
+          <td style="font-weight:800;">${s.qty ?? s.totalQuantity ?? 0} ${s.unit || ''}</td>
+          <td style="font-weight:800; color:var(--info);">${formatMoney(s.amount ?? s.totalRevenue ?? 0)}</td>
         `;
         tbodySv.appendChild(tr);
       });
