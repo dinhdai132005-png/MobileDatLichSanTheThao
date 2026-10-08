@@ -256,6 +256,19 @@ export default function DangNhapScreen() {
                     <Text style={styles.chuNhanChon}>Điền ngay</Text>
                   </View>
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.nutChonMau, { marginTop: 8 }]}
+                  onPress={() => chonTaiKhoanMau('0909000001', 'password123')}
+                >
+                  <View>
+                    <Text style={styles.tenMau}>Nhân Viên (Staff)</Text>
+                    <Text style={styles.chiTietMau}>SĐT: 0909000001 • MK: password123</Text>
+                  </View>
+                  <View style={styles.nhanChonMau}>
+                    <Text style={styles.chuNhanChon}>Điền ngay</Text>
+                  </View>
+                </TouchableOpacity>
               </View>
             )}
           </View>
