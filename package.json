@@ -7,6 +7,9 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "type-check": "tsc --noEmit",
+    "dev": "npm --prefix backend run dev",
+    "server": "npm --prefix backend run dev",
+    "db:reset": "npm --prefix backend run db:reset",
     "test": "npm --prefix backend test",
     "test:fullstack": "npm --prefix backend run test:fullstack"
   },
