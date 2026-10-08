@@ -63,6 +63,7 @@ export type PhuongThucThanhToan = 'tienMat' | 'momo' | 'chuyenKhoan';
 export interface DonDat {
   id: string;
   maDonDat?: string;
+  maDon?: string;
   sanId?: string;
   tenSan: string;
   monTheThao: string;

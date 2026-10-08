@@ -38,9 +38,12 @@ export function mapBackendDonDatToMobile(dongRaw: any): DonDat {
     ? Number(dongRaw.grandTotal)
     : (courtAmount + serviceAmount > 0 ? courtAmount + serviceAmount : Number(dongRaw.tongTien ?? 80000));
 
+  const maDon = String(dongRaw.maDonDat || dongRaw.bookingCode || dongRaw.id || '');
+
   return {
-    id: String(dongRaw.id || dongRaw.maDonDat || dongRaw.bookingCode),
-    maDonDat: String(dongRaw.maDonDat || dongRaw.bookingCode || dongRaw.id),
+    id: String(dongRaw.id || maDon),
+    maDonDat: maDon,
+    maDon: maDon,
     sanId: String(dongRaw.sanId || dongRaw.courtId || 1),
     tenSan: dongRaw.tenSan || dongRaw.courtName || 'Sân Thể Thao',
     monTheThao: dongRaw.tenLoaiSan || dongRaw.courtTypeName || dongRaw.monTheThao || 'Thể Thao',
@@ -79,8 +82,8 @@ export function mapBackendDonDatToMobile(dongRaw: any): DonDat {
           soTaiKhoan: dongRaw.thongTinThanhToan.soTaiKhoan || dongRaw.thongTinThanhToan.accountNo || '0123456789',
           tenChuTaiKhoan: dongRaw.thongTinThanhToan.tenChuTaiKhoan || dongRaw.thongTinThanhToan.accountName || 'SAN THE THAO 247',
           soTien: Number(dongRaw.thongTinThanhToan.soTien ?? dongRaw.thongTinThanhToan.amount ?? grandTotal),
-          noiDungChuyenKhoan: dongRaw.thongTinThanhToan.noiDungChuyenKhoan || dongRaw.thongTinThanhToan.transferContent || maDonDat,
-          qrUrl: dongRaw.thongTinThanhToan.qrUrl || `https://img.vietqr.io/image/${dongRaw.thongTinThanhToan.bankName || 'Vietcombank'}-${dongRaw.thongTinThanhToan.accountNo || '0123456789'}-compact2.png?amount=${dongRaw.thongTinThanhToan.amount || grandTotal}&addInfo=${encodeURIComponent(dongRaw.thongTinThanhToan.transferContent || maDonDat)}`,
+          noiDungChuyenKhoan: dongRaw.thongTinThanhToan.noiDungChuyenKhoan || dongRaw.thongTinThanhToan.transferContent || maDon,
+          qrUrl: dongRaw.thongTinThanhToan.qrUrl || `https://img.vietqr.io/image/${dongRaw.thongTinThanhToan.bankName || 'Vietcombank'}-${dongRaw.thongTinThanhToan.accountNo || '0123456789'}-compact2.png?amount=${dongRaw.thongTinThanhToan.amount || grandTotal}&addInfo=${encodeURIComponent(dongRaw.thongTinThanhToan.transferContent || maDon)}`,
         }
       : dongRaw.paymentInfo
       ? {
@@ -88,8 +91,8 @@ export function mapBackendDonDatToMobile(dongRaw: any): DonDat {
           soTaiKhoan: dongRaw.paymentInfo.accountNo || '0123456789',
           tenChuTaiKhoan: dongRaw.paymentInfo.accountName || 'SAN THE THAO 247',
           soTien: Number(dongRaw.paymentInfo.amount ?? grandTotal),
-          noiDungChuyenKhoan: dongRaw.paymentInfo.transferContent || maDonDat,
-          qrUrl: dongRaw.paymentInfo.qrUrl || `https://img.vietqr.io/image/${dongRaw.paymentInfo.bankName || 'Vietcombank'}-${dongRaw.paymentInfo.accountNo || '0123456789'}-compact2.png?amount=${dongRaw.paymentInfo.amount || grandTotal}&addInfo=${encodeURIComponent(dongRaw.paymentInfo.transferContent || maDonDat)}`,
+          noiDungChuyenKhoan: dongRaw.paymentInfo.transferContent || maDon,
+          qrUrl: dongRaw.paymentInfo.qrUrl || `https://img.vietqr.io/image/${dongRaw.paymentInfo.bankName || 'Vietcombank'}-${dongRaw.paymentInfo.accountNo || '0123456789'}-compact2.png?amount=${dongRaw.paymentInfo.amount || grandTotal}&addInfo=${encodeURIComponent(dongRaw.paymentInfo.transferContent || maDon)}`,
         }
       : null,
     danhSachKhungGio: dongRaw.danhSachKhungGio || dongRaw.slots || [],
