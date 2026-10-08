@@ -49,3 +49,8 @@ export const SERVER_BASE_URL = `http://${SERVER_HOST}:${SERVER_PORT}`;
 
 // URL tiền tố cho các REST APIs (Chuẩn Plant/06-api.md)
 export const API_BASE_URL = `${SERVER_BASE_URL}/api/v1`;
+
+export function getApiBaseUrl(): string {
+  const host = getDevHost();
+  return `http://${host}:${SERVER_PORT}/api/v1`;
+}

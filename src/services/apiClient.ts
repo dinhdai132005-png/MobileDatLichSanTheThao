@@ -3,7 +3,7 @@
 // Tính năng: Quản lý JWT Token, Interceptors, Xử lý Response chuẩn hóa
 // ============================================================
 import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
-import { API_BASE_URL } from './config';
+import { API_BASE_URL, getApiBaseUrl } from './config';
 
 export { API_BASE_URL };
 
@@ -31,9 +31,10 @@ export const setAuthToken = (token: string | null) => {
 
 export const getAuthToken = () => authToken;
 
-// --- 1. REQUEST INTERCEPTOR: Tự động gắn JWT Token ---
+// --- 1. REQUEST INTERCEPTOR: Tự động gắn JWT Token & Cập nhật BaseURL động ---
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    config.baseURL = getApiBaseUrl();
     if (authToken && config.headers) {
       config.headers.Authorization = `Bearer ${authToken}`;
     }
