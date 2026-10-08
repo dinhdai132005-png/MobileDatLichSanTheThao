@@ -6,7 +6,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NguoiDung } from '../types';
 import { authService } from '../services/authService';
-import { setAuthToken } from '../services/apiClient';
+import { setAuthToken, setOnUnauthorizedCallback } from '../services/apiClient';
 
 const TOKEN_STORAGE_KEY = 'sport_mobile_jwt_token';
 const USER_STORAGE_KEY = 'sport_mobile_user_info';
@@ -28,7 +28,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoadingSession, setIsLoadingSession] = useState<boolean>(true);
   const [currentUser, setCurrentUser] = useState<NguoiDung | null>(null);
 
-  // Khôi phục phiên làm việc khi mở ứng dụng
+  const dangXuat = () => {
+    setAuthToken(null);
+    authService.dangXuat();
+    AsyncStorage.multiRemove([TOKEN_STORAGE_KEY, USER_STORAGE_KEY]).catch(() => {});
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+  };
+
+  // Tự động xử lý khi nhận mã lỗi 401 từ bất kỳ API nào
+  useEffect(() => {
+    setOnUnauthorizedCallback(() => {
+      console.log('🔒 [Auth] Phiên làm việc hết hạn hoặc không hợp lệ -> Tự động đăng xuất');
+      dangXuat();
+    });
+    return () => setOnUnauthorizedCallback(null);
+  }, []);
+
+  // Khôi phục phiên làm việc khi mở ứng dụng & xác minh tính hợp lệ với máy chủ
   useEffect(() => {
     async function restoreSession() {
       try {
@@ -39,10 +56,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         if (savedToken && savedUserStr) {
           setAuthToken(savedToken);
-          const parsedUser = JSON.parse(savedUserStr);
-          setCurrentUser(parsedUser);
-          setIsAuthenticated(true);
-          console.log('🔑 [Auth] Khôi phục phiên làm việc thành công cho:', parsedUser.hoTen);
+          try {
+            const freshUser = await authService.getThongTinNguoiDung();
+            setCurrentUser(freshUser);
+            setIsAuthenticated(true);
+            console.log('🔑 [Auth] Khôi phục phiên làm việc thành công cho:', freshUser.hoTen);
+          } catch (err: any) {
+            console.log('⚠️ [Auth] Phiên làm việc đã hết hạn trên máy chủ, làm mới trạng thái');
+            dangXuat();
+          }
         }
       } catch (err) {
         console.log('⚠️ [Auth] Không thể khôi phục phiên:', err);
@@ -71,14 +93,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsAuthenticated(true);
     setCurrentUser(ketQua.nguoiDung);
     return ketQua.nguoiDung;
-  };
-
-  const dangXuat = () => {
-    authService.dangXuat();
-    AsyncStorage.removeItem(TOKEN_STORAGE_KEY).catch(() => {});
-    AsyncStorage.removeItem(USER_STORAGE_KEY).catch(() => {});
-    setIsAuthenticated(false);
-    setCurrentUser(null);
   };
 
   const capNhatNguoiDung = (nguoiDung: NguoiDung) => {

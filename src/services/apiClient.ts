@@ -24,12 +24,17 @@ export const apiClient: AxiosInstance = axios.create({
 });
 
 let authToken: string | null = null;
+let onUnauthorizedCallback: (() => void) | null = null;
 
 export const setAuthToken = (token: string | null) => {
   authToken = token;
 };
 
 export const getAuthToken = () => authToken;
+
+export const setOnUnauthorizedCallback = (callback: (() => void) | null) => {
+  onUnauthorizedCallback = callback;
+};
 
 // --- 1. REQUEST INTERCEPTOR: Tự động gắn JWT Token & Cập nhật BaseURL động ---
 apiClient.interceptors.request.use(
@@ -54,6 +59,11 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
+    if (error.response?.status === 401) {
+      if (onUnauthorizedCallback) {
+        onUnauthorizedCallback();
+      }
+    }
     const errorMsg =
       error.response?.data?.message ||
       error.message ||
