@@ -179,14 +179,24 @@ export class NhanVienService {
     const courts = sanRows.map((san: any) => {
       const slots = timeSlots.map((kg: any) => {
         const key = `${san.id}_${kg.id}`;
+        const b = slotMap.get(key);
         return {
           timeSlotId: kg.id,
-          booking: slotMap.get(key) || null,
+          status: b ? 'BOOKED' : 'AVAILABLE',
+          bookingId: b ? b.id : null,
+          bookingCode: b ? b.bookingCode : null,
+          customerName: b ? b.customerName : null,
+          customerPhone: b ? b.customerPhone : null,
+          bookingStatus: b ? b.status : null,
+          paymentStatus: b ? b.paymentStatus : null,
+          booking: b || null,
         };
       });
 
       return {
+        id: san.id,
         courtId: san.id,
+        name: san.court_name,
         courtName: san.court_name,
         courtTypeName: san.court_type_name,
         status: san.status,
@@ -378,6 +388,9 @@ export class NhanVienService {
     const items = rows.map((r: any) => ({
       id: r.id,
       bookingCode: r.booking_code,
+      courtId: r.court_id,
+      courtName: r.court_name,
+      courtTypeName: r.court_type_name,
       court: {
         id: r.court_id,
         name: r.court_name,
@@ -397,6 +410,8 @@ export class NhanVienService {
       note: r.note,
       createdAt: r.created_at,
       closedWithDebt: Boolean(r.closed_with_debt),
+      customerName: r.customer_name,
+      customerPhone: r.customer_phone,
       customer: {
         id: r.customer_id,
         name: r.customer_name,

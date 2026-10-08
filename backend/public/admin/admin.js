@@ -298,10 +298,13 @@ async function loadDashboard() {
 
     list.forEach((b) => {
       const tr = document.createElement('tr');
+      const custName = b.customerName || b.customer?.name || 'Khách vãng lai';
+      const custPhone = b.customerPhone || b.customer?.phone || '';
+      const cName = b.courtName || b.court?.name || '';
       tr.innerHTML = `
         <td style="font-weight:700; color:var(--primary); font-family:var(--font-mono);">${b.bookingCode}</td>
-        <td>${b.customerName || 'Khách vãng lai'} <span style="font-size:12px; color:var(--text-muted);">(${b.customerPhone || ''})</span></td>
-        <td>${b.courtName}</td>
+        <td>${custName} <span style="font-size:12px; color:var(--text-muted);">(${custPhone})</span></td>
+        <td>${cName}</td>
         <td>${(b.startTime || '').substring(0, 5)} - ${(b.endTime || '').substring(0, 5)}</td>
         <td style="font-weight:700;">${formatMoney(b.grandTotal || b.courtAmount)}</td>
         <td>${renderStatusBadge(b.status)}</td>
@@ -365,7 +368,9 @@ function renderScheduleGrid(data) {
   courts.forEach((c) => {
     const statusTag = c.status === 'MAINTENANCE' ? ' <span style="font-size:10px; color:#EF4444;">(Bảo trì)</span>' : '';
     const capTag = c.capacity ? ` · Sức chứa ${c.capacity} người` : '';
-    headerHtml += `<th>${c.name}${statusTag}<br><span style="font-size:11px; font-weight:normal; color:var(--text-muted);">${c.courtTypeName}${capTag}</span></th>`;
+    const cName = c.name || c.courtName || '';
+    const cTypeName = c.courtTypeName || '';
+    headerHtml += `<th>${cName}${statusTag}<br><span style="font-size:11px; font-weight:normal; color:var(--text-muted);">${cTypeName}${capTag}</span></th>`;
   });
   headerHtml += '</tr>';
   thead.innerHTML = headerHtml;
@@ -382,14 +387,17 @@ function renderScheduleGrid(data) {
       let bgStyle = '';
       let content = '';
 
-      if (cell.status === 'BOOKED') {
-        const isPending = cell.bookingStatus === 'PENDING';
+      const isBooked = cell.status === 'BOOKED' || Boolean(cell.booking) || Boolean(cell.bookingId);
+
+      if (isBooked) {
+        const b = cell.booking || cell;
+        const isPending = (cell.bookingStatus || b.status) === 'PENDING';
         bgStyle = isPending
           ? 'background: rgba(245, 158, 11, 0.15); border-left: 3px solid var(--warning); cursor: pointer;'
           : 'background: rgba(16, 185, 129, 0.15); border-left: 3px solid var(--primary); cursor: pointer;';
         content = `
-          <div style="font-weight:700; font-size:11.5px; color:${isPending ? '#FBBF24' : '#34D399'}; font-family:var(--font-mono);">${cell.bookingCode || 'ĐÃ ĐẶT'}</div>
-          <div style="font-size:11px; color:var(--text-muted);">${cell.customerName || ''}</div>
+          <div style="font-weight:700; font-size:11.5px; color:${isPending ? '#FBBF24' : '#34D399'}; font-family:var(--font-mono);">${cell.bookingCode || b.bookingCode || 'ĐÃ ĐẶT'}</div>
+          <div style="font-size:11px; color:var(--text-muted);">${cell.customerName || b.customerName || ''}</div>
         `;
       } else if (cell.status === 'MAINTENANCE' || c.status === 'MAINTENANCE') {
         bgStyle = 'background: rgba(107, 114, 128, 0.15); color:#64748B;';
@@ -402,10 +410,11 @@ function renderScheduleGrid(data) {
         content = `<span style="font-size:11px; font-weight:600;">${formatMoney(cell.price)}</span>`;
       }
 
-      const clickAttr = cell.bookingId
-        ? `onclick="viewDetail(${cell.bookingId})"`
+      const bookingId = cell.bookingId || cell.booking?.id;
+      const clickAttr = bookingId
+        ? `onclick="viewDetail(${bookingId})"`
         : cell.status === 'AVAILABLE'
-        ? `onclick="quickBookWalkin(${c.id}, '${scheduleDate}', ${slot.id})"`
+        ? `onclick="quickBookWalkin(${c.id || c.courtId}, '${scheduleDate}', ${slot.id})"`
         : '';
 
       rowHtml += `<td style="${bgStyle} height:52px; vertical-align:middle; text-align:center;" ${clickAttr}>${content}</td>`;
@@ -472,11 +481,15 @@ function renderBookingsTable(items) {
   }
 
   items.forEach((b) => {
+    const custName = b.customerName || b.customer?.name || 'Khách vãng lai';
+    const custPhone = b.customerPhone || b.customer?.phone || '';
+    const cName = b.courtName || b.court?.name || '';
+    const cTypeName = b.courtTypeName || b.court?.courtTypeName || '';
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td style="font-weight:700; color:var(--primary); font-family:var(--font-mono);">${b.bookingCode}</td>
-      <td>${b.customerName || 'Khách vãng lai'}<br><span style="font-size:12px; color:var(--text-muted);">${b.customerPhone || ''}</span></td>
-      <td>${b.courtName}<br><span style="font-size:11px; color:var(--text-muted);">${b.courtTypeName}</span></td>
+      <td>${custName}<br><span style="font-size:12px; color:var(--text-muted);">${custPhone}</span></td>
+      <td>${cName}<br><span style="font-size:11px; color:var(--text-muted);">${cTypeName}</span></td>
       <td>${formatDate(b.bookingDate)}<br><span style="font-size:12px; font-weight:600;">${(b.startTime || '').substring(0, 5)} - ${(b.endTime || '').substring(0, 5)}</span></td>
       <td style="font-weight:600;">${formatMoney(b.courtAmount)}</td>
       <td style="color:${b.serviceAmount > 0 ? 'var(--info)' : 'var(--text-muted)'}; font-weight:600;">${formatMoney(b.serviceAmount)}</td>
@@ -1953,15 +1966,16 @@ async function loadInitialData() {
   await loadDashboard();
   loadWalkinData();
 
-  // Đặt bộ tự làm mới định kỳ mỗi 30 giây (R4: POLL_INTERVAL_MS = 30000)
+  // Đặt bộ tự làm mới định kỳ mỗi 10 giây (R4: POLL_INTERVAL_MS = 10000)
   if (autoRefreshTimer) clearInterval(autoRefreshTimer);
   autoRefreshTimer = setInterval(() => {
     if (currentTab === 'dashboard') loadDashboard();
     else if (currentTab === 'schedule') loadSchedule();
+    else if (currentTab === 'bookings') loadBookings();
     else if (currentTab === 'service-orders') loadServiceOrders();
     else if (currentTab === 'inventory') loadInventory();
     else if (currentTab === 'refunds') loadRefunds();
-  }, 30000);
+  }, 10000);
 }
 
 // ================= 17. TAB QUẢN LÝ TỒN KHO & BIẾN ĐỘNG (STAFF & ADMIN) =================

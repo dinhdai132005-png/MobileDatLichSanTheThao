@@ -149,8 +149,11 @@ export default function ChiTietDonDatScreen({ route, navigation }: ChiTietDonDat
     }
   };
 
-  const formatTien = (soTien: number) => {
-    return soTien.toLocaleString('vi-VN') + ' ₫';
+  const formatTien = (soTien?: number | null) => {
+    if (soTien === undefined || soTien === null || isNaN(Number(soTien))) {
+      return '0 ₫';
+    }
+    return Number(soTien).toLocaleString('vi-VN') + ' ₫';
   };
 
   if (dangTai && !donDat) {
@@ -357,7 +360,11 @@ export default function ChiTietDonDatScreen({ route, navigation }: ChiTietDonDat
 
             <View style={styles.khungAnhQR}>
               <Image
-                source={{ uri: donDat.thongTinThanhToan.qrUrl }}
+                source={{
+                  uri:
+                    donDat.thongTinThanhToan.qrUrl ||
+                    `https://img.vietqr.io/image/${donDat.thongTinThanhToan.tenNganHang || (donDat.thongTinThanhToan as any).bankName || 'Vietcombank'}-${donDat.thongTinThanhToan.soTaiKhoan || (donDat.thongTinThanhToan as any).accountNo || '0123456789'}-compact2.png?amount=${donDat.thongTinThanhToan.soTien ?? (donDat.thongTinThanhToan as any).amount ?? donDat.tongTien}&addInfo=${encodeURIComponent(donDat.thongTinThanhToan.noiDungChuyenKhoan || (donDat.thongTinThanhToan as any).transferContent || donDat.maDon)}`,
+                }}
                 style={styles.anhQR}
                 resizeMode="contain"
               />
@@ -366,28 +373,32 @@ export default function ChiTietDonDatScreen({ route, navigation }: ChiTietDonDat
             <View style={styles.bangNganHang}>
               <View style={styles.dongNganHang}>
                 <Text style={styles.nhanNH}>Ngân hàng:</Text>
-                <Text style={styles.giaTriNH}>{donDat.thongTinThanhToan.tenNganHang}</Text>
+                <Text style={styles.giaTriNH}>
+                  {donDat.thongTinThanhToan.tenNganHang || (donDat.thongTinThanhToan as any).bankName || 'Vietcombank'}
+                </Text>
               </View>
               <View style={styles.dongNganHang}>
                 <Text style={styles.nhanNH}>Số tài khoản:</Text>
                 <Text style={[styles.giaTriNH, { color: MAU_SAC.chinh, fontWeight: '700' }]}>
-                  {donDat.thongTinThanhToan.soTaiKhoan}
+                  {donDat.thongTinThanhToan.soTaiKhoan || (donDat.thongTinThanhToan as any).accountNo || '0123456789'}
                 </Text>
               </View>
               <View style={styles.dongNganHang}>
                 <Text style={styles.nhanNH}>Chủ tài khoản:</Text>
-                <Text style={styles.giaTriNH}>{donDat.thongTinThanhToan.tenChuTaiKhoan}</Text>
+                <Text style={styles.giaTriNH}>
+                  {donDat.thongTinThanhToan.tenChuTaiKhoan || (donDat.thongTinThanhToan as any).accountName || 'SAN THE THAO 247'}
+                </Text>
               </View>
               <View style={styles.dongNganHang}>
                 <Text style={styles.nhanNH}>Số tiền:</Text>
                 <Text style={[styles.giaTriNH, { color: MAU_SAC.chinh, fontWeight: '700' }]}>
-                  {formatTien(donDat.thongTinThanhToan.soTien)}
+                  {formatTien(donDat.thongTinThanhToan.soTien ?? (donDat.thongTinThanhToan as any).amount ?? donDat.tongTien)}
                 </Text>
               </View>
               <View style={styles.dongNganHang}>
                 <Text style={styles.nhanNH}>Nội dung CK:</Text>
                 <Text style={[styles.giaTriNH, { color: '#DC2626', fontWeight: '800' }]}>
-                  {donDat.thongTinThanhToan.noiDungChuyenKhoan}
+                  {donDat.thongTinThanhToan.noiDungChuyenKhoan || (donDat.thongTinThanhToan as any).transferContent || donDat.maDon}
                 </Text>
               </View>
             </View>

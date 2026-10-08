@@ -73,7 +73,25 @@ export function mapBackendDonDatToMobile(dongRaw: any): DonDat {
     expiresAt: dongRaw.thoiGianHetHan || dongRaw.expiresAt,
     coTheHuy: Boolean(dongRaw.coTheHuy ?? dongRaw.canCancel),
     daDanhGia: Boolean(dongRaw.daDanhGia ?? dongRaw.isReviewed),
-    thongTinThanhToan: dongRaw.thongTinThanhToan || dongRaw.paymentInfo || null,
+    thongTinThanhToan: dongRaw.thongTinThanhToan
+      ? {
+          tenNganHang: dongRaw.thongTinThanhToan.tenNganHang || dongRaw.thongTinThanhToan.bankName || 'Vietcombank',
+          soTaiKhoan: dongRaw.thongTinThanhToan.soTaiKhoan || dongRaw.thongTinThanhToan.accountNo || '0123456789',
+          tenChuTaiKhoan: dongRaw.thongTinThanhToan.tenChuTaiKhoan || dongRaw.thongTinThanhToan.accountName || 'SAN THE THAO 247',
+          soTien: Number(dongRaw.thongTinThanhToan.soTien ?? dongRaw.thongTinThanhToan.amount ?? grandTotal),
+          noiDungChuyenKhoan: dongRaw.thongTinThanhToan.noiDungChuyenKhoan || dongRaw.thongTinThanhToan.transferContent || maDonDat,
+          qrUrl: dongRaw.thongTinThanhToan.qrUrl || `https://img.vietqr.io/image/${dongRaw.thongTinThanhToan.bankName || 'Vietcombank'}-${dongRaw.thongTinThanhToan.accountNo || '0123456789'}-compact2.png?amount=${dongRaw.thongTinThanhToan.amount || grandTotal}&addInfo=${encodeURIComponent(dongRaw.thongTinThanhToan.transferContent || maDonDat)}`,
+        }
+      : dongRaw.paymentInfo
+      ? {
+          tenNganHang: dongRaw.paymentInfo.bankName || 'Vietcombank',
+          soTaiKhoan: dongRaw.paymentInfo.accountNo || '0123456789',
+          tenChuTaiKhoan: dongRaw.paymentInfo.accountName || 'SAN THE THAO 247',
+          soTien: Number(dongRaw.paymentInfo.amount ?? grandTotal),
+          noiDungChuyenKhoan: dongRaw.paymentInfo.transferContent || maDonDat,
+          qrUrl: dongRaw.paymentInfo.qrUrl || `https://img.vietqr.io/image/${dongRaw.paymentInfo.bankName || 'Vietcombank'}-${dongRaw.paymentInfo.accountNo || '0123456789'}-compact2.png?amount=${dongRaw.paymentInfo.amount || grandTotal}&addInfo=${encodeURIComponent(dongRaw.paymentInfo.transferContent || maDonDat)}`,
+        }
+      : null,
     danhSachKhungGio: dongRaw.danhSachKhungGio || dongRaw.slots || [],
   };
 }
