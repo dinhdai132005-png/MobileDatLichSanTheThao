@@ -3,15 +3,29 @@
 // Tự động nhận diện IP máy tính qua scriptURL khi test trên điện thoại thật
 // ============================================================
 import { Platform, NativeModules } from 'react-native';
+import Constants from 'expo-constants';
 
 // IP mặc định của máy tính chạy Backend trên mạng WiFi nội bộ
-export const DEFAULT_DEV_HOST = '192.168.1.15';
+export const DEFAULT_DEV_HOST = '10.129.233.192';
 export const SERVER_PORT = 4000;
 
-function getDevHost(): string {
+export function getDevHost(): string {
   if (Platform.OS === 'web') return 'localhost';
 
-  // Tự động lấy IP của máy tính từ URL gói Metro Bundler của React Native
+  // 1. Lấy từ Constants của Expo (chính xác nhất khi chạy Expo Go)
+  try {
+    const hostUri = Constants.expoConfig?.hostUri || (Constants as any).manifest?.debuggerHost || (Constants as any).manifest2?.extra?.expoClient?.hostUri;
+    if (typeof hostUri === 'string') {
+      const host = hostUri.split(':')[0];
+      if (host && host !== 'localhost' && host !== '127.0.0.1') {
+        return host;
+      }
+    }
+  } catch (err) {
+    // fallback
+  }
+
+  // 2. Tự động lấy IP của máy tính từ URL gói Metro Bundler của React Native
   try {
     const scriptURL = NativeModules.SourceCode?.scriptURL;
     if (typeof scriptURL === 'string') {
