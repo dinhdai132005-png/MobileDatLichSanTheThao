@@ -413,7 +413,7 @@ export class QuanTriService {
     };
   }
 
-  async capNhatNhanVien(id: number, duLieu: { fullName?: string; email?: string | null }) {
+  async capNhatNhanVien(id: number, duLieu: { fullName?: string; email?: string | null; phone?: string }) {
     const fields: string[] = [];
     const params: any[] = [];
 
@@ -424,6 +424,15 @@ export class QuanTriService {
     if (duLieu.email !== undefined) {
       fields.push('email = ?');
       params.push(duLieu.email);
+    }
+    if (duLieu.phone !== undefined) {
+      const [tonTai] = await csdl.execute<RowDataPacket[]>(
+        `SELECT id FROM nguoi_dung WHERE so_dien_thoai = ? AND id != ? LIMIT 1`,
+        [duLieu.phone, id]
+      );
+      if (tonTai.length > 0) throw new LoiApi(409, 'PHONE_EXISTS', 'Số điện thoại đã được sử dụng bởi tài khoản khác');
+      fields.push('so_dien_thoai = ?');
+      params.push(duLieu.phone);
     }
 
     if (fields.length === 0) throw LoiApi.yeuCauSai('Không có thông tin cần cập nhật');

@@ -55,8 +55,9 @@ export const luocDoTaoNhanVien = z.object({
 });
 
 export const luocDoCapNhatNhanVien = z.object({
-  fullName: z.string().trim().min(2).max(100).optional(),
-  email: z.string().email().optional().nullable(),
+  fullName: z.string().trim().min(2, 'Họ tên tối thiểu 2 ký tự').max(100).optional(),
+  email: z.string().email('Email không đúng định dạng').optional().nullable(),
+  phone: z.string().regex(/^0\d{9}$/, 'Số điện thoại gồm 10 chữ số bắt đầu bằng 0').optional(),
 });
 
 export const luocDoDoiTrangThaiTaiKhoan = z.object({

@@ -63,11 +63,12 @@ describe('Kiểm thử Quản trị & Báo cáo (Admin & Reports)', () => {
     expect(res.body.success).toBe(true);
   });
 
-  // TC-42: Quản trị tài khoản nhân viên
+  // TC-42: Quản trị tài khoản nhân viên (Tạo, Sửa thông tin, Đặt lại mật khẩu, Khóa/Mở khóa)
   let staffMoiId: number;
-  it('TC-42: ADMIN tạo nhân viên và khóa/mở khóa tài khoản nhân viên', async () => {
+  it('TC-42: ADMIN tạo nhân viên, sửa thông tin, đặt lại mật khẩu và khóa/mở khóa tài khoản', async () => {
     const sdtStaffMoi = '0909999888';
-    await csdl.execute('DELETE FROM nguoi_dung WHERE so_dien_thoai = ?', [sdtStaffMoi]);
+    const sdtStaffUpdated = '0909999889';
+    await csdl.execute('DELETE FROM nguoi_dung WHERE so_dien_thoai IN (?, ?)', [sdtStaffMoi, sdtStaffUpdated]);
 
     const resTao = await request(app)
       .post('/api/v1/admin/staff')
@@ -82,6 +83,38 @@ describe('Kiểm thử Quản trị & Báo cáo (Admin & Reports)', () => {
     expect(resTao.status).toBe(201);
     expect(resTao.body.success).toBe(true);
     staffMoiId = resTao.body.data.id;
+
+    // Sửa thông tin nhân viên (Họ tên, SĐT, Email)
+    const resSua = await request(app)
+      .put(`/api/v1/admin/staff/${staffMoiId}`)
+      .set('Authorization', `Bearer ${tokenAdmin}`)
+      .send({
+        fullName: 'Nhân Viên Thu Ngân VIP',
+        phone: sdtStaffUpdated,
+        email: 'staff_thungan_vip@example.com',
+      });
+
+    expect(resSua.status).toBe(200);
+    expect(resSua.body.success).toBe(true);
+
+    // Đặt lại mật khẩu nhân viên
+    const resResetPass = await request(app)
+      .post(`/api/v1/admin/staff/${staffMoiId}/reset-password`)
+      .set('Authorization', `Bearer ${tokenAdmin}`)
+      .send({
+        newPassword: 'newpassword456',
+      });
+
+    expect(resResetPass.status).toBe(200);
+    expect(resResetPass.body.success).toBe(true);
+
+    // Xác thực đăng nhập thành công với số điện thoại và mật khẩu mới
+    const resLoginNew = await request(app).post('/api/v1/auth/login').send({
+      phone: sdtStaffUpdated,
+      password: 'newpassword456',
+    });
+    expect(resLoginNew.status).toBe(200);
+    expect(resLoginNew.body.data.user.fullName).toBe('Nhân Viên Thu Ngân VIP');
 
     // Khóa tài khoản
     const resKhoa = await request(app)

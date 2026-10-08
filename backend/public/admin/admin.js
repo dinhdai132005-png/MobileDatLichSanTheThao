@@ -13,6 +13,7 @@ let cachedCourts = [];
 let cachedCourtTypes = [];
 let cachedTimeSlots = [];
 let cachedServices = [];
+let cachedStaff = [];
 let walkinSelectedSlots = [];
 let scheduleDate = new Date().toISOString().substring(0, 10);
 let autoRefreshTimer = null;
@@ -1353,8 +1354,14 @@ async function loadStaff() {
   try {
     const res = await apiFetch('/admin/staff');
     const list = res.data || [];
+    cachedStaff = list;
     const tbody = document.getElementById('staff-tbody');
     tbody.innerHTML = '';
+
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">Chưa có tài khoản nhân viên nào</td></tr>';
+      return;
+    }
 
     list.forEach((st) => {
       const tr = document.createElement('tr');
@@ -1366,15 +1373,86 @@ async function loadStaff() {
         <td>${st.email || '—'}</td>
         <td>${isLocked ? '<span style="color:#EF4444; font-weight:700;">🔒 ĐÃ KHÓA</span>' : '<span style="color:#10B981; font-weight:700;">HOẠT ĐỘNG</span>'}</td>
         <td>
-          <button class="btn ${isLocked ? 'btn-outline' : 'btn-danger'}" style="padding:4px 8px; font-size:12px;" onclick="doiTrangThaiNhanVien(${st.id}, '${isLocked ? 'ACTIVE' : 'LOCKED'}')">
-            ${isLocked ? '🔓 Mở khóa' : '🔒 Khóa'}
-          </button>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button class="btn btn-outline" style="padding:4px 8px; font-size:12px;" onclick="moModalSuaNhanVien(${st.id})">✏️ Sửa</button>
+            <button class="btn btn-outline" style="padding:4px 8px; font-size:12px;" onclick="moModalDoiMatKhauNhanVien(${st.id}, '${st.fullName}', '${st.phone}')">🔑 Đổi MK</button>
+            <button class="btn ${isLocked ? 'btn-outline' : 'btn-danger'}" style="padding:4px 8px; font-size:12px;" onclick="doiTrangThaiNhanVien(${st.id}, '${isLocked ? 'ACTIVE' : 'LOCKED'}')">
+              ${isLocked ? '🔓 Mở khóa' : '🔒 Khóa'}
+            </button>
+          </div>
         </td>
       `;
       tbody.appendChild(tr);
     });
   } catch (err) {
     showToast('Lỗi tải danh sách nhân viên: ' + err.message, true);
+  }
+}
+
+function moModalSuaNhanVien(staffId) {
+  const st = cachedStaff.find((s) => s.id === staffId);
+  if (!st) return showToast('Không tìm thấy thông tin nhân viên', true);
+
+  document.getElementById('edit-staff-id').value = st.id;
+  document.getElementById('edit-staff-name').value = st.fullName || '';
+  document.getElementById('edit-staff-phone').value = st.phone || '';
+  document.getElementById('edit-staff-email').value = st.email || '';
+  openModal('modal-edit-staff');
+}
+
+async function handleSaveEditStaff(e) {
+  e.preventDefault();
+  const staffId = Number(document.getElementById('edit-staff-id').value);
+  const fullName = document.getElementById('edit-staff-name').value.trim();
+  const phone = document.getElementById('edit-staff-phone').value.trim();
+  const email = document.getElementById('edit-staff-email').value.trim();
+
+  if (!fullName) return showToast('Vui lòng nhập họ và tên nhân viên', true);
+  if (!phone || !/^0\d{9}$/.test(phone)) return showToast('Số điện thoại phải gồm 10 chữ số bắt đầu bằng 0', true);
+
+  try {
+    await apiFetch(`/admin/staff/${staffId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ fullName, phone, email: email || null }),
+    });
+    showToast('Cập nhật thông tin nhân viên thành công!');
+    closeModal('modal-edit-staff');
+    loadStaff();
+  } catch (err) {
+    showToast('Lỗi cập nhật nhân viên: ' + err.message, true);
+  }
+}
+
+function moModalDoiMatKhauNhanVien(staffId, fullName, phone) {
+  document.getElementById('reset-staff-id').value = staffId;
+  document.getElementById('reset-staff-target-name').textContent = `${fullName} (${phone})`;
+  document.getElementById('reset-staff-new-pass').value = '';
+  document.getElementById('reset-staff-confirm-pass').value = '';
+  openModal('modal-reset-staff-password');
+}
+
+async function handleSaveResetStaffPassword(e) {
+  e.preventDefault();
+  const staffId = Number(document.getElementById('reset-staff-id').value);
+  const newPassword = document.getElementById('reset-staff-new-pass').value;
+  const confirmPassword = document.getElementById('reset-staff-confirm-pass').value;
+
+  if (newPassword.length < 6) {
+    return showToast('Mật khẩu mới phải có tối thiểu 6 ký tự', true);
+  }
+  if (newPassword !== confirmPassword) {
+    return showToast('Mật khẩu xác nhận không trùng khớp', true);
+  }
+
+  try {
+    await apiFetch(`/admin/staff/${staffId}/reset-password`, {
+      method: 'POST',
+      body: JSON.stringify({ newPassword }),
+    });
+    showToast('Đổi mật khẩu nhân viên thành công!');
+    closeModal('modal-reset-staff-password');
+  } catch (err) {
+    showToast('Lỗi đặt lại mật khẩu: ' + err.message, true);
   }
 }
 

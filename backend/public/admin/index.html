@@ -1498,6 +1498,71 @@
     </div>
   </div>
 
+  <!-- MODAL: CHỈNH SỬA THÔNG TIN NHÂN VIÊN (ADM-05) -->
+  <div class="modal-overlay" id="modal-edit-staff">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">✏️ Chỉnh Sửa Thông Tin Nhân Viên</h3>
+        <button class="btn-close" onclick="closeModal('modal-edit-staff')">&times;</button>
+      </div>
+      <form id="form-edit-staff" onsubmit="handleSaveEditStaff(event)">
+        <input type="hidden" id="edit-staff-id" />
+        <div class="form-group">
+          <label class="form-label">Họ và Tên</label>
+          <input type="text" id="edit-staff-name" class="form-input" placeholder="Nguyễn Văn A" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Số Điện Thoại</label>
+          <input type="tel" id="edit-staff-phone" class="form-input" placeholder="0909123456" pattern="0[0-9]{9}" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" id="edit-staff-email" class="form-input" placeholder="nhanvien@example.com" />
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 16px;">
+          <button type="submit" class="btn btn-primary" style="flex: 1; justify-content: center; padding: 10px;">
+            💾 Lưu Thay Đổi
+          </button>
+          <button type="button" class="btn btn-outline" style="padding: 10px 16px;" onclick="closeModal('modal-edit-staff')">
+            Hủy
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ĐẶT LẠI MẬT KHẨU NHÂN VIÊN (ADM-05) -->
+  <div class="modal-overlay" id="modal-reset-staff-password">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">🔑 Đặt Lại Mật Khẩu Nhân Viên</h3>
+        <button class="btn-close" onclick="closeModal('modal-reset-staff-password')">&times;</button>
+      </div>
+      <form id="form-reset-staff-password" onsubmit="handleSaveResetStaffPassword(event)">
+        <input type="hidden" id="reset-staff-id" />
+        <p style="font-size: 13.5px; color: var(--text-muted); margin-bottom: 14px;">
+          Đặt lại mật khẩu cho nhân viên: <strong id="reset-staff-target-name" style="color: var(--primary);"></strong>
+        </p>
+        <div class="form-group">
+          <label class="form-label">Mật Khẩu Mới (Tối thiểu 6 ký tự)</label>
+          <input type="password" id="reset-staff-new-pass" class="form-input" minlength="6" placeholder="Nhập mật khẩu mới..." required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Xác Nhận Mật Khẩu Mới</label>
+          <input type="password" id="reset-staff-confirm-pass" class="form-input" minlength="6" placeholder="Nhập lại mật khẩu mới..." required />
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 16px;">
+          <button type="submit" class="btn btn-primary" style="flex: 1; justify-content: center; padding: 10px;">
+            🔒 Cập Nhật Mật Khẩu
+          </button>
+          <button type="button" class="btn btn-outline" style="padding: 10px 16px;" onclick="closeModal('modal-reset-staff-password')">
+            Hủy
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- TOAST NOTIFICATION -->
   <div id="toast" class="toast" style="display: none;">
     <span id="toast-icon">✅</span>
