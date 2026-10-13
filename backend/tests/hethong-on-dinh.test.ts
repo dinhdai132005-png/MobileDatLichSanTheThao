@@ -59,14 +59,17 @@ describe('Kiểm thử Độ Ổn Định & Tính Toàn Vẹn Hệ Thống (300+
       expect(orphanServices.length).toBe(0);
     });
 
-    it('DB-03: Khớp 100% giữa tiền dịch vụ trong don_dat và tổng các món DELIVERED', async () => {
+    it('DB-03: Khớp 100% giữa tiền dịch vụ trong don_dat và tổng các món DELIVERED + Mua hộ tiệc', async () => {
       const [mismatches] = await csdl.execute<RowDataPacket[]>(
         `SELECT dd.id, dd.tien_dich_vu,
-                COALESCE(SUM(ct.so_luong * ct.don_gia), 0) AS calculated_service
+                (COALESCE((SELECT SUM(ct.so_luong * ct.don_gia) 
+                           FROM yeu_cau_dich_vu yc 
+                           JOIN chi_tiet_yeu_cau_dich_vu ct ON ct.yeu_cau_dich_vu_id = yc.id 
+                           WHERE yc.don_dat_id = dd.id AND yc.trang_thai = 'DELIVERED'), 0) +
+                 COALESCE((SELECT SUM(mh.tong_tien) 
+                           FROM hoa_don_mua_ho mh 
+                           WHERE mh.don_dat_id = dd.id), 0)) AS calculated_service
          FROM don_dat dd
-         LEFT JOIN yeu_cau_dich_vu yc ON yc.don_dat_id = dd.id AND yc.trang_thai = 'DELIVERED'
-         LEFT JOIN chi_tiet_yeu_cau_dich_vu ct ON ct.yeu_cau_dich_vu_id = yc.id
-         GROUP BY dd.id, dd.tien_dich_vu
          HAVING dd.tien_dich_vu != calculated_service`
       );
       expect(mismatches.length).toBe(0);

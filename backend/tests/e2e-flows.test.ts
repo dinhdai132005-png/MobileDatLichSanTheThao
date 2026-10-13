@@ -77,6 +77,22 @@ describe('Luồng Tích Hợp End-to-End Vận Hành (E1 -> E5 - Plant/11)', () 
       [sdtVangLai]
     );
 
+    // 1b. Dọn dẹp phòng tiệc E5 nếu có đơn trùng ngày test
+    await csdl.execute(
+      `DELETE FROM nhat_ky_trang_thai_don WHERE don_dat_id IN (
+        SELECT id FROM don_dat WHERE san_id = 8 AND ngay_dat = ?
+      )`,
+      [ngayDatE5]
+    );
+    await csdl.execute(
+      `DELETE FROM chi_tiet_khung_gio_dat WHERE san_id = 8 AND ngay_dat = ?`,
+      [ngayDatE5]
+    );
+    await csdl.execute(
+      `DELETE FROM don_dat WHERE san_id = 8 AND ngay_dat = ?`,
+      [ngayDatE5]
+    );
+
     // 2. Xóa toàn bộ dữ liệu đơn của các khách hàng test
     await csdl.execute(
       `DELETE FROM chi_tiet_yeu_cau_dich_vu WHERE yeu_cau_dich_vu_id IN (

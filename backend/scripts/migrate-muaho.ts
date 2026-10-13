@@ -74,6 +74,23 @@ async function migrate() {
         )
       `, [b2.id, b2.ngay_dat]);
     }
+    
+    // Đồng bộ lại tiền dịch vụ cho các đơn tiệc có hóa đơn mua hộ mẫu
+    for (const b of partyBookings) {
+      await csdl.execute(`
+        UPDATE don_dat dd
+        SET dd.tien_dich_vu = 
+          COALESCE((
+            SELECT SUM(ct.so_luong * ct.don_gia)
+            FROM yeu_cau_dich_vu ycdv JOIN chi_tiet_yeu_cau_dich_vu ct ON ct.yeu_cau_dich_vu_id = ycdv.id
+            WHERE ycdv.don_dat_id = dd.id AND ycdv.trang_thai = 'DELIVERED'), 0)
+          + COALESCE((
+            SELECT SUM(hdmh.tong_tien)
+            FROM hoa_don_mua_ho hdmh
+            WHERE hdmh.don_dat_id = dd.id AND hdmh.trang_thai IN ('CONFIRMED', 'BILLED')), 0)
+        WHERE dd.id = ?
+      `, [b.id]);
+    }
   }
 
   console.log('✅ Bảng hoa_don_mua_ho và dữ liệu mẫu đã sẵn sàng!');
