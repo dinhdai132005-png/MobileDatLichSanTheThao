@@ -432,6 +432,29 @@ export class DonDatService {
           }
         : null;
 
+    // Thông tin hoàn tiền (nếu có)
+    const [refundRows] = await pool.execute<RowDataPacket[]>(
+      `SELECT tt.id, tt.so_tien AS amount, tt.trang_thai AS status, tt.ghi_chu AS refund_info,
+              tt.ma_giao_dich AS transaction_ref, tt.ngay_xu_ly AS processed_at, tt.ngay_tao AS created_at,
+              u.ho_ten AS processor_name
+       FROM thanh_toan tt
+       LEFT JOIN nguoi_dung u ON u.id = tt.nguoi_xu_ly_id
+       WHERE tt.don_dat_id = ? AND tt.loai_giao_dich = 'REFUND'
+       ORDER BY tt.id DESC LIMIT 1`,
+      [donId]
+    );
+
+    const refund = refundRows.length > 0 ? {
+      id: refundRows[0].id,
+      amount: Number(refundRows[0].amount),
+      status: refundRows[0].status,
+      refundInfo: refundRows[0].refund_info,
+      transactionRef: refundRows[0].transaction_ref,
+      processedAt: refundRows[0].processed_at,
+      processorName: refundRows[0].processor_name,
+      createdAt: refundRows[0].created_at,
+    } : null;
+
     return {
       id: don.id,
       bookingCode: don.booking_code,
@@ -455,6 +478,8 @@ export class DonDatService {
       closedWithDebt: Boolean(don.closed_with_debt),
       createdAt: `${don.created_at.replace(' ', 'T')}+07:00`,
       paymentInfo,
+      refund,
+      refundPending: Boolean(refund && refund.status === 'PENDING'),
     };
   }
 

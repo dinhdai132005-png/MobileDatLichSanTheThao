@@ -895,7 +895,6 @@ export class NhanVienService {
       // Xử lý hoàn tiền nếu tiền sân đã PAID
       if (don.trang_thai_thanh_toan === 'PAID') {
         refundPending = true;
-        trangThaiThanhToanMoi = 'REFUND_PENDING';
 
         await ketNoi.execute(
           `INSERT INTO thanh_toan (
@@ -938,8 +937,9 @@ export class NhanVienService {
 
   /**
    * STF-09: Danh sách các khoản hoàn tiền (spec 5.20)
+   * Hỗ trợ lọc trạng thái (PENDING, SUCCESS, ALL), tìm kiếm keyword, và trả về thống kê KPI
    */
-  async layDanhSachHoanTien(status?: string, page: number = 1, limit: number = 20) {
+  async layDanhSachHoanTien(status?: string, page: number = 1, limit: number = 20, keyword?: string) {
     const curPage = Math.max(1, page);
     const curLimit = Math.min(100, Math.max(1, limit));
     const offset = (curPage - 1) * curLimit;
@@ -947,28 +947,62 @@ export class NhanVienService {
     let whereSql = `WHERE tt.loai_giao_dich = 'REFUND'`;
     const params: any[] = [];
 
-    if (status) {
+    if (status && status !== 'ALL') {
       whereSql += ` AND tt.trang_thai = ?`;
       params.push(status);
     }
 
+    if (keyword && keyword.trim().length > 0) {
+      const kw = `%${keyword.trim()}%`;
+      whereSql += ` AND (dd.ma_don_dat LIKE ? OR COALESCE(u.ho_ten, dd.ten_khach) LIKE ? OR COALESCE(u.so_dien_thoai, dd.so_dien_thoai_khach) LIKE ? OR tt.ghi_chu LIKE ? OR tt.ma_giao_dich LIKE ?)`;
+      params.push(kw, kw, kw, kw, kw);
+    }
+
     const [countRows] = await csdl.execute<RowDataPacket[]>(
-      `SELECT COUNT(*) AS tong FROM thanh_toan tt ${whereSql}`,
+      `SELECT COUNT(*) AS tong FROM thanh_toan tt
+       JOIN don_dat dd ON dd.id = tt.don_dat_id
+       LEFT JOIN nguoi_dung u ON u.id = dd.nguoi_dung_id
+       ${whereSql}`,
       params
     );
     const total = Number(countRows[0].tong);
 
+    // Tính toán thống kê KPI hoàn tiền (tổng, chờ xử lý, đã hoàn)
+    const [statRows] = await csdl.execute<RowDataPacket[]>(
+      `SELECT
+         COUNT(*) AS total_count,
+         COALESCE(SUM(so_tien), 0) AS total_amount,
+         COALESCE(SUM(CASE WHEN trang_thai = 'PENDING' THEN 1 ELSE 0 END), 0) AS pending_count,
+         COALESCE(SUM(CASE WHEN trang_thai = 'PENDING' THEN so_tien ELSE 0 END), 0) AS pending_amount,
+         COALESCE(SUM(CASE WHEN trang_thai = 'SUCCESS' THEN 1 ELSE 0 END), 0) AS success_count,
+         COALESCE(SUM(CASE WHEN trang_thai = 'SUCCESS' THEN so_tien ELSE 0 END), 0) AS success_amount
+       FROM thanh_toan
+       WHERE loai_giao_dich = 'REFUND'`
+    );
+    const stats = {
+      totalCount: Number(statRows[0].total_count || 0),
+      totalAmount: Number(statRows[0].total_amount || 0),
+      pendingCount: Number(statRows[0].pending_count || 0),
+      pendingAmount: Number(statRows[0].pending_amount || 0),
+      successCount: Number(statRows[0].success_count || 0),
+      successAmount: Number(statRows[0].success_amount || 0),
+    };
+
     const [rows] = await csdl.execute<RowDataPacket[]>(
       `SELECT tt.id AS payment_id, tt.so_tien AS amount, tt.trang_thai AS status,
-              tt.ghi_chu AS refund_info, tt.ngay_tao AS created_at,
+              tt.ghi_chu AS refund_info, tt.ma_giao_dich AS transaction_ref,
+              tt.ngay_tao AS created_at, tt.ngay_xu_ly AS processed_at,
+              tt.nguoi_xu_ly_id AS processor_id, u_proc.ho_ten AS processor_name,
               dd.id AS booking_id, dd.ma_don_dat AS booking_code, s.ten AS court_name,
-              dd.ngay_dat AS booking_date,
+              dd.ngay_dat AS booking_date, dd.gio_bat_dau AS start_time, dd.gio_ket_thuc AS end_time,
+              dd.ly_do_huy AS cancel_reason,
               COALESCE(u.ho_ten, dd.ten_khach) AS customer_name,
               COALESCE(u.so_dien_thoai, dd.so_dien_thoai_khach) AS customer_phone
        FROM thanh_toan tt
        JOIN don_dat dd ON dd.id = tt.don_dat_id
        JOIN san s ON s.id = dd.san_id
        LEFT JOIN nguoi_dung u ON u.id = dd.nguoi_dung_id
+       LEFT JOIN nguoi_dung u_proc ON u_proc.id = tt.nguoi_xu_ly_id
        ${whereSql}
        ORDER BY tt.id DESC
        LIMIT ? OFFSET ?`,
@@ -980,18 +1014,25 @@ export class NhanVienService {
       amount: Number(r.amount),
       status: r.status,
       refundInfo: r.refund_info,
+      transactionRef: r.transaction_ref,
       createdAt: r.created_at,
+      processedAt: r.processed_at,
+      processorId: r.processor_id,
+      processorName: r.processor_name,
       booking: {
         id: r.booking_id,
         bookingCode: r.booking_code,
         courtName: r.court_name,
         bookingDate: r.booking_date,
+        startTime: r.start_time ? String(r.start_time).substring(0, 5) : '',
+        endTime: r.end_time ? String(r.end_time).substring(0, 5) : '',
         customerName: r.customer_name,
         customerPhone: r.customer_phone,
+        cancelReason: r.cancel_reason,
       },
     }));
 
-    return { items, page: curPage, limit: curLimit, total };
+    return { items, page: curPage, limit: curLimit, total, stats };
   }
 
   /**
@@ -1004,7 +1045,7 @@ export class NhanVienService {
   ) {
     return await voiGiaoDich(async (ketNoi) => {
       const [payRows] = await ketNoi.execute<RowDataPacket[]>(
-        `SELECT id, don_dat_id, trang_thai FROM thanh_toan
+        `SELECT id, don_dat_id, so_tien, trang_thai FROM thanh_toan
          WHERE id = ? AND loai_giao_dich = 'REFUND' FOR UPDATE`,
         [paymentId]
       );
@@ -1018,6 +1059,8 @@ export class NhanVienService {
         throw new LoiApi(409, 'INVALID_STATUS', `Giao dịch hoàn tiền không ở trạng thái PENDING (hiện tại: ${pay.trang_thai})`);
       }
 
+      const maGiaoDichRef = duLieu.transactionRef || `REFUND-${Date.now().toString().slice(-6)}`;
+
       // Cập nhật trạng thái giao dịch
       await ketNoi.execute(
         `UPDATE thanh_toan
@@ -1027,7 +1070,7 @@ export class NhanVienService {
              nguoi_xu_ly_id = ?,
              ngay_xu_ly = NOW()
          WHERE id = ?`,
-        [duLieu.transactionRef || null, duLieu.note || null, nhanVienId, paymentId]
+        [maGiaoDichRef, duLieu.note || null, nhanVienId, paymentId]
       );
 
       // Cập nhật trạng thái thanh toán của đơn đặt
@@ -1036,7 +1079,78 @@ export class NhanVienService {
         [pay.don_dat_id]
       );
 
-      return { success: true, message: 'Đã xác nhận hoàn tiền thành công' };
+      // Ghi nhật ký trạng thái đơn
+      await ghiNhatKyTrangThai(ketNoi, {
+        donDatId: pay.don_dat_id,
+        trangThaiCu: 'CANCELLED',
+        trangThaiMoi: 'CANCELLED',
+        thayDoiBoiId: nhanVienId,
+        ghiChu: `Nhân viên xác nhận hoàn tiền ${Number(pay.so_tien).toLocaleString('vi-VN')} ₫. Mã GD: ${maGiaoDichRef}`,
+      });
+
+      return {
+        success: true,
+        message: 'Đã xác nhận hoàn tiền thành công',
+        paymentId,
+        bookingId: pay.don_dat_id,
+        transactionRef: maGiaoDichRef,
+      };
+    });
+  }
+
+  /**
+   * Tạo nhanh dữ liệu mẫu hoàn tiền (Demo Seed) phục vụ kiểm thử và trình diễn
+   */
+  async taoDuLieuMauHoanTien(nhanVienId: number) {
+    return await voiGiaoDich(async (ketNoi) => {
+      const now = new Date();
+      const ngayDat = now.toISOString().split('T')[0];
+
+      // Đơn 1: Chờ hoàn tiền (PENDING)
+      const maDon1 = `BK${Date.now().toString(36).toUpperCase().slice(-5)}RF1`;
+      const [res1] = await ketNoi.execute<ResultSetHeader>(
+        `INSERT INTO don_dat (
+           ma_don_dat, san_id, nguoi_dung_id, ten_khach, so_dien_thoai_khach,
+           ngay_dat, gio_bat_dau, gio_ket_thuc, tien_san, tien_dich_vu,
+           trang_thai, trang_thai_thanh_toan, phuong_thuc_thanh_toan,
+           nguon_don, ly_do_huy, huy_luc
+         ) VALUES (?, 1, 3, 'Trần Khách Hàng A', '0911111111', ?, '17:00:00', '18:00:00', 250000, 0, 'CANCELLED', 'PAID', 'BANK_TRANSFER', 'APP', 'Bận việc gia đình đột xuất', NOW())`,
+        [maDon1, ngayDat]
+      );
+      const donId1 = res1.insertId;
+
+      await ketNoi.execute(
+        `INSERT INTO thanh_toan (
+           don_dat_id, loai_giao_dich, muc_dich, phuong_thuc, so_tien, trang_thai, ghi_chu
+         ) VALUES (?, 'REFUND', 'COURT', 'BANK_TRANSFER', 250000, 'PENDING', 'MB Bank - 0911111111 - TRAN KHACH HANG A')`,
+        [donId1]
+      );
+
+      // Đơn 2: Đã hoàn tiền (SUCCESS)
+      const maDon2 = `BK${Date.now().toString(36).toUpperCase().slice(-5)}RF2`;
+      const [res2] = await ketNoi.execute<ResultSetHeader>(
+        `INSERT INTO don_dat (
+           ma_don_dat, san_id, nguoi_dung_id, ten_khach, so_dien_thoai_khach,
+           ngay_dat, gio_bat_dau, gio_ket_thuc, tien_san, tien_dich_vu,
+           trang_thai, trang_thai_thanh_toan, phuong_thuc_thanh_toan,
+           nguon_don, ly_do_huy, huy_luc
+         ) VALUES (?, 2, 4, 'Lê Khách Hàng B', '0922222222', ?, '19:00:00', '20:00:00', 300000, 0, 'CANCELLED', 'REFUNDED', 'BANK_TRANSFER', 'APP', 'Thời tiết mưa lớn ngập đường', NOW())`,
+        [maDon2, ngayDat]
+      );
+      const donId2 = res2.insertId;
+
+      await ketNoi.execute(
+        `INSERT INTO thanh_toan (
+           don_dat_id, loai_giao_dich, muc_dich, phuong_thuc, so_tien, trang_thai,
+           ghi_chu, ma_giao_dich, nguoi_xu_ly_id, ngay_xu_ly
+         ) VALUES (?, 'REFUND', 'COURT', 'BANK_TRANSFER', 300000, 'SUCCESS', 'Vietcombank - 0123987456 - LE KHACH HANG B', 'REFUND-VCB-774921', ?, NOW())`,
+        [donId2, nhanVienId]
+      );
+
+      return {
+        success: true,
+        message: 'Đã tạo thành công dữ liệu mẫu hoàn tiền (1 PENDING, 1 SUCCESS)',
+      };
     });
   }
 

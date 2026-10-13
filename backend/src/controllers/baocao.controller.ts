@@ -35,10 +35,20 @@ export class BaoCaoController {
   layBaoCaoDichVu = batDongBo(async (req: Request, res: Response) => {
     const from = req.query.from as string | undefined;
     const to = req.query.to as string | undefined;
+    const type = req.query.type as string | undefined;
 
-    const ketQua = await baoCaoService.layBaoCaoDichVu(from, to);
+    const ketQua = await baoCaoService.layBaoCaoDichVu(from, to, type);
+    phanHoiThanhCong(res, ketQua);
+  });
+
+  layBaoCaoChiTietKhoanThu = batDongBo(async (req: Request, res: Response) => {
+    const from = req.query.from as string | undefined;
+    const to = req.query.to as string | undefined;
+
+    const ketQua = await baoCaoService.layBaoCaoChiTietKhoanThu(from, to);
     phanHoiThanhCong(res, ketQua);
   });
 }
 
 export const baoCaoController = new BaoCaoController();
+

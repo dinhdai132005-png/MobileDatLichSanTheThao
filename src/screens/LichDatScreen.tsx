@@ -100,6 +100,12 @@ export default function LichDatScreen({ navigation }: LichDatScreenProps) {
       return { nhan: 'Vắng mặt', bg: '#FEE2E2', color: '#B91C1C' };
     }
     if (don.trangThai === 'daHuy') {
+      if (don.trangThaiThanhToan === 'REFUND_PENDING' || don.refundPending || don.refund?.status === 'PENDING') {
+        return { nhan: 'Chờ hoàn tiền', bg: '#FEF3C7', color: '#D97706' };
+      }
+      if (don.trangThaiThanhToan === 'REFUNDED' || don.refund?.status === 'SUCCESS') {
+        return { nhan: 'Đã hoàn tiền', bg: '#EDE9FE', color: '#7C3AED' };
+      }
       return { nhan: 'Đã hủy', bg: '#FEE2E2', color: '#DC2626' };
     }
     return { nhan: 'Đã xác nhận', bg: '#D1FAE5', color: '#059669' };

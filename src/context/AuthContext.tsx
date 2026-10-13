@@ -56,14 +56,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         if (savedToken && savedUserStr) {
           setAuthToken(savedToken);
+
+          // 1. Phục hồi ngay user từ bộ nhớ cục bộ để hiển thị tức thì
+          try {
+            const cachedUser = JSON.parse(savedUserStr);
+            if (cachedUser) {
+              setCurrentUser(cachedUser);
+              setIsAuthenticated(true);
+            }
+          } catch (e) {
+            // bỏ qua lỗi parse json
+          }
+
+          // 2. Đồng bộ ngầm thông tin mới nhất từ máy chủ
           try {
             const freshUser = await authService.getThongTinNguoiDung();
             setCurrentUser(freshUser);
             setIsAuthenticated(true);
+            AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(freshUser)).catch(() => {});
             console.log('🔑 [Auth] Khôi phục phiên làm việc thành công cho:', freshUser.hoTen);
           } catch (err: any) {
-            console.log('⚠️ [Auth] Phiên làm việc đã hết hạn trên máy chủ, làm mới trạng thái');
-            dangXuat();
+            const errMsg = String(err?.message || '');
+            if (errMsg.includes('401') || errMsg.includes('hết hạn') || errMsg.includes('không hợp lệ')) {
+              console.log('⚠️ [Auth] Phiên làm việc đã hết hạn trên máy chủ, làm mới trạng thái');
+              dangXuat();
+            } else {
+              console.log('⚠️ [Auth] Không kết nối được server, giữ phiên cục bộ:', errMsg);
+            }
           }
         }
       } catch (err) {

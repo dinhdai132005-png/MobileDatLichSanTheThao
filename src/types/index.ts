@@ -102,6 +102,17 @@ export interface DonDat {
     noiDungChuyenKhoan: string;
     qrUrl: string;
   } | null;
+  refund?: {
+    id: number;
+    amount: number;
+    status: 'PENDING' | 'SUCCESS';
+    refundInfo?: string | null;
+    transactionRef?: string | null;
+    processedAt?: string | null;
+    processorName?: string | null;
+    createdAt?: string;
+  } | null;
+  lyDoHuy?: string;
   danhSachKhungGio?: Array<{
     id: number;
     khungGioId: number;
@@ -166,9 +177,12 @@ export interface HoaDonDonDat {
 
 /** Thông tin tài khoản người dùng */
 export interface NguoiDung {
+  id?: number | string;
   hoTen: string;
   email: string;
   soDienThoai: string;
+  role?: string;
+  vaiTro?: string;
   ngayThamGia: string;
   tongLuotDat: number;
   monYeuThich: string;

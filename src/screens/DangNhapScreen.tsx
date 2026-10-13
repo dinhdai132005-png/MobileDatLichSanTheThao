@@ -46,13 +46,6 @@ export default function DangNhapScreen() {
 
   const [dangXuLy, setDangXuLy] = useState(false);
 
-  // Điền tài khoản mẫu nhanh
-  const chonTaiKhoanMau = (sdt: string, mk: string) => {
-    setSoDienThoai(sdt);
-    setMatKhau(mk);
-    setCheDo('dangNhap');
-  };
-
   const xuLyXacThuc = async () => {
     if (!soDienThoai.trim()) {
       Alert.alert('Thiếu thông tin', 'Vui lòng nhập số điện thoại');
@@ -223,54 +216,6 @@ export default function DangNhapScreen() {
                 </Text>
               )}
             </TouchableOpacity>
-
-            {/* PHẦN TÀI KHOẢN MẪU DÀNH CHO GIÁO VIÊN / TEST NHANH */}
-            {cheDo === 'dangNhap' && (
-              <View style={styles.khoiTaiKhoanMau}>
-                <View style={styles.dongTieuDeMau}>
-                  <Ionicons name="flash" size={16} color="#F59E0B" />
-                  <Text style={styles.tieuDeMau}>Tài khoản mẫu để test nhanh:</Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.nutChonMau}
-                  onPress={() => chonTaiKhoanMau('0911111111', '123456')}
-                >
-                  <View>
-                    <Text style={styles.tenMau}>Khách Hàng A</Text>
-                    <Text style={styles.chiTietMau}>SĐT: 0911111111 • MK: 123456</Text>
-                  </View>
-                  <View style={styles.nhanChonMau}>
-                    <Text style={styles.chuNhanChon}>Điền ngay</Text>
-                  </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.nutChonMau, { marginTop: 8 }]}
-                  onPress={() => chonTaiKhoanMau('0922222222', '123456')}
-                >
-                  <View>
-                    <Text style={styles.tenMau}>Khách Hàng B</Text>
-                    <Text style={styles.chiTietMau}>SĐT: 0922222222 • MK: 123456</Text>
-                  </View>
-                  <View style={styles.nhanChonMau}>
-                    <Text style={styles.chuNhanChon}>Điền ngay</Text>
-                  </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.nutChonMau, { marginTop: 8 }]}
-                  onPress={() => chonTaiKhoanMau('0909000001', 'password123')}
-                >
-                  <View>
-                    <Text style={styles.tenMau}>Nhân Viên (Staff)</Text>
-                    <Text style={styles.chiTietMau}>SĐT: 0909000001 • MK: password123</Text>
-                  </View>
-                  <View style={styles.nhanChonMau}>
-                    <Text style={styles.chuNhanChon}>Điền ngay</Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -402,53 +347,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     letterSpacing: 0.5,
-  },
-  khoiTaiKhoanMau: {
-    marginTop: 24,
-    paddingTop: 18,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-  },
-  dongTieuDeMau: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  tieuDeMau: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#334155',
-    marginLeft: 6,
-  },
-  nutChonMau: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    padding: 12,
-  },
-  tenMau: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: MAU.chu,
-  },
-  chiTietMau: {
-    fontSize: 12,
-    color: MAU.phu,
-    marginTop: 2,
-  },
-  nhanChonMau: {
-    backgroundColor: MAU.sang,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  chuNhanChon: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: MAU.chinhDam,
   },
 });

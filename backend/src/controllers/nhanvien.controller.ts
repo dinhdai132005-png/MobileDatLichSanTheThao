@@ -91,15 +91,21 @@ export class NhanVienController {
     const status = req.query.status as string | undefined;
     const page = req.query.page ? Number(req.query.page) : 1;
     const limit = req.query.limit ? Number(req.query.limit) : 20;
+    const keyword = (req.query.keyword || req.query.search) as string | undefined;
 
-    const ketQua = await nhanVienService.layDanhSachHoanTien(status, page, limit);
+    const ketQua = await nhanVienService.layDanhSachHoanTien(status, page, limit, keyword);
     phanHoiThanhCong(res, ketQua);
   });
 
   xacNhanHoanTien = batDongBo(async (req: Request, res: Response) => {
     const id = Number(req.params.id);
     const ketQua = await nhanVienService.xacNhanHoanTien(req.nguoiDung!.id, id, req.body);
-    phanHoiThanhCong(res, ketQua);
+    phanHoiThanhCong(res, ketQua, 'Xác nhận hoàn tiền thành công');
+  });
+
+  taoMauHoanTien = batDongBo(async (req: Request, res: Response) => {
+    const ketQua = await nhanVienService.taoDuLieuMauHoanTien(req.nguoiDung!.id);
+    phanHoiThanhCong(res, ketQua, 'Đã tạo dữ liệu mẫu hoàn tiền thành công');
   });
 
   timKiemKhachHang = batDongBo(async (req: Request, res: Response) => {

@@ -286,7 +286,9 @@ export default function ChiTietDonDatScreen({ route, navigation }: ChiTietDonDat
                     color:
                       donDat?.trangThaiThanhToan === 'PAID'
                         ? '#10B981'
-                        : donDat?.trangThaiThanhToan === 'REFUNDED'
+                        : (donDat?.trangThaiThanhToan === 'REFUND_PENDING' || donDat?.refundPending || donDat?.refund?.status === 'PENDING')
+                        ? '#D97706'
+                        : (donDat?.trangThaiThanhToan === 'REFUNDED' || donDat?.refund?.status === 'SUCCESS')
                         ? '#6366F1'
                         : '#EF4444',
                     fontWeight: '700',
@@ -295,7 +297,9 @@ export default function ChiTietDonDatScreen({ route, navigation }: ChiTietDonDat
               >
                 {donDat?.trangThaiThanhToan === 'PAID'
                   ? 'Đã thanh toán'
-                  : donDat?.trangThaiThanhToan === 'REFUNDED'
+                  : (donDat?.trangThaiThanhToan === 'REFUND_PENDING' || donDat?.refundPending || donDat?.refund?.status === 'PENDING')
+                  ? 'Chờ hoàn tiền'
+                  : (donDat?.trangThaiThanhToan === 'REFUNDED' || donDat?.refund?.status === 'SUCCESS')
                   ? 'Đã hoàn tiền'
                   : 'Chưa thanh toán'}
               </Text>
@@ -328,6 +332,96 @@ export default function ChiTietDonDatScreen({ route, navigation }: ChiTietDonDat
             </Text>
           </View>
         </View>
+
+        {/* KHỐI THÔNG TIN HOÀN TIỀN (REFUND CARD - BR-10, BR-34) */}
+        {(donDat?.refund || donDat?.refundPending || donDat?.trangThaiThanhToan === 'REFUND_PENDING' || donDat?.trangThaiThanhToan === 'REFUNDED') && (
+          <View style={styles.theHoanTien}>
+            <View style={styles.theHoanTienHeader}>
+              <View style={styles.theHoanTienTieuDeRow}>
+                <Ionicons
+                  name={donDat?.trangThaiThanhToan === 'REFUNDED' ? 'checkmark-circle' : 'time'}
+                  size={20}
+                  color={donDat?.trangThaiThanhToan === 'REFUNDED' ? '#10B981' : '#D97706'}
+                />
+                <Text style={styles.theHoanTienTieuDe}>
+                  {donDat?.trangThaiThanhToan === 'REFUNDED' ? 'Đã Hoàn Tiền Thành Công' : 'Đang Chờ Xử Lý Hoàn Tiền'}
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.badgeHoanTien,
+                  {
+                    backgroundColor:
+                      donDat?.trangThaiThanhToan === 'REFUNDED'
+                        ? 'rgba(16, 185, 129, 0.12)'
+                        : 'rgba(245, 158, 11, 0.15)',
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.badgeHoanTienText,
+                    {
+                      color:
+                        donDat?.trangThaiThanhToan === 'REFUNDED'
+                          ? '#10B981'
+                          : '#D97706',
+                    },
+                  ]}
+                >
+                  {donDat?.trangThaiThanhToan === 'REFUNDED' ? 'ĐÃ HOÀN TIỀN' : 'CHỜ XỬ LÝ'}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.duongKe} />
+
+            <View style={styles.dongThongTinHoan}>
+              <Text style={styles.nhanHoan}>Số tiền hoàn lại:</Text>
+              <Text style={styles.soTienHoan}>
+                {formatTien(donDat?.refund?.amount ?? donDat?.courtAmount ?? donDat?.tienSan ?? donDat?.tongTien ?? 0)}
+              </Text>
+            </View>
+
+            <View style={styles.dongThongTinHoan}>
+              <Text style={styles.nhanHoan}>Tài khoản nhận hoàn:</Text>
+              <Text style={styles.giaTriHoan}>
+                {donDat?.refund?.refundInfo || thongTinHoanTien || 'Đã tiếp nhận thông tin'}
+              </Text>
+            </View>
+
+            {donDat?.refund?.transactionRef && (
+              <View style={styles.dongThongTinHoan}>
+                <Text style={styles.nhanHoan}>Mã giao dịch đối soát:</Text>
+                <Text style={[styles.giaTriHoan, { color: '#3B82F6', fontWeight: '700' }]}>
+                  {donDat.refund.transactionRef}
+                </Text>
+              </View>
+            )}
+
+            {donDat?.refund?.processedAt && (
+              <View style={styles.dongThongTinHoan}>
+                <Text style={styles.nhanHoan}>Thời gian hoàn tiền:</Text>
+                <Text style={styles.giaTriHoan}>
+                  {new Date(donDat.refund.processedAt).toLocaleString('vi-VN')}
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.boxGhiChuHoan}>
+              <Ionicons
+                name="information-circle-outline"
+                size={16}
+                color={donDat?.trangThaiThanhToan === 'REFUNDED' ? '#10B981' : '#D97706'}
+              />
+              <Text style={styles.chuGhiChuHoan}>
+                {donDat?.trangThaiThanhToan === 'REFUNDED'
+                  ? 'Khoản tiền đã được chuyển hoàn về tài khoản của bạn. Vui lòng kiểm tra biến động số dư ngân hàng.'
+                  : 'Yêu cầu hoàn tiền đã gửi đến bộ phận vận hành. Nhân viên sẽ kiểm tra và chuyển khoản hoàn tiền trong vòng 24 giờ.'}
+              </Text>
+            </View>
+          </View>
+        )}
 
         {/* NÚT GỌI DỊCH VỤ & XEM HÓA ĐƠN (T28A, T28B) */}
         <View style={styles.nhomNutDichVu}>
@@ -938,5 +1032,82 @@ const styles = StyleSheet.create({
     color: MAU_SAC.chuChinh,
     backgroundColor: '#F9FAFB',
     marginBottom: 16,
+  },
+  theHoanTien: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  theHoanTienHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  theHoanTienTieuDeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  theHoanTienTieuDe: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: MAU_SAC.chuChinh,
+  },
+  badgeHoanTien: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  badgeHoanTienText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  dongThongTinHoan: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  nhanHoan: {
+    fontSize: 13,
+    color: MAU_SAC.chuMo,
+  },
+  soTienHoan: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#EF4444',
+  },
+  giaTriHoan: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: MAU_SAC.chuChinh,
+    maxWidth: '65%',
+    textAlign: 'right',
+  },
+  boxGhiChuHoan: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    backgroundColor: '#F9FAFB',
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 6,
+  },
+  chuGhiChuHoan: {
+    fontSize: 12,
+    color: MAU_SAC.chuMo,
+    lineHeight: 16,
+    flex: 1,
   },
 });

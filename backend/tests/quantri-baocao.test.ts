@@ -130,7 +130,7 @@ describe('Kiểm thử Quản trị & Báo cáo (Admin & Reports)', () => {
   });
 
   // TC-43: Báo cáo thống kê
-  it('TC-43: ADMIN lấy 4 báo cáo tổng quan, doanh thu, lấp đầy sân, dịch vụ', async () => {
+  it('TC-43: ADMIN lấy 4 báo cáo tổng quan, doanh thu, lấp đầy sân, dịch vụ và chi tiết từng khoản', async () => {
     // 1. Tổng quan
     const resSummary = await request(app)
       .get('/api/v1/admin/reports/summary')
@@ -138,6 +138,10 @@ describe('Kiểm thử Quản trị & Báo cáo (Admin & Reports)', () => {
     expect(resSummary.status).toBe(200);
     expect(resSummary.body.data).toHaveProperty('totalBookings');
     expect(resSummary.body.data).toHaveProperty('revenue');
+    expect(resSummary.body.data.revenue).toHaveProperty('breakdown');
+    expect(resSummary.body.data.revenue.breakdown).toHaveProperty('drinks');
+    expect(resSummary.body.data.revenue.breakdown).toHaveProperty('rentals');
+    expect(resSummary.body.data.revenue.breakdown).toHaveProperty('packages');
 
     // 2. Doanh thu
     const resRev = await request(app)
@@ -147,6 +151,9 @@ describe('Kiểm thử Quản trị & Báo cáo (Admin & Reports)', () => {
     expect(resRev.body.data).toHaveProperty('totalRevenue');
     expect(resRev.body.data).toHaveProperty('courtRevenue');
     expect(resRev.body.data).toHaveProperty('serviceRevenue');
+    expect(resRev.body.data).toHaveProperty('drinkRevenue');
+    expect(resRev.body.data).toHaveProperty('rentalRevenue');
+    expect(resRev.body.data).toHaveProperty('packageRevenue');
 
     // 3. Sử dụng sân
     const resUsage = await request(app)
@@ -162,6 +169,17 @@ describe('Kiểm thử Quản trị & Báo cáo (Admin & Reports)', () => {
     expect(resServices.status).toBe(200);
     expect(resServices.body.data).toHaveProperty('byType');
     expect(resServices.body.data).toHaveProperty('topServices');
+
+    // 5. Báo cáo chi tiết từng khoản (Itemized Breakdown)
+    const resItemized = await request(app)
+      .get('/api/v1/admin/reports/itemized-breakdown?from=2026-10-01&to=2026-10-31')
+      .set('Authorization', `Bearer ${tokenAdmin}`);
+    expect(resItemized.status).toBe(200);
+    expect(resItemized.body.data).toHaveProperty('categories');
+    expect(resItemized.body.data).toHaveProperty('summary');
+    expect(resItemized.body.data).toHaveProperty('courtByType');
+    expect(resItemized.body.data).toHaveProperty('serviceItems');
+    expect(resItemized.body.data).toHaveProperty('recentTransactions');
   });
 
   afterAll(async () => {

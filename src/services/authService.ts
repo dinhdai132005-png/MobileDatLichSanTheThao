@@ -16,15 +16,30 @@ export const authService = {
       apiClient.get<ApiResponse<any>>('/auth/me')
     );
 
+    const hoTen = nguoiDungData?.fullName || nguoiDungData?.hoTen || nguoiDungData?.full_name || 'Khách Hàng';
+    const email = nguoiDungData?.email || '';
+    const soDienThoai = nguoiDungData?.phone || nguoiDungData?.soDienThoai || '';
+    const ngayTao = nguoiDungData?.createdAt || nguoiDungData?.ngayTao;
+    const vaiTro = nguoiDungData?.role || nguoiDungData?.vaiTro || 'CUSTOMER';
+
+    let capDo = 'Thành viên mới';
+    if (vaiTro === 'ADMIN') capDo = 'Quản Trị Viên';
+    else if (vaiTro === 'STAFF') capDo = 'Nhân Viên';
+    else if (nguoiDungData?.capDoThanhVien) capDo = nguoiDungData.capDoThanhVien;
+    else capDo = 'Thành viên thân thiết';
+
     return {
-      hoTen: nguoiDungData?.hoTen || 'Khách Hàng',
-      email: nguoiDungData?.email || 'khachhang@gmail.com',
-      soDienThoai: nguoiDungData?.soDienThoai || '0911111111',
-      ngayThamGia: nguoiDungData?.ngayTao ? String(nguoiDungData.ngayTao).split('T')[0] : '2026-01-01',
+      id: nguoiDungData?.id,
+      hoTen,
+      email,
+      soDienThoai,
+      ngayThamGia: ngayTao ? String(ngayTao).split('T')[0] : '2026-01-01',
       tongLuotDat: nguoiDungData?.tongLuotDat ?? 3,
-      monYeuThich: 'Cầu Lông',
-      capDoThanhVien: nguoiDungData?.capDoThanhVien || 'Thành viên mới',
+      monYeuThich: nguoiDungData?.monYeuThich || 'Cầu Lông',
+      capDoThanhVien: capDo,
       avatarUrl: nguoiDungData?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+      vaiTro,
+      role: vaiTro,
     };
   },
 
@@ -35,27 +50,43 @@ export const authService = {
   ): Promise<{ token: string; nguoiDung: NguoiDung }> {
     const ketQua = await requestApi<{ token: string; nguoiDung?: any; user?: any }>(
       apiClient.post<ApiResponse<{ token: string; nguoiDung?: any; user?: any }>>('/auth/login', {
+        phone: soDienThoai,
         soDienThoai,
+        password: matKhau,
         matKhau,
       })
     );
 
     const token = ketQua.token;
-    const thongTinRaw = ketQua.nguoiDung || ketQua.user;
+    const thongTinRaw = ketQua.user || ketQua.nguoiDung;
 
     if (token) {
       setAuthToken(token);
     }
 
+    const hoTen = thongTinRaw?.fullName || thongTinRaw?.hoTen || thongTinRaw?.full_name || 'Khách Hàng';
+    const email = thongTinRaw?.email || '';
+    const phone = thongTinRaw?.phone || thongTinRaw?.soDienThoai || soDienThoai;
+    const ngayTao = thongTinRaw?.createdAt || thongTinRaw?.ngayTao;
+    const vaiTro = thongTinRaw?.role || thongTinRaw?.vaiTro || 'CUSTOMER';
+
+    let capDo = 'Thành viên mới';
+    if (vaiTro === 'ADMIN') capDo = 'Quản Trị Viên';
+    else if (vaiTro === 'STAFF') capDo = 'Nhân Viên';
+    else capDo = 'Thành viên thân thiết';
+
     const nguoiDung: NguoiDung = {
-      hoTen: thongTinRaw?.hoTen || 'Nguyễn Văn Khách',
-      email: thongTinRaw?.email || 'khachhang@gmail.com',
-      soDienThoai: thongTinRaw?.soDienThoai || soDienThoai,
-      ngayThamGia: thongTinRaw?.ngayTao ? String(thongTinRaw.ngayTao).split('T')[0] : '2026-01-01',
+      id: thongTinRaw?.id,
+      hoTen,
+      email,
+      soDienThoai: phone,
+      ngayThamGia: ngayTao ? String(ngayTao).split('T')[0] : '2026-01-01',
       tongLuotDat: thongTinRaw?.tongLuotDat ?? 3,
-      monYeuThich: 'Cầu Lông',
-      capDoThanhVien: 'Thành viên thân thiết',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+      monYeuThich: thongTinRaw?.monYeuThich || 'Cầu Lông',
+      capDoThanhVien: capDo,
+      avatarUrl: thongTinRaw?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+      vaiTro,
+      role: vaiTro,
     };
 
     return { token, nguoiDung };
@@ -69,25 +100,36 @@ export const authService = {
     matKhau: string;
   }): Promise<{ token: string; nguoiDung: NguoiDung }> {
     const ketQua = await requestApi<{ token: string; nguoiDung?: any; user?: any }>(
-      apiClient.post<ApiResponse<{ token: string; nguoiDung?: any; user?: any }>>('/auth/register', duLieu)
+      apiClient.post<ApiResponse<{ token: string; nguoiDung?: any; user?: any }>>('/auth/register', {
+        fullName: duLieu.hoTen,
+        hoTen: duLieu.hoTen,
+        phone: duLieu.soDienThoai,
+        soDienThoai: duLieu.soDienThoai,
+        email: duLieu.email,
+        password: duLieu.matKhau,
+        matKhau: duLieu.matKhau,
+      })
     );
 
     const token = ketQua.token;
-    const thongTinRaw = ketQua.nguoiDung || ketQua.user;
+    const thongTinRaw = ketQua.user || ketQua.nguoiDung;
 
     if (token) {
       setAuthToken(token);
     }
 
     const nguoiDung: NguoiDung = {
-      hoTen: thongTinRaw?.hoTen || duLieu.hoTen,
+      id: thongTinRaw?.id,
+      hoTen: thongTinRaw?.fullName || thongTinRaw?.hoTen || duLieu.hoTen,
       email: thongTinRaw?.email || duLieu.email,
-      soDienThoai: thongTinRaw?.soDienThoai || duLieu.soDienThoai,
-      ngayThamGia: '2026-10-03',
+      soDienThoai: thongTinRaw?.phone || thongTinRaw?.soDienThoai || duLieu.soDienThoai,
+      ngayThamGia: new Date().toISOString().split('T')[0],
       tongLuotDat: 0,
       monYeuThich: 'Cầu Lông',
       capDoThanhVien: 'Thành viên mới',
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+      vaiTro: 'CUSTOMER',
+      role: 'CUSTOMER',
     };
 
     return { token, nguoiDung };
@@ -97,22 +139,29 @@ export const authService = {
   async capNhatHoSo(duLieu: { hoTen?: string; fullName?: string; email?: string }): Promise<NguoiDung> {
     const payload = {
       fullName: duLieu.fullName || duLieu.hoTen,
-      hoTen: duLieu.hoTen || duLieu.fullName,
-      email: duLieu.email,
+      email: duLieu.email || null,
     };
     const res = await requestApi<any>(
       apiClient.put<ApiResponse<any>>('/auth/me', payload)
     );
     const thongTinRaw = res.user || res.nguoiDung || res;
+    const hoTen = thongTinRaw?.fullName || thongTinRaw?.hoTen || thongTinRaw?.full_name || duLieu.hoTen || 'Khách Hàng';
+    const email = thongTinRaw?.email || duLieu.email || '';
+    const phone = thongTinRaw?.phone || thongTinRaw?.soDienThoai || '';
+    const ngayTao = thongTinRaw?.createdAt || thongTinRaw?.ngayTao;
+
     return {
-      hoTen: thongTinRaw?.hoTen || thongTinRaw?.full_name || 'Khách Hàng',
-      email: thongTinRaw?.email || '',
-      soDienThoai: thongTinRaw?.soDienThoai || thongTinRaw?.phone || '',
-      ngayThamGia: thongTinRaw?.ngayTao ? String(thongTinRaw.ngayTao).split('T')[0] : '2026-01-01',
+      id: thongTinRaw?.id,
+      hoTen,
+      email,
+      soDienThoai: phone,
+      ngayThamGia: ngayTao ? String(ngayTao).split('T')[0] : '2026-01-01',
       tongLuotDat: thongTinRaw?.tongLuotDat ?? 3,
       monYeuThich: 'Cầu Lông',
       capDoThanhVien: 'Thành viên thân thiết',
       avatarUrl: thongTinRaw?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+      vaiTro: thongTinRaw?.role,
+      role: thongTinRaw?.role,
     };
   },
 
@@ -120,9 +169,7 @@ export const authService = {
   async doiMatKhau(duLieu: { matKhauHienTai: string; currentPassword?: string; matKhauMoi: string; newPassword?: string }): Promise<boolean> {
     const payload = {
       currentPassword: duLieu.currentPassword || duLieu.matKhauHienTai,
-      matKhauHienTai: duLieu.matKhauHienTai || duLieu.currentPassword,
       newPassword: duLieu.newPassword || duLieu.matKhauMoi,
-      matKhauMoi: duLieu.matKhauMoi || duLieu.newPassword,
     };
     await requestApi<any>(
       apiClient.put<ApiResponse<any>>('/auth/change-password', payload)
@@ -132,6 +179,6 @@ export const authService = {
 
   /** Đăng xuất khỏi hệ thống */
   dangXuat(): void {
-    setAuthToken('');
+    setAuthToken(null);
   },
 };

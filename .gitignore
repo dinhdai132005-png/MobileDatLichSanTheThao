@@ -22,3 +22,5 @@ teamwork_client/
 **/teamwork_client/
 tmp/
 **/tmp/
+*.bak*
+**/*.bak*

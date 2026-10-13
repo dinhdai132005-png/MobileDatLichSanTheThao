@@ -82,6 +82,7 @@ quanTriRouter.get('/reports/summary', baoCaoController.layTongQuan);
 quanTriRouter.get('/reports/revenue', baoCaoController.layBaoCaoDoanhThu);
 quanTriRouter.get('/reports/court-usage', baoCaoController.layBaoCaoSuDungSan);
 quanTriRouter.get('/reports/services', baoCaoController.layBaoCaoDichVu);
+quanTriRouter.get('/reports/itemized-breakdown', baoCaoController.layBaoCaoChiTietKhoanThu);
 
 // Quản lý tồn kho (Admin)
 quanTriRouter.get('/inventory', dichVuController.layDanhSachTonKho);

@@ -568,6 +568,115 @@
       font-weight: 800;
       font-size: 15px;
     }
+
+    /* Enhanced Reports Styles */
+    .rep-filter-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+    .btn-group-presets {
+      display: inline-flex;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    .preset-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 12px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .preset-btn:hover {
+      background: var(--surface-hover);
+      color: var(--text);
+    }
+    .preset-btn.active {
+      background: var(--primary);
+      color: #FFFFFF;
+    }
+    .revenue-composition-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      margin-bottom: 24px;
+    }
+    .revenue-bar-container {
+      height: 14px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 7px;
+      display: flex;
+      overflow: hidden;
+      margin: 12px 0 16px 0;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .revenue-segment {
+      height: 100%;
+      transition: width 0.4s ease;
+      position: relative;
+    }
+    .revenue-segment-court { background: linear-gradient(90deg, #3B82F6, #60A5FA); }
+    .revenue-segment-drinks { background: linear-gradient(90deg, #10B981, #34D399); }
+    .revenue-segment-rentals { background: linear-gradient(90deg, #8B5CF6, #A78BFA); }
+    .revenue-segment-packages { background: linear-gradient(90deg, #F59E0B, #FBBF24); }
+    .revenue-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .pill-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .pill-tab {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-muted);
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .pill-tab:hover {
+      background: var(--surface-hover);
+      color: var(--text);
+    }
+    .pill-tab.active {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    @media print {
+      body { background: white !important; color: black !important; }
+      header, aside, .btn-group-presets, .header-actions, .rep-filter-toolbar button, .pill-tabs, #rep-ledger-search, #rep-ledger-filter { display: none !important; }
+      .app-container { display: block !important; padding: 0 !important; }
+      .tab-content { display: block !important; }
+      .kpi-card, .table-container, .revenue-composition-card { border: 1px solid #ccc !important; background: white !important; color: black !important; box-shadow: none !important; }
+      .kpi-value, td, th { color: black !important; }
+    }
   </style>
 </head>
 <body>
@@ -930,24 +1039,67 @@
         </div>
       </section>
 
-      <!-- TAB 6: REFUNDS (STF-09) -->
+      <!-- TAB 6: REFUNDS (STF-09, BR-34) -->
       <section id="tab-refunds" class="tab-content">
-        <div class="section-header">
-          <h1 class="section-title">Danh Sách Chờ Hoàn Tiền (Khách Hủy Đơn Đã Trả Tiền)</h1>
-          <button class="btn btn-outline" onclick="loadRefunds()">🔄 Tải Lại</button>
+        <div class="section-header" style="flex-wrap: wrap; gap: 12px; margin-bottom: 18px;">
+          <div>
+            <h1 class="section-title">💸 Quản Lý & Xử Lý Hoàn Tiền</h1>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+              Đối soát & chuyển khoản tiền hoàn cho khách khi hủy đơn đã thanh toán (STF-09, BR-34)
+            </p>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-outline" onclick="loadRefunds()">🔄 Tải Lại</button>
+            <button class="btn btn-outline" style="border-color: rgba(139, 92, 246, 0.4); color: var(--purple);" onclick="taoMauHoanTienDemo()">⚡ Tạo Mẫu Hoàn Tiền (Demo)</button>
+          </div>
         </div>
+
+        <!-- THẺ THỐNG KÊ KPI HOÀN TIỀN -->
+        <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 20px;">
+          <div class="kpi-card" style="cursor: pointer;" onclick="filterRefunds('ALL')">
+            <span class="kpi-label">Tổng yêu cầu hoàn tiền</span>
+            <span class="kpi-value" id="rf-stat-total">0</span>
+            <span class="kpi-sub" id="rf-stat-total-amt">0 ₫</span>
+          </div>
+          <div class="kpi-card" style="border-color: rgba(245, 158, 11, 0.5); background: rgba(245, 158, 11, 0.05); cursor: pointer;" onclick="filterRefunds('PENDING')">
+            <span class="kpi-label" style="color: var(--warning);">⏳ Chờ hoàn tiền (PENDING)</span>
+            <span class="kpi-value" id="rf-stat-pending" style="color: var(--warning);">0</span>
+            <span class="kpi-sub" id="rf-stat-pending-amt" style="color: #F59E0B; font-weight: 700;">0 ₫</span>
+          </div>
+          <div class="kpi-card" style="border-color: rgba(16, 185, 129, 0.5); background: rgba(16, 185, 129, 0.05); cursor: pointer;" onclick="filterRefunds('SUCCESS')">
+            <span class="kpi-label" style="color: var(--primary);">✅ Đã hoàn tiền (SUCCESS)</span>
+            <span class="kpi-value" id="rf-stat-success" style="color: var(--primary);">0</span>
+            <span class="kpi-sub" id="rf-stat-success-amt" style="color: #10B981; font-weight: 700;">0 ₫</span>
+          </div>
+        </div>
+
+        <!-- BỘ LỌC VÀ TÌM KIẾM -->
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; background: var(--bg-card); padding: 12px 16px; border-radius: var(--radius-md); border: 1px solid var(--border);">
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <span style="font-size: 13px; font-weight: 600; color: var(--text-muted); margin-right: 4px;">Trạng thái:</span>
+            <button class="btn btn-outline active" id="rf-btn-filter-all" style="padding: 6px 14px; font-size: 12.5px;" onclick="filterRefunds('ALL')">Tất cả</button>
+            <button class="btn btn-outline" id="rf-btn-filter-pending" style="padding: 6px 14px; font-size: 12.5px;" onclick="filterRefunds('PENDING')">⏳ Chờ xử lý</button>
+            <button class="btn btn-outline" id="rf-btn-filter-success" style="padding: 6px 14px; font-size: 12.5px;" onclick="filterRefunds('SUCCESS')">✅ Đã hoàn tiền</button>
+          </div>
+          <div style="display: flex; gap: 8px; flex: 1; max-width: 420px; min-width: 260px;">
+            <input type="text" id="rf-search-keyword" class="form-input" style="padding: 7px 12px; font-size: 13px;" placeholder="🔍 Tìm mã đơn, SĐT, tên khách, STK..." onkeyup="onRefundSearchKeyUp(event)" />
+            <button class="btn btn-primary" style="padding: 7px 14px;" onclick="triggerRefundSearch()">Tìm</button>
+          </div>
+        </div>
+
+        <!-- BẢNG DANH SÁCH HOÀN TIỀN -->
         <div class="table-container">
           <table>
             <thead>
               <tr>
-                <th>Payment ID</th>
-                <th>Mã Đơn</th>
+                <th style="width: 70px;">ID</th>
+                <th>Mã Đơn & Sân</th>
                 <th>Khách Hàng</th>
                 <th>Số Tiền Hoàn</th>
-                <th>Thông Tin Nhận Tiền Hoàn (refundInfo)</th>
-                <th>Thời Gian Hủy</th>
+                <th>Thông Tin Nhận Hoàn Tiền</th>
+                <th>Thời Gian</th>
                 <th>Trạng Thái</th>
-                <th>Thao Tác</th>
+                <th style="text-align: right; width: 160px;">Thao Tác</th>
               </tr>
             </thead>
             <tbody id="refunds-tbody"></tbody>
@@ -1148,51 +1300,134 @@
         </div>
       </section>
 
-      <!-- TAB 13: REPORTS (ADMIN - ADM-07) -->
+      <!-- TAB 13: REPORTS (ADMIN - ADM-07, BR-32, TC-58) -->
       <section id="tab-reports" class="tab-content">
         <div class="section-header">
-          <h1 class="section-title">Báo Cáo Doanh Thu & Tỷ Lệ Lấp Đầy Sân</h1>
-          <div style="display: flex; gap: 10px;">
-            <input type="date" id="rep-from" class="form-input" style="width: 160px;" />
-            <input type="date" id="rep-to" class="form-input" style="width: 160px;" />
-            <button class="btn btn-primary" onclick="loadReports()">Xem Báo Cáo</button>
+          <div>
+            <h1 class="section-title">Báo Cáo Doanh Thu & Khoản Thu Dịch Vụ</h1>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+              Báo cáo chi tiết từng khoản: Tiền sân (thể thao / sự kiện), Nước uống (DRINK), Thuê dụng cụ (RENTAL), Gói combo tiệc (PACKAGE) & Phân rã hoàn tiền.
+            </p>
           </div>
-        </div>
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <span class="kpi-label">Doanh thu tiền sân</span>
-            <span class="kpi-value" id="rep-court-rev" style="color: var(--accent);">0 ₫</span>
-            <span class="kpi-sub">Từ tiền thuê sân</span>
-          </div>
-          <div class="kpi-card">
-            <span class="kpi-label">Doanh thu dịch vụ</span>
-            <span class="kpi-value" id="rep-service-rev" style="color: var(--info);">0 ₫</span>
-            <span class="kpi-sub">Đồ uống & thuê đồ</span>
-          </div>
-          <div class="kpi-card">
-            <span class="kpi-label">Tiền đã hoàn trả</span>
-            <span class="kpi-value" id="rep-refund-rev" style="color: var(--danger);">0 ₫</span>
-            <span class="kpi-sub">Trừ vào tiền sân (BR-32)</span>
-          </div>
-          <div class="kpi-card">
-            <span class="kpi-label">Doanh thu thực tế (Ròng)</span>
-            <span class="kpi-value" id="rep-net-rev" style="color: #34D399;">0 ₫</span>
-            <span class="kpi-sub">Tiền sân + Dịch vụ − Hoàn tiền</span>
-          </div>
-          <div class="kpi-card">
-            <span class="kpi-label">Tỷ lệ lấp đầy sân</span>
-            <span class="kpi-value" id="rep-occupancy" style="color: var(--primary);">0%</span>
-            <span class="kpi-sub" id="rep-slots-info">Slot đặt / Tổng slot</span>
-          </div>
-          <div class="kpi-card">
-            <span class="kpi-label">Đơn đóng có công nợ</span>
-            <span class="kpi-value" id="rep-debt-closed" style="color: var(--warning);">0</span>
-            <span class="kpi-sub">Đơn đóng công nợ (BR-33)</span>
+          <div class="rep-filter-toolbar">
+            <div class="btn-group-presets">
+              <button class="preset-btn" onclick="chonKhoangNgay('today')">Hôm nay</button>
+              <button class="preset-btn" onclick="chonKhoangNgay('7days')">7 ngày</button>
+              <button class="preset-btn active" id="btn-preset-month" onclick="chonKhoangNgay('this_month')">Tháng này</button>
+              <button class="preset-btn" onclick="chonKhoangNgay('last_month')">Tháng trước</button>
+              <button class="preset-btn" onclick="chonKhoangNgay('all')">Toàn bộ</button>
+            </div>
+            <input type="date" id="rep-from" class="form-input" style="width: 145px;" />
+            <input type="date" id="rep-to" class="form-input" style="width: 145px;" />
+            <button class="btn btn-primary" onclick="loadReports()">📊 Xem Báo Cáo</button>
+            <button class="btn btn-outline admin-only" onclick="xuatBaoCaoCSV()" title="Tải xuống file bảng tính Excel/CSV">📥 Xuất Excel</button>
+            <button class="btn btn-outline" onclick="inBaoCao()" title="In hoặc xuất file PDF">🖨️ In Báo Cáo</button>
           </div>
         </div>
 
-        <div class="section-header" style="margin-top:24px;">
-          <h3 style="font-size: 15px; font-weight: 700;">Chi Tiết Doanh Thu Theo Ngày</h3>
+        <!-- 1. HÀNG THẺ KPI CHI TIẾT TỪNG KHOẢN -->
+        <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+          <div class="kpi-card" style="border-left: 4px solid var(--accent);">
+            <span class="kpi-label">🏟️ Doanh thu tiền sân</span>
+            <span class="kpi-value" id="rep-court-rev" style="color: var(--accent);">0 ₫</span>
+            <span class="kpi-sub" id="rep-court-sub">Thu từ tiền thuê sân</span>
+          </div>
+          <div class="kpi-card" style="border-left: 4px solid #10B981;">
+            <span class="kpi-label">🥤 Doanh thu nước uống</span>
+            <span class="kpi-value" id="rep-drink-rev" style="color: #34D399;">0 ₫</span>
+            <span class="kpi-sub" id="rep-drink-sub">0 chai / lon / ly đã bán</span>
+          </div>
+          <div class="kpi-card" style="border-left: 4px solid #8B5CF6;">
+            <span class="kpi-label">🏸 Doanh thu thuê dụng cụ</span>
+            <span class="kpi-value" id="rep-rental-rev" style="color: #A78BFA;">0 ₫</span>
+            <span class="kpi-sub" id="rep-rental-sub">0 lượt thuê vợt / giày / bóng</span>
+          </div>
+          <div class="kpi-card" style="border-left: 4px solid #F59E0B;">
+            <span class="kpi-label">📦 Doanh thu gói tiệc / combo</span>
+            <span class="kpi-value" id="rep-package-rev" style="color: #FCD34D;">0 ₫</span>
+            <span class="kpi-sub" id="rep-package-sub">0 gói combo BBQ / tiệc</span>
+          </div>
+          <div class="kpi-card" style="border-left: 4px solid var(--danger);">
+            <span class="kpi-label">🔄 Tiền đã hoàn trả</span>
+            <span class="kpi-value" id="rep-refund-rev" style="color: var(--danger);">0 ₫</span>
+            <span class="kpi-sub">Đơn hủy hoàn lại khách (BR-34)</span>
+          </div>
+          <div class="kpi-card" style="border-left: 4px solid #059669; background: rgba(16, 185, 129, 0.08);">
+            <span class="kpi-label">💵 Doanh thu thực nhận (Net)</span>
+            <span class="kpi-value" id="rep-net-rev" style="color: #34D399;">0 ₫</span>
+            <span class="kpi-sub">Đã trừ các khoản hoàn tiền</span>
+          </div>
+          <div class="kpi-card" style="border-left: 4px solid var(--primary);">
+            <span class="kpi-label">📈 Tỷ lệ lấp đầy sân</span>
+            <span class="kpi-value" id="rep-occupancy" style="color: var(--primary);">0%</span>
+            <span class="kpi-sub" id="rep-slots-info">Slot đặt / Tổng slot</span>
+          </div>
+        </div>
+
+        <!-- 2. THANH TỶ TRỌNG CƠ CẤU DOANH THU TRỰC QUAN -->
+        <div class="revenue-composition-card">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="font-size: 14px; font-weight: 700; display:flex; align-items:center; gap:6px;">
+              📊 Cơ Cấu Tỷ Trọng Doanh Thu Theo Từng Khoản
+            </h3>
+            <span style="font-size: 12.5px; color: var(--text-muted);" id="rep-comp-total-text">Tổng thực tế: 0 ₫</span>
+          </div>
+          <div class="revenue-bar-container">
+            <div id="bar-court" class="revenue-segment revenue-segment-court" style="width: 0%;" title="Tiền sân: 0%"></div>
+            <div id="bar-drinks" class="revenue-segment revenue-segment-drinks" style="width: 0%;" title="Nước uống: 0%"></div>
+            <div id="bar-rentals" class="revenue-segment revenue-segment-rentals" style="width: 0%;" title="Thuê dụng cụ: 0%"></div>
+            <div id="bar-packages" class="revenue-segment revenue-segment-packages" style="width: 0%;" title="Gói tiệc: 0%"></div>
+          </div>
+          <div class="revenue-legend">
+            <div class="legend-item">
+              <span class="legend-dot" style="background: #3B82F6;"></span>
+              <span><strong>Tiền Sân:</strong> <span id="leg-court-val">0 ₫ (0%)</span></span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot" style="background: #10B981;"></span>
+              <span><strong>Nước Uống:</strong> <span id="leg-drinks-val">0 ₫ (0%)</span></span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot" style="background: #8B5CF6;"></span>
+              <span><strong>Thuê Dụng Cụ:</strong> <span id="leg-rentals-val">0 ₫ (0%)</span></span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot" style="background: #F59E0B;"></span>
+              <span><strong>Gói Tiệc & Combo:</strong> <span id="leg-packages-val">0 ₫ (0%)</span></span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot" style="background: var(--danger);"></span>
+              <span><strong>Đã Hoàn Trả:</strong> <span id="leg-refund-val">0 ₫</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. BẢNG PHÂN TÍCH CƠ CẤU DOANH THU CHI TIẾT TỪNG KHOẢN MỤC -->
+        <div class="section-header" style="margin-top: 24px;">
+          <h3 style="font-size: 15px; font-weight: 700; display:flex; align-items:center; gap:6px;">
+            📑 Bảng Phân Tích Cơ Cấu Doanh Thu Chi Tiết Từng Khoản Mục
+          </h3>
+        </div>
+        <div class="table-container" style="margin-bottom: 24px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Hạng Mục Khoản Thu</th>
+                <th>Phân Loại</th>
+                <th>Khối Lượng Phát Sinh</th>
+                <th>Doanh Thu Gốc</th>
+                <th>Tiền Hoàn Lại</th>
+                <th>Doanh Thu Thực (Ròng)</th>
+                <th>Tỷ Trọng (%)</th>
+              </tr>
+            </thead>
+            <tbody id="rep-categories-tbody"></tbody>
+          </table>
+        </div>
+
+        <!-- 4. CHI TIẾT DOANH THU THEO NGÀY (CỘT CHI TIẾT TỪNG KHOẢN) -->
+        <div class="section-header">
+          <h3 style="font-size: 15px; font-weight: 700;">📅 Chi Tiết Doanh Thu Từng Khoản Theo Ngày</h3>
         </div>
         <div class="table-container" style="margin-bottom: 24px;">
           <table>
@@ -1200,30 +1435,88 @@
               <tr>
                 <th>Ngày</th>
                 <th>Tiền Sân</th>
-                <th>Tiền Dịch Vụ</th>
-                <th>Tiền Hoàn</th>
-                <th>Doanh Thu Thực</th>
+                <th>Nước Uống (DRINK)</th>
+                <th>Thuê Đồ (RENTAL)</th>
+                <th>Gói Tiệc (PACKAGE)</th>
+                <th>Tổng Dịch Vụ</th>
+                <th>Hoàn Tiền</th>
+                <th>Doanh Thu Thực Nhận</th>
               </tr>
             </thead>
             <tbody id="rep-tbody"></tbody>
+            <tfoot id="rep-tfoot" style="background: rgba(255,255,255,0.03); font-weight: 800;"></tfoot>
           </table>
         </div>
 
+        <!-- 5. CHI TIẾT TỪNG MÓN DỊCH VỤ PHÁT SINH KÈM BỘ LỌC -->
         <div class="section-header">
-          <h3 style="font-size: 15px; font-weight: 700;">Top Dịch Vụ Phát Sinh Bán Chạy Nhất</h3>
+          <div>
+            <h3 style="font-size: 15px; font-weight: 700;">🍹 Chi Tiết Mặt Hàng Dịch Vụ Phát Sinh</h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+              Theo dõi số lượng bán, số lượt thuê, đơn giá và doanh thu cụ thể của từng sản phẩm.
+            </p>
+          </div>
+          <div class="pill-tabs" style="margin-bottom:0;">
+            <button class="pill-tab active" id="pill-all" onclick="locBangDichVu('ALL')">Tất Cả Món</button>
+            <button class="pill-tab" id="pill-drink" onclick="locBangDichVu('DRINK')">🥤 Nước Uống</button>
+            <button class="pill-tab" id="pill-rental" onclick="locBangDichVu('RENTAL')">🏸 Thuê Dụng Cụ</button>
+            <button class="pill-tab" id="pill-package" onclick="locBangDichVu('PACKAGE')">📦 Gói Tiệc & Combo</button>
+          </div>
+        </div>
+        <div class="table-container" style="margin-bottom: 24px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Mã Dịch Vụ</th>
+                <th>Tên Mặt Hàng / Dịch Vụ</th>
+                <th>Phân Loại</th>
+                <th>Đơn Vị</th>
+                <th>Đơn Giá Niêm Yết</th>
+                <th>Số Lượng Phục Vụ</th>
+                <th>Tổng Doanh Thu</th>
+              </tr>
+            </thead>
+            <tbody id="rep-services-tbody"></tbody>
+          </table>
+        </div>
+
+        <!-- 6. SỔ NHẬT KÝ GIAO DỊCH CHI TIẾT TỪNG KHOẢN THU (ITEMIZED REVENUE LEDGER) -->
+        <div class="section-header">
+          <div>
+            <h3 style="font-size: 15px; font-weight: 700;">📒 Sổ Nhật Ký Thu Tiền Chi Tiết (Itemized Ledger)</h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+              Truy vết chi tiết từng giao dịch sân và món dịch vụ gắn với đơn đặt trong kỳ báo cáo.
+            </p>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <input type="text" id="rep-ledger-search" class="form-input" style="width:230px;"
+                   placeholder="🔍 Tìm mã đơn, khách, món..." oninput="timKiemSoChiTiet()" />
+            <select id="rep-ledger-filter" class="form-select" style="width:170px;" onchange="timKiemSoChiTiet()">
+              <option value="ALL">Tất cả khoản thu</option>
+              <option value="COURT">🏟️ Tiền thuê sân</option>
+              <option value="DRINK">🥤 Nước uống</option>
+              <option value="RENTAL">🏸 Thuê dụng cụ</option>
+              <option value="PACKAGE">📦 Gói tiệc / combo</option>
+            </select>
+          </div>
         </div>
         <div class="table-container">
           <table>
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Tên Dịch Vụ</th>
-                <th>Phân Loại</th>
-                <th>Số Lượng Bán / Thuê</th>
-                <th>Tổng Doanh Thu</th>
+                <th>Mã Đơn</th>
+                <th>Thời Gian</th>
+                <th>Khách Hàng</th>
+                <th>Khoản Mục</th>
+                <th>Tên Khoản Thu / Món</th>
+                <th>Số Lượng</th>
+                <th>Đơn Giá</th>
+                <th>Thành Tiền</th>
+                <th>Hình Thức TT</th>
+                <th>Trạng Thái</th>
               </tr>
             </thead>
-            <tbody id="rep-services-tbody"></tbody>
+            <tbody id="rep-ledger-tbody"></tbody>
           </table>
         </div>
       </section>
@@ -1559,6 +1852,86 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: XÁC NHẬN CHUYỂN KHOẢN HOÀN TIỀN (STF-09, BR-34) -->
+  <div class="modal-overlay" id="modal-confirm-refund">
+    <div class="modal-card modal-card-lg" style="max-width: 580px;">
+      <div class="modal-header">
+        <h3 class="modal-title">💸 Xác Nhận Chuyển Khoản Hoàn Tiền</h3>
+        <button class="btn-close" onclick="closeModal('modal-confirm-refund')">&times;</button>
+      </div>
+      <form id="form-confirm-refund" onsubmit="handleConfirmRefundSubmit(event)">
+        <input type="hidden" id="confirm-rf-payment-id" />
+        <input type="hidden" id="confirm-rf-raw-acc" />
+
+        <!-- TÓM TẮT ĐƠN HÀNG VÀ SỐ TIỀN -->
+        <div style="background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 10px; padding: 16px; margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">Số tiền hoàn lại cho khách:</span>
+            <span id="confirm-rf-amount" style="font-size: 22px; font-weight: 800; color: var(--danger);">0 ₫</span>
+          </div>
+          <div style="font-size: 13px; line-height: 1.6; color: var(--text-main);">
+            <div><strong>Mã đơn:</strong> <span id="confirm-rf-code" style="color: var(--primary); font-family: var(--font-mono);"></span> (<span id="confirm-rf-court"></span>)</div>
+            <div><strong>Khách hàng:</strong> <span id="confirm-rf-customer"></span> - <span id="confirm-rf-phone" style="font-family: var(--font-mono);"></span></div>
+            <div><strong>Lý do hủy đơn:</strong> <span id="confirm-rf-reason" style="font-style: italic; color: var(--text-muted);"></span></div>
+          </div>
+        </div>
+
+        <!-- THÔNG TIN TÀI KHOẢN KHÁCH NHẬN HOÀN -->
+        <div style="background: rgba(59, 130, 246, 0.06); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-size: 12.5px; font-weight: 700; color: var(--info); text-transform: uppercase;">🏦 Thông tin tài khoản nhận tiền hoàn:</span>
+            <button type="button" class="btn btn-outline" style="padding: 3px 8px; font-size: 11px;" onclick="copyRefundAccount()">📋 Sao Chép</button>
+          </div>
+          <div id="confirm-rf-bank-info" style="font-family: var(--font-mono); font-size: 13.5px; font-weight: 700; color: #1E40AF; line-height: 1.4; word-break: break-all;">
+            Chưa có thông tin
+          </div>
+        </div>
+
+        <!-- MÃ VIETQR ĐỘNG ĐỂ NHÂN VIÊN QUÉT CHUYỂN KHOẢN -->
+        <div id="confirm-rf-qr-box" style="text-align: center; margin-bottom: 16px; background: #FFFFFF; padding: 12px; border-radius: 10px; border: 1px solid var(--border);">
+          <p style="font-size: 12px; color: #4B5563; margin-bottom: 8px; font-weight: 600;">
+            📱 Quét mã VietQR bằng App Ngân Hàng để chuyển tiền hoàn tức thì:
+          </p>
+          <img id="confirm-rf-qr-img" src="" alt="VietQR Hoàn Tiền" style="width: 170px; height: 170px; border-radius: 8px; display: inline-block; object-fit: contain;" />
+        </div>
+
+        <!-- FORM NHẬP THÔNG TIN ĐỐI SOÁT -->
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label class="form-label">Mã giao dịch ngân hàng / Đối soát chuyển tiền (transactionRef) *</label>
+          <input type="text" id="confirm-rf-txn-ref" class="form-input" placeholder="Ví dụ: FT2409871625 hoặc CK-HOANTIEN" required />
+          <span style="font-size: 11.5px; color: var(--text-muted);">Ghi nhận mã giao dịch từ App ngân hàng để lưu vết đối soát tài chính</span>
+        </div>
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label class="form-label">Ghi chú xử lý (Tùy chọn)</label>
+          <input type="text" id="confirm-rf-note" class="form-input" placeholder="Ghi chú nhân viên (ví dụ: Đã chuyển khoản qua Vietcombank lúc 10:30)" />
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <button type="button" class="btn btn-outline" style="flex: 1; padding: 11px;" onclick="closeModal('modal-confirm-refund')">
+            Hủy Bỏ
+          </button>
+          <button type="submit" id="btn-submit-refund" class="btn btn-primary" style="flex: 2; justify-content: center; padding: 11px; background: #059669; border-color: #059669;">
+            ✅ Xác Nhận Đã Chuyển Tiền
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CHI TIẾT GIAO DỊCH HOÀN TIỀN -->
+  <div class="modal-overlay" id="modal-refund-detail">
+    <div class="modal-card modal-card-lg" style="max-width: 560px;">
+      <div class="modal-header">
+        <h3 class="modal-title">📑 Chi Tiết Giao Dịch Hoàn Tiền</h3>
+        <button class="btn-close" onclick="closeModal('modal-refund-detail')">&times;</button>
+      </div>
+      <div id="refund-detail-content" style="padding: 4px 0;"></div>
+      <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+        <button class="btn btn-outline" onclick="closeModal('modal-refund-detail')">Đóng</button>
+      </div>
     </div>
   </div>
 

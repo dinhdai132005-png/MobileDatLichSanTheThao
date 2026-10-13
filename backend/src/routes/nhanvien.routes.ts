@@ -40,6 +40,7 @@ nhanVienRouter.post('/bookings/:id/cancel', kiemTraDuLieu(luocDoNhanVienHuyDon),
 
 // Hoàn tiền
 nhanVienRouter.get('/refunds', nhanVienController.layDanhSachHoanTien);
+nhanVienRouter.post('/refunds/demo-seed', nhanVienController.taoMauHoanTien);
 nhanVienRouter.post('/payments/:id/confirm-refund', kiemTraDuLieu(luocDoXacNhanHoanTien), nhanVienController.xacNhanHoanTien);
 
 // Tìm kiếm khách hàng

@@ -60,10 +60,15 @@ export function mapBackendDonDatToMobile(dongRaw: any): DonDat {
     balance: Number(dongRaw.balance ?? 0),
     paidAmount: Number(dongRaw.paidAmount ?? 0),
     canOrderService: Boolean(dongRaw.canOrderService),
-    refundPending: Boolean(dongRaw.refundPending),
+    refundPending: Boolean(dongRaw.refundPending || (dongRaw.refund && dongRaw.refund.status === 'PENDING')),
+    refund: dongRaw.refund || null,
+    lyDoHuy: dongRaw.lyDoHuy || dongRaw.cancelReason || dongRaw.note,
     trangThai: trangThaiDon,
     trangThaiGoc: trangThaiBackend,
-    trangThaiThanhToan: dongRaw.trangThaiThanhToan || dongRaw.paymentStatus || 'UNPAID',
+    trangThaiThanhToan:
+      (dongRaw.refundPending || (dongRaw.refund && dongRaw.refund.status === 'PENDING'))
+        ? 'REFUND_PENDING'
+        : (dongRaw.trangThaiThanhToan || dongRaw.paymentStatus || 'UNPAID'),
     mauSac: dongRaw.mauSac || '#00B884',
     hoTen: dongRaw.hoTen || dongRaw.fullName || dongRaw.tenKhachHang,
     soDT: dongRaw.soDienThoai || dongRaw.soDT,
@@ -106,11 +111,16 @@ export const donDatService = {
       return [];
     }
 
-    const danhSachRaw = await requestApi<any[]>(
-      apiClient.get<ApiResponse<any[]>>('/bookings/my')
-    );
-    const danhSach = Array.isArray(danhSachRaw) ? danhSachRaw : [];
-    return danhSach.map(mapBackendDonDatToMobile);
+    try {
+      const danhSachRaw = await requestApi<any[]>(
+        apiClient.get<ApiResponse<any[]>>('/bookings/my')
+      );
+      const danhSach = Array.isArray(danhSachRaw) ? danhSachRaw : [];
+      return danhSach.map(mapBackendDonDatToMobile);
+    } catch (err: any) {
+      console.warn('⚠️ [donDatService] Không thể tải danh sách đơn đặt:', err?.message || err);
+      return [];
+    }
   },
 
   /** Lấy chi tiết đơn đặt sân (CUS-07) */

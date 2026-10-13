@@ -15,6 +15,7 @@ import {
   Modal,
   TextInput,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -41,16 +42,18 @@ const TRANG_THAI = {
 };
 
 export default function HoSoScreen({ navigation }: { navigation?: any }) {
-  const { dangXuat } = useAuth();
+  const { currentUser, capNhatNguoiDung, dangXuat } = useAuth();
   const [tab, setTab] = useState<number>(0);
-  const [nguoiDung, setNguoiDung] = useState<NguoiDung | null>(null);
+  const [nguoiDung, setNguoiDung] = useState<NguoiDung | null>(currentUser);
   const [lichSu, setLichSu] = useState<DonDat[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(!currentUser);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [loiTai, setLoiTai] = useState<string | null>(null);
 
   // Modal Sửa hồ sơ
   const [hienModalSua, setHienModalSua] = useState<boolean>(false);
-  const [hoTenMoi, setHoTenMoi] = useState<string>('');
-  const [emailMoi, setEmailMoi] = useState<string>('');
+  const [hoTenMoi, setHoTenMoi] = useState<string>(currentUser?.hoTen || '');
+  const [emailMoi, setEmailMoi] = useState<string>(currentUser?.email || '');
   const [dangLuuHoSo, setDangLuuHoSo] = useState<boolean>(false);
 
   // Modal Đổi mật khẩu
@@ -68,27 +71,64 @@ export default function HoSoScreen({ navigation }: { navigation?: any }) {
   const [authEmail, setAuthEmail] = useState<string>('');
   const [dangXuLyAuth, setDangXuLyAuth] = useState<boolean>(false);
 
-  async function loadProfile() {
-    try {
+  // Đồng bộ khi currentUser trong AuthContext cập nhật
+  useEffect(() => {
+    if (currentUser) {
+      setNguoiDung(currentUser);
+      setHoTenMoi(currentUser.hoTen);
+      setEmailMoi(currentUser.email);
+    }
+  }, [currentUser]);
+
+  async function loadProfile(hienLoading = true) {
+    if (hienLoading && !nguoiDung) {
       setLoading(true);
-      const [user, bookings] = await Promise.all([
-        authService.getThongTinNguoiDung(),
-        donDatService.getLichSuDatSan(),
-      ]);
-      setNguoiDung(user);
-      setLichSu(bookings);
-      setHoTenMoi(user.hoTen);
-      setEmailMoi(user.email);
-    } catch (err) {
-      console.error('Lỗi tải thông tin profile:', err);
+    }
+    setLoiTai(null);
+    try {
+      // 1. Tải thông tin người dùng từ Backend REST API
+      try {
+        const user = await authService.getThongTinNguoiDung();
+        if (user) {
+          setNguoiDung(user);
+          capNhatNguoiDung(user);
+          setHoTenMoi(user.hoTen);
+          setEmailMoi(user.email);
+        }
+      } catch (errUser: any) {
+        console.warn('⚠️ Lỗi tải thông tin user:', errUser?.message || errUser);
+        if (!nguoiDung && !currentUser) {
+          setLoiTai(errUser?.message || 'Không thể tải thông tin cá nhân. Vui lòng thử lại!');
+        }
+      }
+
+      // 2. Tải lịch sử đơn đặt sân độc lập (không chặn hiển thị hồ sơ nếu lỗi)
+      try {
+        const bookings = await donDatService.getLichSuDatSan();
+        setLichSu(bookings || []);
+      } catch (errBooking: any) {
+        console.warn('⚠️ Lỗi tải lịch sử đơn đặt:', errBooking?.message || errBooking);
+        setLichSu([]);
+      }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }
 
+  // Tự động tải khi mở màn hình hoặc quay lại tab Hồ Sơ
   useEffect(() => {
     loadProfile();
-  }, []);
+    const unsubscribe = navigation?.addListener?.('focus', () => {
+      loadProfile(false);
+    });
+    return unsubscribe;
+  }, [navigation]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadProfile(false);
+  };
 
   // Xử lý Cập nhật hồ sơ (PUT /auth/me - CUS-03)
   const handleCapNhatHoSo = async () => {
@@ -103,6 +143,7 @@ export default function HoSoScreen({ navigation }: { navigation?: any }) {
         email: emailMoi.trim() || undefined,
       });
       setNguoiDung(userCapNhat);
+      capNhatNguoiDung(userCapNhat);
       setHienModalSua(false);
       Alert.alert('Thành công', 'Thông tin hồ sơ đã được cập nhật!');
     } catch (err: any) {
@@ -152,6 +193,7 @@ export default function HoSoScreen({ navigation }: { navigation?: any }) {
       if (cheDoAuth === 'dangNhap') {
         const res = await authService.dangNhap(authPhone.trim(), authPassword.trim());
         setNguoiDung(res.nguoiDung);
+        capNhatNguoiDung(res.nguoiDung);
         Alert.alert('Chào mừng', `Đăng nhập thành công! Chào ${res.nguoiDung.hoTen}`);
       } else {
         if (!authFullName.trim()) {
@@ -166,10 +208,11 @@ export default function HoSoScreen({ navigation }: { navigation?: any }) {
           matKhau: authPassword.trim(),
         });
         setNguoiDung(res.nguoiDung);
+        capNhatNguoiDung(res.nguoiDung);
         Alert.alert('Thành công', `Đăng ký tài khoản thành công!`);
       }
       setHienModalAuth(false);
-      loadProfile();
+      loadProfile(false);
     } catch (err: any) {
       Alert.alert('Thất bại', err.message || 'Thao tác không thành công');
     } finally {
@@ -177,12 +220,39 @@ export default function HoSoScreen({ navigation }: { navigation?: any }) {
     }
   };
 
-  if (loading || !nguoiDung) {
+  // Đang tải lần đầu và chưa có dữ liệu đệm
+  if (loading && !nguoiDung) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color={MAU.chinh} />
         <Text style={{ marginTop: 10, color: MAU.phu, fontSize: 13 }}>Đang tải thông tin hồ sơ...</Text>
       </View>
+    );
+  }
+
+  // Lỗi không có thông tin người dùng
+  if (!nguoiDung) {
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
+        <Ionicons name="alert-circle-outline" size={60} color={MAU.nguyHiem} />
+        <Text style={{ marginTop: 16, fontSize: 18, fontWeight: '700', color: MAU.chu, textAlign: 'center' }}>
+          Không thể tải thông tin hồ sơ
+        </Text>
+        <Text style={{ marginTop: 8, fontSize: 13, color: MAU.phu, textAlign: 'center', marginBottom: 24 }}>
+          {loiTai || 'Đã xảy ra sự cố khi kết nối đến máy chủ. Vui lòng kiểm tra mạng và thử lại.'}
+        </Text>
+        <TouchableOpacity
+          style={{
+            backgroundColor: MAU.chinh,
+            paddingHorizontal: 28,
+            paddingVertical: 12,
+            borderRadius: 12,
+          }}
+          onPress={() => loadProfile(true)}
+        >
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Thử lại</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
     );
   }
 
@@ -195,18 +265,30 @@ export default function HoSoScreen({ navigation }: { navigation?: any }) {
         <Text style={styles.tieuDe}>Hồ sơ cá nhân</Text>
       </SafeAreaView>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[MAU.chinh]}
+            tintColor={MAU.chinh}
+          />
+        }
+      >
         {/* AVATAR & SUMMARY */}
         <View style={styles.khoiProfile}>
           <View style={styles.avatar}>
-            <Text style={styles.chuAvatar}>{nguoiDung.hoTen.charAt(0)}</Text>
+            <Text style={styles.chuAvatar}>
+              {nguoiDung.hoTen ? nguoiDung.hoTen.trim().charAt(0).toUpperCase() : 'U'}
+            </Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.tenND}>{nguoiDung.hoTen}</Text>
+            <Text style={styles.tenND}>{nguoiDung.hoTen || 'Khách Hàng'}</Text>
             <Text style={styles.emailND}>{nguoiDung.email || nguoiDung.soDienThoai}</Text>
             <View style={styles.badgeTV}>
               <Ionicons name="star" size={12} color="#D97706" />
-              <Text style={styles.chuBadge}>{nguoiDung.capDoThanhVien}</Text>
+              <Text style={styles.chuBadge}>{nguoiDung.capDoThanhVien || 'Thành viên'}</Text>
             </View>
           </View>
           <TouchableOpacity

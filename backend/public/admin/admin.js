@@ -838,57 +838,274 @@ async function doiTrangThaiBanDichVu(id, status) {
 }
 
 // ================= 9. TAB XỬ LÝ HOÀN TIỀN (STF-09, BR-34, TC-31) =================
+let currentRefundStatus = 'PENDING';
+let currentRefundKeyword = '';
+let refundItemsCache = [];
+
 async function loadRefunds() {
   try {
-    const res = await apiFetch('/staff/refunds?status=PENDING');
-    const refunds = res.data?.items || [];
-    renderRefundsTable(refunds);
+    const statusParam = currentRefundStatus === 'ALL' ? '' : `status=${currentRefundStatus}`;
+    const kwParam = currentRefundKeyword ? `&keyword=${encodeURIComponent(currentRefundKeyword)}` : '';
+    const query = [statusParam, kwParam].filter(Boolean).join('&');
+    const url = `/staff/refunds${query ? '?' + query : ''}`;
+
+    const res = await apiFetch(url);
+    const data = res.data || {};
+    refundItemsCache = data.items || [];
+
+    // Cập nhật thống kê thẻ KPI
+    if (data.stats) {
+      const elTotal = document.getElementById('rf-stat-total');
+      const elTotalAmt = document.getElementById('rf-stat-total-amt');
+      const elPending = document.getElementById('rf-stat-pending');
+      const elPendingAmt = document.getElementById('rf-stat-pending-amt');
+      const elSuccess = document.getElementById('rf-stat-success');
+      const elSuccessAmt = document.getElementById('rf-stat-success-amt');
+
+      if (elTotal) elTotal.textContent = data.stats.totalCount || 0;
+      if (elTotalAmt) elTotalAmt.textContent = formatMoney(data.stats.totalAmount || 0);
+      if (elPending) elPending.textContent = data.stats.pendingCount || 0;
+      if (elPendingAmt) elPendingAmt.textContent = formatMoney(data.stats.pendingAmount || 0);
+      if (elSuccess) elSuccess.textContent = data.stats.successCount || 0;
+      if (elSuccessAmt) elSuccessAmt.textContent = formatMoney(data.stats.successAmount || 0);
+
+      // Cập nhật số liệu chờ hoàn trên Dashboard nếu có
+      const dashKpi = document.getElementById('kpi-pending-refund');
+      if (dashKpi) dashKpi.textContent = data.stats.pendingCount || 0;
+    }
+
+    renderRefundsTable(refundItemsCache);
   } catch (err) {
     showToast('Lỗi tải danh sách hoàn tiền: ' + err.message, true);
   }
 }
 
+function filterRefunds(status) {
+  currentRefundStatus = status;
+
+  // Cập nhật style nút lọc
+  ['all', 'pending', 'success'].forEach((type) => {
+    const btn = document.getElementById(`rf-btn-filter-${type}`);
+    if (btn) {
+      if (
+        (type === 'all' && status === 'ALL') ||
+        (type === 'pending' && status === 'PENDING') ||
+        (type === 'success' && status === 'SUCCESS')
+      ) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    }
+  });
+
+  loadRefunds();
+}
+
+function triggerRefundSearch() {
+  const kwInput = document.getElementById('rf-search-keyword');
+  currentRefundKeyword = kwInput ? kwInput.value.trim() : '';
+  loadRefunds();
+}
+
+function onRefundSearchKeyUp(e) {
+  if (e.key === 'Enter') {
+    triggerRefundSearch();
+  }
+}
+
 function renderRefundsTable(refunds) {
   const tbody = document.getElementById('refunds-tbody');
+  if (!tbody) return;
   tbody.innerHTML = '';
 
   if (refunds.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:20px;">Hiện không có khoản hoàn tiền nào cần xử lý</td></tr>';
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" style="text-align:center; padding:40px 20px; color:var(--text-muted);">
+          <div style="font-size:36px; margin-bottom:10px;">💸</div>
+          <strong style="font-size:15px; color:var(--text-main);">Không có khoản hoàn tiền nào</strong>
+          <p style="font-size:12.5px; margin-top:4px;">
+            ${currentRefundStatus === 'PENDING' ? 'Hiện không có đơn nào đang chờ nhân viên chuyển khoản.' : 'Không tìm thấy kết quả phù hợp với bộ lọc hiện tại.'}
+          </p>
+          <button class="btn btn-outline" style="margin-top:12px; font-size:12px;" onclick="taoMauHoanTienDemo()">⚡ Tạo thử đơn mẫu hoàn tiền</button>
+        </td>
+      </tr>
+    `;
     return;
   }
 
   refunds.forEach((rf) => {
     const tr = document.createElement('tr');
+    const isPending = rf.status === 'PENDING';
+
+    const statusBadge = isPending
+      ? `<span class="badge" style="background:rgba(245, 158, 11, 0.2); color:#FBBF24; border:1px solid rgba(245, 158, 11, 0.4); font-weight:700;">⏳ PENDING</span>`
+      : `<span class="badge" style="background:rgba(16, 185, 129, 0.2); color:#10B981; border:1px solid rgba(16, 185, 129, 0.4); font-weight:700;">✅ REFUNDED</span>`;
+
+    const actionBtn = isPending
+      ? `<button class="btn btn-primary" style="padding:6px 12px; font-size:12px; background:#059669; border-color:#059669;" onclick="moModalXacNhanHoanTien(${rf.paymentId})">💸 Chuyển Hoàn</button>`
+      : `<button class="btn btn-outline" style="padding:5px 11px; font-size:12px;" onclick="moModalChiTietHoanTien(${rf.paymentId})">👁️ Đối Soát</button>`;
+
     tr.innerHTML = `
-      <td style="font-family:var(--font-mono); font-weight:700;">#${rf.paymentId}</td>
-      <td style="font-weight:700; color:var(--primary); cursor:pointer;" onclick="viewDetail(${rf.booking.id})">${rf.booking.bookingCode}</td>
-      <td>${rf.booking.customerName}<br><span style="font-size:12px; color:var(--text-muted);">${rf.booking.customerPhone || ''}</span></td>
-      <td style="font-weight:800; color:var(--danger);">${formatMoney(rf.amount)}</td>
-      <td style="background:rgba(239, 68, 68, 0.08); font-family:var(--font-mono); font-size:12.5px; border-left:2px solid var(--danger);">${rf.refundInfo || 'Chưa cung cấp STK'}</td>
-      <td style="font-size:12px;">${formatDateTime(rf.createdAt)}</td>
-      <td><span class="badge" style="background:rgba(245, 158, 11, 0.2); color:#FBBF24;">PENDING</span></td>
+      <td style="font-family:var(--font-mono); font-weight:700; color:var(--text-muted);">#${rf.paymentId}</td>
       <td>
-        <button class="btn btn-primary" style="padding:4px 8px; font-size:12px;" onclick="xacNhanHoanTien(${rf.paymentId}, ${rf.amount})">💸 Đã Chuyển Tiền</button>
+        <span style="font-weight:700; color:var(--primary); cursor:pointer; font-family:var(--font-mono);" onclick="viewDetail(${rf.booking.id})">${rf.booking.bookingCode}</span>
+        <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">
+          🏟️ ${rf.booking.courtName || ''} • 📅 ${rf.booking.bookingDate || ''}
+        </div>
       </td>
+      <td>
+        <strong>${rf.booking.customerName}</strong>
+        <div style="font-size:12px; color:var(--text-muted); font-family:var(--font-mono);">${rf.booking.customerPhone || 'N/A'}</div>
+      </td>
+      <td style="font-weight:800; font-size:14.5px; color:var(--danger);">${formatMoney(rf.amount)}</td>
+      <td>
+        <div style="background:rgba(59, 130, 246, 0.08); padding:6px 10px; border-radius:6px; font-family:var(--font-mono); font-size:12px; border-left:3px solid var(--info); word-break:break-all;">
+          ${rf.refundInfo || 'Chưa cung cấp STK'}
+        </div>
+        ${rf.booking.cancelReason ? `<div style="font-size:11px; color:var(--text-muted); font-style:italic; margin-top:3px;">Lý do: ${rf.booking.cancelReason}</div>` : ''}
+      </td>
+      <td style="font-size:12px; color:var(--text-muted);">
+        ${formatDateTime(rf.createdAt)}
+        ${rf.processedAt ? `<div style="font-size:11px; color:var(--primary); margin-top:2px;">Hoàn lúc: ${formatDateTime(rf.processedAt)}</div>` : ''}
+      </td>
+      <td>${statusBadge}</td>
+      <td style="text-align: right;">${actionBtn}</td>
     `;
     tbody.appendChild(tr);
   });
 }
 
-async function xacNhanHoanTien(paymentId, amount) {
-  const ref = prompt(`Xác nhận đã chuyển khoản hoàn ${formatMoney(amount)} cho khách?\nNhập mã giao dịch chuyển khoản ngân hàng (transactionRef):`);
-  if (ref === null) return;
+function moModalXacNhanHoanTien(paymentId) {
+  const rf = refundItemsCache.find((item) => item.paymentId === paymentId);
+  if (!rf) {
+    showToast('Không tìm thấy thông tin khoản hoàn tiền!', true);
+    return;
+  }
+
+  document.getElementById('confirm-rf-payment-id').value = rf.paymentId;
+  document.getElementById('confirm-rf-amount').textContent = formatMoney(rf.amount);
+  document.getElementById('confirm-rf-code').textContent = rf.booking.bookingCode;
+  document.getElementById('confirm-rf-court').textContent = `${rf.booking.courtName || ''} (${rf.booking.bookingDate || ''})`;
+  document.getElementById('confirm-rf-customer').textContent = rf.booking.customerName;
+  document.getElementById('confirm-rf-phone').textContent = rf.booking.customerPhone || 'N/A';
+  document.getElementById('confirm-rf-reason').textContent = rf.booking.cancelReason || 'Khách tự hủy trên ứng dụng';
+
+  const rawInfo = rf.refundInfo || '';
+  document.getElementById('confirm-rf-bank-info').textContent = rawInfo || 'Chưa có thông tin nhận tiền';
+
+  // Trích xuất số tài khoản từ thông tin
+  const accMatch = rawInfo.match(/\b\d{6,16}\b/);
+  const accNo = accMatch ? accMatch[0] : '';
+  document.getElementById('confirm-rf-raw-acc').value = accNo || rawInfo;
+
+  // Xác định mã ngân hàng để sinh VietQR
+  let bankCode = 'Vietcombank';
+  if (/MB|mb|MBBANK/i.test(rawInfo)) bankCode = 'MB';
+  else if (/Techcombank|TCB/i.test(rawInfo)) bankCode = 'TCB';
+  else if (/BIDV/i.test(rawInfo)) bankCode = 'BIDV';
+  else if (/ACB/i.test(rawInfo)) bankCode = 'ACB';
+  else if (/VPBank|VPB/i.test(rawInfo)) bankCode = 'VPB';
+  else if (/Vietinbank|CTG/i.test(rawInfo)) bankCode = 'ICB';
+  else if (/TPBank|TPB/i.test(rawInfo)) bankCode = 'TPB';
+  else if (/Agribank/i.test(rawInfo)) bankCode = 'VBA';
+
+  const targetAcc = accNo || '0123456789';
+  const qrUrl = `https://img.vietqr.io/image/${bankCode}-${targetAcc}-compact2.png?amount=${rf.amount}&addInfo=${encodeURIComponent('HOAN TIEN ' + rf.booking.bookingCode)}`;
+  const qrImg = document.getElementById('confirm-rf-qr-img');
+  if (qrImg) qrImg.src = qrUrl;
+
+  // Mặc định sinh mã đối soát ngân hàng gợi ý
+  const defaultRef = `REFUND-${Date.now().toString().slice(-6)}`;
+  document.getElementById('confirm-rf-txn-ref').value = defaultRef;
+  document.getElementById('confirm-rf-note').value = `Nhân viên đối soát và hoàn tiền đơn ${rf.booking.bookingCode}`;
+
+  openModal('modal-confirm-refund');
+}
+
+function copyRefundAccount() {
+  const acc = document.getElementById('confirm-rf-raw-acc').value || document.getElementById('confirm-rf-bank-info').textContent;
+  if (!acc) return;
+  navigator.clipboard.writeText(acc).then(() => {
+    showToast('Đã sao chép thông tin tài khoản hoàn tiền!');
+  }).catch(() => {
+    showToast('Thông tin: ' + acc);
+  });
+}
+
+async function handleConfirmRefundSubmit(e) {
+  e.preventDefault();
+  const paymentId = document.getElementById('confirm-rf-payment-id').value;
+  const transactionRef = document.getElementById('confirm-rf-txn-ref').value.trim();
+  const note = document.getElementById('confirm-rf-note').value.trim();
+
+  const submitBtn = document.getElementById('btn-submit-refund');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = '⏳ Đang xử lý...';
+  }
 
   try {
     await apiFetch(`/staff/payments/${paymentId}/confirm-refund`, {
       method: 'POST',
-      body: JSON.stringify({ transactionRef: ref || 'CK-HOANTIEN' }),
+      body: JSON.stringify({ transactionRef, note }),
     });
 
+    closeModal('modal-confirm-refund');
     showToast('Xác nhận hoàn tiền thành công! Trạng thái đơn đã cập nhật REFUNDED.');
     loadRefunds();
   } catch (err) {
     showToast('Lỗi xác nhận hoàn tiền: ' + err.message, true);
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = '✅ Xác Nhận Đã Chuyển Tiền';
+    }
+  }
+}
+
+function moModalChiTietHoanTien(paymentId) {
+  const rf = refundItemsCache.find((item) => item.paymentId === paymentId);
+  if (!rf) return;
+
+  const content = document.getElementById('refund-detail-content');
+  if (!content) return;
+
+  content.innerHTML = `
+    <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:14px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid var(--border); padding-bottom:10px;">
+        <span style="font-size:14px; font-weight:700;">Giao Dịch Hoàn Tiền #${rf.paymentId}</span>
+        <span class="badge" style="background:rgba(16, 185, 129, 0.2); color:#10B981; font-weight:700;">✅ SUCCESS</span>
+      </div>
+      <div style="font-size:13px; line-height:1.8; color:var(--text-main);">
+        <div><strong>Mã đơn đặt:</strong> <span style="font-family:var(--font-mono); color:var(--primary); font-weight:700;">${rf.booking.bookingCode}</span></div>
+        <div><strong>Sân thể thao:</strong> ${rf.booking.courtName || 'N/A'} (Ngày: ${rf.booking.bookingDate || 'N/A'})</div>
+        <div><strong>Khách hàng:</strong> ${rf.booking.customerName} - ${rf.booking.customerPhone || 'N/A'}</div>
+        <div><strong>Số tiền hoàn:</strong> <span style="font-weight:800; color:var(--danger); font-size:15px;">${formatMoney(rf.amount)}</span></div>
+        <div><strong>Mã giao dịch đối soát:</strong> <span style="font-family:var(--font-mono); font-weight:700; color:var(--info);">${rf.transactionRef || 'N/A'}</span></div>
+        <div><strong>Người xử lý:</strong> ${rf.processorName || `Nhân viên #${rf.processorId || 2}`}</div>
+        <div><strong>Thời gian gửi yêu cầu:</strong> ${formatDateTime(rf.createdAt)}</div>
+        <div><strong>Thời gian xử lý:</strong> ${formatDateTime(rf.processedAt)}</div>
+      </div>
+    </div>
+    <div style="background:rgba(59, 130, 246, 0.06); border:1px solid rgba(59, 130, 246, 0.25); border-radius:10px; padding:12px;">
+      <div style="font-size:12px; font-weight:700; color:var(--info); margin-bottom:4px;">THÔNG TIN TÀI KHOẢN NHẬN HOÀN TIỀN:</div>
+      <div style="font-family:var(--font-mono); font-size:13px; font-weight:600; color:#1E40AF;">${rf.refundInfo || 'Chưa cung cấp'}</div>
+      ${rf.booking.cancelReason ? `<div style="font-size:12px; color:var(--text-muted); margin-top:6px; font-style:italic;">Lý do khách hủy: ${rf.booking.cancelReason}</div>` : ''}
+    </div>
+  `;
+
+  openModal('modal-refund-detail');
+}
+
+async function taoMauHoanTienDemo() {
+  try {
+    const res = await apiFetch('/staff/refunds/demo-seed', { method: 'POST' });
+    showToast(res.message || 'Đã tạo dữ liệu mẫu hoàn tiền thành công!');
+    loadRefunds();
+  } catch (err) {
+    showToast('Lỗi tạo mẫu hoàn tiền: ' + err.message, true);
   }
 }
 
@@ -1507,16 +1724,59 @@ async function doiTrangThaiNhanVien(id, status) {
 }
 
 // ================= 16. TAB BÁO CÁO (ADMIN - ADM-07, BR-32, TC-58) =================
+let cachedReportsData = {
+  revenue: {},
+  summary: {},
+  services: [],
+  itemized: {},
+};
+let currentServiceTypeFilter = 'ALL';
+
+// Nút chọn khoảng ngày nhanh (Quick presets)
+function chonKhoangNgay(preset) {
+  const fromEl = document.getElementById('rep-from');
+  const toEl = document.getElementById('rep-to');
+  const today = new Date();
+  const todayStr = today.toISOString().substring(0, 10);
+
+  document.querySelectorAll('.preset-btn').forEach((b) => b.classList.remove('active'));
+
+  if (preset === 'today') {
+    fromEl.value = todayStr;
+    toEl.value = todayStr;
+    event?.target?.classList.add('active');
+  } else if (preset === '7days') {
+    const d7 = new Date();
+    d7.setDate(today.getDate() - 6);
+    fromEl.value = d7.toISOString().substring(0, 10);
+    toEl.value = todayStr;
+    event?.target?.classList.add('active');
+  } else if (preset === 'this_month') {
+    fromEl.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+    toEl.value = todayStr;
+    document.getElementById('btn-preset-month')?.classList.add('active');
+  } else if (preset === 'last_month') {
+    const prevMonthLastDay = new Date(today.getFullYear(), today.getMonth(), 0);
+    const prevMonthFirstDay = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    fromEl.value = prevMonthFirstDay.toISOString().substring(0, 10);
+    toEl.value = prevMonthLastDay.toISOString().substring(0, 10);
+    event?.target?.classList.add('active');
+  } else if (preset === 'all') {
+    fromEl.value = '';
+    toEl.value = '';
+    event?.target?.classList.add('active');
+  }
+
+  loadReports();
+}
+
 async function loadReports() {
   const fromEl = document.getElementById('rep-from');
   const toEl = document.getElementById('rep-to');
 
-  if (fromEl && !fromEl.value) {
+  if (fromEl && !fromEl.value && toEl && !toEl.value) {
     const today = new Date();
     fromEl.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
-  }
-  if (toEl && !toEl.value) {
-    const today = new Date();
     toEl.value = today.toISOString().substring(0, 10);
   }
 
@@ -1528,76 +1788,432 @@ async function loadReports() {
   if (to) params.append('to', to);
 
   try {
-    const [revRes, summaryRes, servicesRes] = await Promise.all([
+    const [revRes, summaryRes, servicesRes, itemizedRes] = await Promise.all([
       apiFetch(`/admin/reports/revenue?${params.toString()}`),
       apiFetch(`/admin/reports/summary?${params.toString()}`),
       apiFetch(`/admin/reports/services?${params.toString()}`),
+      apiFetch(`/admin/reports/itemized-breakdown?${params.toString()}`),
     ]);
 
     const rev = revRes.data || {};
     const sum = summaryRes.data || {};
-    const services = Array.isArray(servicesRes.data)
-      ? servicesRes.data
-      : (servicesRes.data?.topServices || servicesRes.data?.items || []);
+    const services = Array.isArray(servicesRes.data?.allServices)
+      ? servicesRes.data.allServices
+      : (Array.isArray(servicesRes.data?.topServices) ? servicesRes.data.topServices : (Array.isArray(servicesRes.data) ? servicesRes.data : []));
+    const itemized = itemizedRes.data || {};
 
-    const courtRev = Number(rev.courtRevenue ?? sum.revenue?.court ?? 0);
-    const serviceRev = Number(rev.serviceRevenue ?? sum.revenue?.service ?? 0);
-    const refundRev = Number(rev.refundAmount ?? 0);
-    const netRev = Number(rev.totalRevenue ?? sum.revenue?.total ?? (courtRev + serviceRev - refundRev));
+    cachedReportsData = { revenue: rev, summary: sum, services, itemized };
+
+    // 1. CẬP NHẬT 7 THẺ KPI CHI TIẾT TỪNG KHOẢN
+    const courtRev = Number(itemized.summary?.courtRevenue ?? rev.courtRevenue ?? sum.revenue?.court ?? 0);
+    const drinkRev = Number(itemized.summary?.drinkRevenue ?? rev.drinkRevenue ?? sum.revenue?.drinks ?? 0);
+    const rentalRev = Number(itemized.summary?.rentalRevenue ?? rev.rentalRevenue ?? sum.revenue?.rentals ?? 0);
+    const packageRev = Number(itemized.summary?.packageRevenue ?? rev.packageRevenue ?? sum.revenue?.packages ?? 0);
+    const refundRev = Number(itemized.summary?.totalRefund ?? rev.refundAmount ?? sum.revenue?.totalRefunded ?? 0);
+    const netRev = Number(itemized.summary?.netRevenue ?? rev.totalRevenue ?? sum.revenue?.netRevenue ?? (courtRev + drinkRev + rentalRev + packageRev - refundRev));
 
     document.getElementById('rep-court-rev').textContent = formatMoney(courtRev);
-    document.getElementById('rep-service-rev').textContent = formatMoney(serviceRev);
+    document.getElementById('rep-drink-rev').textContent = formatMoney(drinkRev);
+    document.getElementById('rep-rental-rev').textContent = formatMoney(rentalRev);
+    document.getElementById('rep-package-rev').textContent = formatMoney(packageRev);
     document.getElementById('rep-refund-rev').textContent = formatMoney(refundRev);
     document.getElementById('rep-net-rev').textContent = formatMoney(netRev);
     document.getElementById('rep-occupancy').textContent = `${sum.occupancyRate ?? sum.tyLeLapDay ?? 0}%`;
-    document.getElementById('rep-debt-closed').textContent = sum.debtClosed?.count ?? sum.debtClosedBookings ?? 0;
 
-    // Chi tiết theo ngày
-    const tbody = document.getElementById('rep-tbody');
-    tbody.innerHTML = '';
-    const daily = Array.isArray(rev.items) ? rev.items : (Array.isArray(rev.daily) ? rev.daily : []);
-    if (daily.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:20px;">Không có dữ liệu trong kỳ báo cáo</td></tr>';
-    } else {
-      daily.forEach((d) => {
-        const tr = document.createElement('tr');
-        const cRev = d.court?.revenue ?? d.courtRevenue ?? 0;
-        const sRev = d.service?.revenue ?? d.serviceRevenue ?? 0;
-        const refAmt = (d.court?.refunded || 0) + (d.service?.refunded || 0) || (d.refundAmount || 0);
-        const net = d.revenue ?? d.netRevenue ?? (cRev + sRev - refAmt);
-        tr.innerHTML = `
-          <td style="font-weight:700;">${formatDate(d.date)}</td>
-          <td>${formatMoney(cRev)}</td>
-          <td>${formatMoney(sRev)}</td>
-          <td style="color:var(--danger);">${formatMoney(refAmt)}</td>
-          <td style="font-weight:800; color:#34D399;">${formatMoney(net)}</td>
-        `;
-        tbody.appendChild(tr);
-      });
+    // Phụ chú số lượng
+    const catDrink = itemized.categories?.find((c) => c.key === 'DRINK');
+    const catRental = itemized.categories?.find((c) => c.key === 'RENTAL');
+    const catPkg = itemized.categories?.find((c) => c.key === 'PACKAGE');
+
+    if (document.getElementById('rep-drink-sub')) {
+      document.getElementById('rep-drink-sub').textContent = `${catDrink?.qty || 0} chai / lon / ly đã bán`;
+    }
+    if (document.getElementById('rep-rental-sub')) {
+      document.getElementById('rep-rental-sub').textContent = `${catRental?.qty || 0} lượt thuê dụng cụ`;
+    }
+    if (document.getElementById('rep-package-sub')) {
+      document.getElementById('rep-package-sub').textContent = `${catPkg?.qty || 0} gói combo / tiệc`;
     }
 
-    // Top dịch vụ bán chạy
-    const tbodySv = document.getElementById('rep-services-tbody');
-    tbodySv.innerHTML = '';
-    if (services.length === 0) {
-      tbodySv.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:20px;">Chưa có dịch vụ nào phát sinh trong kỳ</td></tr>';
-    } else {
-      services.forEach((s) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td style="font-family:var(--font-mono); font-weight:700;">#${s.serviceId || s.id}</td>
-          <td style="font-weight:700;">${s.name || s.serviceName}</td>
-          <td><span class="badge" style="background:rgba(59, 130, 246, 0.2); color:#60A5FA;">${s.type || s.category || 'Dịch vụ'}</span></td>
-          <td style="font-weight:800;">${s.qty ?? s.totalQuantity ?? 0} ${s.unit || ''}</td>
-          <td style="font-weight:800; color:var(--info);">${formatMoney(s.amount ?? s.totalRevenue ?? 0)}</td>
-        `;
-        tbodySv.appendChild(tr);
-      });
+    // 2. THANH TỶ TRỌNG CƠ CẤU DOANH THU TRỰC QUAN
+    const totalGross = (itemized.summary?.courtPaid || courtRev) + drinkRev + rentalRev + packageRev;
+    const pCourt = totalGross > 0 ? ((courtRev / totalGross) * 100).toFixed(1) : 0;
+    const pDrink = totalGross > 0 ? ((drinkRev / totalGross) * 100).toFixed(1) : 0;
+    const pRental = totalGross > 0 ? ((rentalRev / totalGross) * 100).toFixed(1) : 0;
+    const pPkg = totalGross > 0 ? ((packageRev / totalGross) * 100).toFixed(1) : 0;
+
+    const barCourt = document.getElementById('bar-court');
+    const barDrinks = document.getElementById('bar-drinks');
+    const barRentals = document.getElementById('bar-rentals');
+    const barPackages = document.getElementById('bar-packages');
+
+    if (barCourt) {
+      barCourt.style.width = `${pCourt}%`;
+      barCourt.title = `Tiền sân: ${formatMoney(courtRev)} (${pCourt}%)`;
     }
+    if (barDrinks) {
+      barDrinks.style.width = `${pDrink}%`;
+      barDrinks.title = `Nước uống: ${formatMoney(drinkRev)} (${pDrink}%)`;
+    }
+    if (barRentals) {
+      barRentals.style.width = `${pRental}%`;
+      barRentals.title = `Thuê đồ: ${formatMoney(rentalRev)} (${pRental}%)`;
+    }
+    if (barPackages) {
+      barPackages.style.width = `${pPkg}%`;
+      barPackages.title = `Gói tiệc: ${formatMoney(packageRev)} (${pPkg}%)`;
+    }
+
+    if (document.getElementById('leg-court-val')) {
+      document.getElementById('leg-court-val').textContent = `${formatMoney(courtRev)} (${pCourt}%)`;
+    }
+    if (document.getElementById('leg-drinks-val')) {
+      document.getElementById('leg-drinks-val').textContent = `${formatMoney(drinkRev)} (${pDrink}%)`;
+    }
+    if (document.getElementById('leg-rentals-val')) {
+      document.getElementById('leg-rentals-val').textContent = `${formatMoney(rentalRev)} (${pRental}%)`;
+    }
+    if (document.getElementById('leg-packages-val')) {
+      document.getElementById('leg-packages-val').textContent = `${formatMoney(packageRev)} (${pPkg}%)`;
+    }
+    if (document.getElementById('leg-refund-val')) {
+      document.getElementById('leg-refund-val').textContent = formatMoney(refundRev);
+    }
+    if (document.getElementById('rep-comp-total-text')) {
+      document.getElementById('rep-comp-total-text').textContent = `Tổng doanh thu thực nhận: ${formatMoney(netRev)}`;
+    }
+
+    // 3. BẢNG PHÂN TÍCH CƠ CẤU DOANH THU CHI TIẾT TỪNG KHOẢN MỤC
+    renderCategoriesBreakdownTable(itemized.categories, courtRev, refundRev, netRev);
+
+    // 4. BẢNG CHI TIẾT DOANH THU TỪNG KHOẢN THEO NGÀY
+    renderDailyItemizedTable(rev.items || rev.daily || []);
+
+    // 5. BẢNG CHI TIẾT MẶT HÀNG DỊCH VỤ
+    renderServicesTable(services, currentServiceTypeFilter);
+
+    // 6. SỔ NHẬT KÝ THU TIỀN CHI TIẾT (ITEMIZED LEDGER)
+    renderLedgerTable(itemized.recentTransactions || []);
   } catch (err) {
-    showToast('Lỗi tải báo cáo: ' + err.message, true);
+    showToast('Lỗi tải báo cáo chi tiết: ' + err.message, true);
   }
 }
+
+// Render Bảng 1: Cơ cấu doanh thu theo từng khoản
+function renderCategoriesBreakdownTable(categories, courtRev, refundRev, netRev) {
+  const tbody = document.getElementById('rep-categories-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  const list = Array.isArray(categories) && categories.length > 0 ? categories : [
+    { key: 'COURT', name: 'Tiền thuê sân', icon: '🏟️', amount: courtRev, grossAmount: courtRev, refundAmount: 0, percentage: 100 },
+    { key: 'DRINK', name: 'Nước uống giải khát', icon: '🥤', amount: 0, grossAmount: 0, refundAmount: 0, percentage: 0 },
+    { key: 'RENTAL', name: 'Thuê dụng cụ & đồ chơi', icon: '🏸', amount: 0, grossAmount: 0, refundAmount: 0, percentage: 0 },
+    { key: 'PACKAGE', name: 'Gói combo & dịch vụ tiệc', icon: '📦', amount: 0, grossAmount: 0, refundAmount: 0, percentage: 0 },
+  ];
+
+  list.forEach((c) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight: 700;">
+        <span style="font-size: 16px; margin-right: 6px;">${c.icon || '📌'}</span>
+        ${c.name}
+        <div style="font-size: 11.5px; color: var(--text-muted); font-weight: normal; margin-top: 2px;">${c.description || ''}</div>
+      </td>
+      <td><span class="badge" style="background: rgba(59, 130, 246, 0.15); color: #60A5FA;">${c.key}</span></td>
+      <td style="font-weight: 600;">${c.qty !== undefined ? `${c.qty} ${c.unit || ''}` : '—'}</td>
+      <td style="font-weight: 700;">${formatMoney(c.grossAmount ?? c.amount)}</td>
+      <td style="color: var(--danger); font-weight: 600;">${c.refundAmount ? `−${formatMoney(c.refundAmount)}` : '0 ₫'}</td>
+      <td style="font-weight: 800; color: #34D399;">${formatMoney(c.amount)}</td>
+      <td>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div style="width: 60px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow:hidden;">
+            <div style="width: ${c.percentage || 0}%; height: 100%; background: var(--primary);"></div>
+          </div>
+          <span style="font-weight: 700;">${c.percentage || 0}%</span>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Dòng hoàn tiền tổng
+  if (refundRev > 0) {
+    const trRef = document.createElement('tr');
+    trRef.style.background = 'rgba(239, 68, 68, 0.05)';
+    trRef.innerHTML = `
+      <td style="font-weight: 700; color: var(--danger);">🔄 Hoàn tiền cho khách (Đơn hủy hợp lệ)</td>
+      <td><span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #F87171;">REFUND</span></td>
+      <td>—</td>
+      <td>0 ₫</td>
+      <td style="color: var(--danger); font-weight: 700;">−${formatMoney(refundRev)}</td>
+      <td style="color: var(--danger); font-weight: 700;">−${formatMoney(refundRev)}</td>
+      <td>—</td>
+    `;
+    tbody.appendChild(trRef);
+  }
+
+  // Dòng Tổng Cộng Thực Nhận
+  const trTotal = document.createElement('tr');
+  trTotal.style.background = 'rgba(16, 185, 129, 0.1)';
+  trTotal.style.fontWeight = '800';
+  trTotal.innerHTML = `
+    <td style="color: #34D399; font-size: 14px;">💵 TỔNG DOANH THU THỰC NHẬN (NET)</td>
+    <td><span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34D399;">NET_REV</span></td>
+    <td>—</td>
+    <td>—</td>
+    <td style="color: var(--danger);">−${formatMoney(refundRev)}</td>
+    <td style="color: #34D399; font-size: 15px;">${formatMoney(netRev)}</td>
+    <td style="color: #34D399;">100%</td>
+  `;
+  tbody.appendChild(trTotal);
+}
+
+// Render Bảng 2: Chi tiết doanh thu từng khoản theo ngày
+function renderDailyItemizedTable(dailyItems) {
+  const tbody = document.getElementById('rep-tbody');
+  const tfoot = document.getElementById('rep-tfoot');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  if (tfoot) tfoot.innerHTML = '';
+
+  if (!dailyItems || dailyItems.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:20px;">Không có dữ liệu trong kỳ báo cáo</td></tr>';
+    return;
+  }
+
+  let sumCourt = 0, sumDrinks = 0, sumRentals = 0, sumPackages = 0, sumServices = 0, sumRefund = 0, sumNet = 0;
+
+  dailyItems.forEach((d) => {
+    const cRev = d.court?.revenue ?? d.courtRevenue ?? 0;
+    const dAmt = d.drinks?.amount ?? 0;
+    const rAmt = d.rentals?.amount ?? 0;
+    const pAmt = d.packages?.amount ?? 0;
+    const sRev = d.service?.revenue ?? (dAmt + rAmt + pAmt);
+    const refAmt = d.refundAmount ?? ((d.court?.refunded || 0) + (d.service?.refunded || 0));
+    const net = d.revenue ?? (cRev + sRev - refAmt);
+
+    sumCourt += cRev;
+    sumDrinks += dAmt;
+    sumRentals += rAmt;
+    sumPackages += pAmt;
+    sumServices += sRev;
+    sumRefund += refAmt;
+    sumNet += net;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight:700;">${formatDate(d.date)}</td>
+      <td>${formatMoney(cRev)}</td>
+      <td style="color:#34D399;">${formatMoney(dAmt)}</td>
+      <td style="color:#A78BFA;">${formatMoney(rAmt)}</td>
+      <td style="color:#FCD34D;">${formatMoney(pAmt)}</td>
+      <td style="font-weight:700; color:var(--info);">${formatMoney(sRev)}</td>
+      <td style="color:var(--danger);">${refAmt > 0 ? '−' + formatMoney(refAmt) : '0 ₫'}</td>
+      <td style="font-weight:800; color:#34D399;">${formatMoney(net)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  if (tfoot) {
+    tfoot.innerHTML = `
+      <tr>
+        <td>TỔNG CỘNG</td>
+        <td>${formatMoney(sumCourt)}</td>
+        <td style="color:#34D399;">${formatMoney(sumDrinks)}</td>
+        <td style="color:#A78BFA;">${formatMoney(sumRentals)}</td>
+        <td style="color:#FCD34D;">${formatMoney(sumPackages)}</td>
+        <td style="color:var(--info);">${formatMoney(sumServices)}</td>
+        <td style="color:var(--danger);">${sumRefund > 0 ? '−' + formatMoney(sumRefund) : '0 ₫'}</td>
+        <td style="color:#34D399; font-size:14.5px;">${formatMoney(sumNet)}</td>
+      </tr>
+    `;
+  }
+}
+
+// Lọc tab con mặt hàng dịch vụ
+function locBangDichVu(type) {
+  currentServiceTypeFilter = type;
+  document.querySelectorAll('.pill-tab').forEach((b) => b.classList.remove('active'));
+  if (type === 'ALL') document.getElementById('pill-all')?.classList.add('active');
+  else if (type === 'DRINK') document.getElementById('pill-drink')?.classList.add('active');
+  else if (type === 'RENTAL') document.getElementById('pill-rental')?.classList.add('active');
+  else if (type === 'PACKAGE') document.getElementById('pill-package')?.classList.add('active');
+
+  renderServicesTable(cachedReportsData.services || [], type);
+}
+
+// Render Bảng 3: Chi tiết dịch vụ
+function renderServicesTable(services, filterType = 'ALL') {
+  const tbody = document.getElementById('rep-services-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  const filtered = filterType === 'ALL' ? services : services.filter((s) => s.type === filterType);
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:20px;">Không có dịch vụ phát sinh thuộc nhóm này trong kỳ</td></tr>';
+    return;
+  }
+
+  filtered.forEach((s) => {
+    const tr = document.createElement('tr');
+    let typeBadge = '<span class="badge" style="background:rgba(59, 130, 246, 0.2); color:#60A5FA;">Khác</span>';
+    if (s.type === 'DRINK') {
+      typeBadge = '<span class="badge" style="background:rgba(16, 185, 129, 0.2); color:#34D399;">🥤 Nước uống</span>';
+    } else if (s.type === 'RENTAL') {
+      typeBadge = '<span class="badge" style="background:rgba(139, 92, 246, 0.2); color:#C4B5FD;">🏸 Thuê dụng cụ</span>';
+    } else if (s.type === 'PACKAGE') {
+      typeBadge = '<span class="badge" style="background:rgba(245, 158, 11, 0.2); color:#FCD34D;">📦 Gói combo</span>';
+    }
+
+    tr.innerHTML = `
+      <td style="font-family:var(--font-mono); font-weight:700;">#${s.serviceId || s.id}</td>
+      <td style="font-weight:700;">${s.name || s.serviceName}</td>
+      <td>${typeBadge}</td>
+      <td>${s.unit || 'cái'}</td>
+      <td style="font-family:var(--font-mono);">${formatMoney(s.unitPrice || 0)}</td>
+      <td style="font-weight:800; font-size:14px;">${s.qty ?? s.totalQuantity ?? 0} ${s.unit || ''}</td>
+      <td style="font-weight:800; color:var(--info); font-size:14px;">${formatMoney(s.amount ?? s.totalRevenue ?? 0)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// Tìm kiếm & lọc Sổ nhật ký chi tiết
+function timKiemSoChiTiet() {
+  const kw = (document.getElementById('rep-ledger-search')?.value || '').toLowerCase().trim();
+  const cat = document.getElementById('rep-ledger-filter')?.value || 'ALL';
+  const list = cachedReportsData.itemized?.recentTransactions || [];
+
+  const filtered = list.filter((item) => {
+    const matchCat = cat === 'ALL' || item.itemCategory === cat;
+    const matchKw =
+      !kw ||
+      (item.bookingCode || '').toLowerCase().includes(kw) ||
+      (item.customerName || '').toLowerCase().includes(kw) ||
+      (item.customerPhone || '').toLowerCase().includes(kw) ||
+      (item.itemName || '').toLowerCase().includes(kw);
+    return matchCat && matchKw;
+  });
+
+  renderLedgerTable(filtered);
+}
+
+// Render Bảng 4: Sổ nhật ký giao dịch
+function renderLedgerTable(transactions) {
+  const tbody = document.getElementById('rep-ledger-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  if (!transactions || transactions.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:var(--text-muted); padding:20px;">Chưa có giao dịch phát sinh trong kỳ</td></tr>';
+    return;
+  }
+
+  transactions.forEach((t) => {
+    const tr = document.createElement('tr');
+    let catBadge = '';
+    if (t.itemCategory === 'COURT') catBadge = '<span class="badge" style="background:rgba(59, 130, 246, 0.2); color:#60A5FA;">🏟️ Tiền sân</span>';
+    else if (t.itemCategory === 'DRINK') catBadge = '<span class="badge" style="background:rgba(16, 185, 129, 0.2); color:#34D399;">🥤 Nước uống</span>';
+    else if (t.itemCategory === 'RENTAL') catBadge = '<span class="badge" style="background:rgba(139, 92, 246, 0.2); color:#C4B5FD;">🏸 Thuê đồ</span>';
+    else if (t.itemCategory === 'PACKAGE') catBadge = '<span class="badge" style="background:rgba(245, 158, 11, 0.2); color:#FCD34D;">📦 Gói combo</span>';
+    else catBadge = `<span class="badge">${t.categoryName || 'Dịch vụ'}</span>`;
+
+    tr.innerHTML = `
+      <td style="font-family:var(--font-mono); font-weight:700; color:var(--accent); cursor:pointer;" onclick="openBookingDetail(${t.bookingId})">${t.bookingCode}</td>
+      <td style="font-size:12.5px; color:var(--text-muted);">${t.createdAt}</td>
+      <td>
+        <div style="font-weight:600;">${t.customerName || 'Khách vãng lai'}</div>
+        <div style="font-size:11.5px; color:var(--text-muted);">${t.customerPhone || ''}</div>
+      </td>
+      <td>${catBadge}</td>
+      <td style="font-weight:700;">${t.itemName}</td>
+      <td style="font-weight:600;">${t.quantity} ${t.unit || ''}</td>
+      <td style="font-family:var(--font-mono);">${formatMoney(t.unitPrice || 0)}</td>
+      <td style="font-weight:800; color:#34D399;">${formatMoney(t.totalAmount || 0)}</td>
+      <td><span class="badge" style="background:rgba(255,255,255,0.06);">${t.paymentMethod || 'CASH'}</span></td>
+      <td><span class="badge" style="background:rgba(16, 185, 129, 0.15); color:#34D399;">${t.status || 'SUCCESS'}</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// 7. XUẤT BÁO CÁO EXCEL / CSV (UTF-8 BOM CHO EXCEL HIỂN THỊ CHUẨN TIẾNG VIỆT)
+function xuatBaoCaoCSV() {
+  const from = document.getElementById('rep-from')?.value || 'toan-bo';
+  const to = document.getElementById('rep-to')?.value || 'hien-tai';
+  const { revenue, summary, services, itemized } = cachedReportsData;
+
+  const lines = [];
+  lines.push('HỆ THỐNG VẬN HÀNH SÂN THỂ THAO 24/7');
+  lines.push('BÁO CÁO CHI TIẾT DOANH THU & KHOẢN THU DỊCH VỤ');
+  lines.push(`Kỳ báo cáo: Từ ${from} đến ${to}`);
+  lines.push(`Thời điểm xuất: ${new Date().toLocaleString('vi-VN')}`);
+  lines.push('');
+
+  // 1. Tổng kết
+  lines.push('=== 1. TỔNG HỢP DOANH THU TỪNG KHOẢN ===');
+  lines.push('Hạng mục,Doanh thu gốc (VNĐ),Hoàn tiền (VNĐ),Doanh thu thực (VNĐ),Tỷ trọng (%)');
+  if (Array.isArray(itemized.categories)) {
+    itemized.categories.forEach((c) => {
+      lines.push(`"${c.name}",${c.grossAmount ?? c.amount},${c.refundAmount ?? 0},${c.amount},${c.percentage || 0}%`);
+    });
+  }
+  lines.push(`"Tổng tiền đã hoàn lại",0,${itemized.summary?.totalRefund || 0},-${itemized.summary?.totalRefund || 0},--`);
+  lines.push(`"TỔNG THỰC NHẬN (NET)",-,${itemized.summary?.totalRefund || 0},${itemized.summary?.netRevenue || 0},100%`);
+  lines.push('');
+
+  // 2. Chi tiết theo ngày
+  lines.push('=== 2. DOANH THU CHI TIẾT THEO NGÀY ===');
+  lines.push('Ngày,Tiền sân (VNĐ),Nước uống (VNĐ),Thuê đồ (VNĐ),Gói tiệc (VNĐ),Tổng dịch vụ (VNĐ),Tiền hoàn (VNĐ),Thực nhận (VNĐ)');
+  const daily = revenue.items || [];
+  daily.forEach((d) => {
+    const cRev = d.court?.revenue ?? 0;
+    const dAmt = d.drinks?.amount ?? 0;
+    const rAmt = d.rentals?.amount ?? 0;
+    const pAmt = d.packages?.amount ?? 0;
+    const sRev = d.service?.revenue ?? (dAmt + rAmt + pAmt);
+    const refAmt = d.refundAmount ?? 0;
+    const net = d.revenue ?? 0;
+    lines.push(`"${d.date}",${cRev},${dAmt},${rAmt},${pAmt},${sRev},${refAmt},${net}`);
+  });
+  lines.push('');
+
+  // 3. Chi tiết dịch vụ
+  lines.push('=== 3. CHI TIẾT MẶT HÀNG DỊCH VỤ PHÁT SINH ===');
+  lines.push('Mã dịch vụ,Tên dịch vụ,Phân loại,Đơn vị tính,Đơn giá (VNĐ),Số lượng đã bán/thuê,Tổng doanh thu (VNĐ)');
+  services.forEach((s) => {
+    lines.push(`#${s.serviceId || s.id},"${s.name}","${s.type}","${s.unit || ''}",${s.unitPrice || 0},${s.qty || 0},${s.amount || 0}`);
+  });
+  lines.push('');
+
+  // 4. Sổ chi tiết giao dịch
+  lines.push('=== 4. SỔ NHẬT KÝ CHI TIẾT GIAO DỊCH ===');
+  lines.push('Mã đơn,Thời gian,Khách hàng,Số điện thoại,Khoản mục,Tên món/sân,Số lượng,Đơn giá (VNĐ),Thành tiền (VNĐ),Hình thức TT,Trạng thái');
+  const txs = itemized.recentTransactions || [];
+  txs.forEach((t) => {
+    lines.push(`"${t.bookingCode}","${t.createdAt}","${t.customerName || ''}","${t.customerPhone || ''}","${t.categoryName || t.itemCategory}","${t.itemName}",${t.quantity},${t.unitPrice || 0},${t.totalAmount || 0},"${t.paymentMethod || 'CASH'}","${t.status || 'SUCCESS'}"`);
+  });
+
+  const csvContent = '\uFEFF' + lines.join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Bao_Cao_Doanh_Thu_Chi_Tiet_${from}_${to}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('✅ Đã xuất file báo cáo chi tiết thành công!');
+}
+
+// 8. IN BÁO CÁO (PRINT PREVIEW)
+function inBaoCao() {
+  window.print();
+}
+
 
 // ================= 17. MODAL CHI TIẾT ĐƠN & HÓA ĐƠN TỔNG HỢP (STF-04, STF-14, BR-28) =================
 let currentDetailBookingId = null;
