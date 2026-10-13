@@ -5,6 +5,7 @@
 import { Router } from 'express';
 import { nhanVienController } from '../controllers/nhanvien.controller';
 import { dichVuController } from '../controllers/dichvu.controller';
+import { muaHoController } from '../controllers/muaho.controller';
 import { yeuCauXacThuc } from '../middlewares/xacthuc.middleware';
 import { choPhepVaiTro } from '../middlewares/phanquyen.middleware';
 import { kiemTraDuLieu } from '../middlewares/kiemtra.middleware';
@@ -59,3 +60,10 @@ nhanVienRouter.patch('/services/:id/availability', kiemTraDuLieu(luocDoBatTatDic
 
 // Tồn kho vận hành
 nhanVienRouter.get('/inventory', dichVuController.layDanhSachTonKho);
+
+// Hóa đơn mua hộ & dịch vụ ngoài phục vụ tiệc / sự kiện
+nhanVienRouter.get('/procurement-invoices', muaHoController.layDanhSach);
+nhanVienRouter.get('/procurement-invoices/summary', muaHoController.layThongKe);
+nhanVienRouter.post('/procurement-invoices', muaHoController.taoHoaDonMuaHo);
+nhanVienRouter.patch('/procurement-invoices/:id/status', muaHoController.capNhatTrangThai);
+nhanVienRouter.delete('/procurement-invoices/:id', muaHoController.xoa);

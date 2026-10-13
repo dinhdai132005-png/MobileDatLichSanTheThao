@@ -244,6 +244,7 @@ function switchTab(tabId) {
   else if (tabId === 'bookings') loadBookings();
   else if (tabId === 'walkin') loadWalkinData();
   else if (tabId === 'service-orders') loadServiceOrders();
+  else if (tabId === 'catering') loadProcurementData();
   else if (tabId === 'refunds') loadRefunds();
   else if (tabId === 'customers') taiDanhSachKhachHang();
   else if (tabId === 'courts') loadCourtTypesAndCourts();
@@ -2304,6 +2305,7 @@ function renderDetailContent(b, inv) {
   // 1. Nút thêm dịch vụ tại quầy (đơn CONFIRMED/CHECKED_IN)
   if (['CONFIRMED', 'CHECKED_IN'].includes(b.status)) {
     actionButtonsHtml += `<button class="btn btn-outline" onclick="openAddServiceModal(${b.id})">➕ Thêm Dịch Vụ Tại Quầy</button>`;
+    actionButtonsHtml += `<button class="btn btn-outline" style="border-color:#10B981; color:#10B981;" onclick="moModalThemHoaDonMuaHo(${b.id})">🧾 + Hóa Đơn Mua Hộ Ngoài</button>`;
   }
 
   // 2. Nút thu tiền dịch vụ (nếu còn nợ dịch vụ)
@@ -2338,6 +2340,53 @@ function renderDetailContent(b, inv) {
 
   actionButtonsHtml += '</div>';
 
+  // Bảng kê các hóa đơn mua hộ ngoài nếu có
+  let procurementHtml = '';
+  const procInvoices = inv.procurementInvoices || [];
+  if (procInvoices.length > 0) {
+    procurementHtml = `
+      <div style="margin-top:16px;">
+        <div style="font-size:14px; font-weight:700; display:flex; justify-content:space-between; align-items:center;">
+          <span>🧾 Hóa Đơn Mua Hộ Ngoài (Đi Chợ BBQ, Hải Sản, Đồ Ăn Ngoài):</span>
+          <button class="btn btn-outline" style="padding:2px 8px; font-size:11.5px; border-color:#10B981; color:#10B981;" onclick="moModalThemHoaDonMuaHo(${b.id})">➕ Thêm Hóa Đơn Mua Hộ</button>
+        </div>
+        <div class="table-container" style="margin: 8px 0;">
+          <table>
+            <thead>
+              <tr>
+                <th>Khoản Chi & Nhà CC</th>
+                <th>Chứng Từ</th>
+                <th>Số HĐ / Ngày</th>
+                <th>Tiền Bill Gốc</th>
+                <th>Phí Phục Vụ</th>
+                <th>Tổng Gộp</th>
+                <th>Ảnh Bill</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${procInvoices.map((p) => `
+                <tr>
+                  <td><strong>${p.title}</strong><br><span style="font-size:11px; color:var(--text-muted);">${p.supplier || 'Bên ngoài'}</span></td>
+                  <td><span class="badge" style="background:${p.docType === 'ELECTRONIC' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}; color:${p.docType === 'ELECTRONIC' ? '#34D399' : '#FBBF24'};">${p.docType === 'ELECTRONIC' ? '🟢 HĐ Điện Tử' : '🟡 HĐ Giấy'}</span></td>
+                  <td><span style="font-family:var(--font-mono); font-weight:700;">${p.invoiceNumber || '—'}</span><br><span style="font-size:11px; color:var(--text-muted);">${formatDate(p.invoiceDate)}</span></td>
+                  <td style="font-family:var(--font-mono);">${formatMoney(p.invoiceAmount)}</td>
+                  <td style="font-family:var(--font-mono); color:#FBBF24;">${p.serviceFee > 0 ? '+' + formatMoney(p.serviceFee) : '0 ₫'}</td>
+                  <td style="font-weight:700; font-family:var(--font-mono); color:#34D399;">${formatMoney(p.totalAmount)}</td>
+                  <td>
+                    ${p.billImageUrl ? `<button class="btn btn-outline" style="padding:2px 6px; font-size:11px;" onclick="moModalXemAnhChungTuDirect('${encodeURIComponent(p.billImageUrl)}', '${encodeURIComponent(p.title)}', '${p.invoiceNumber || ''}', '${formatMoney(p.totalAmount)}')">🔍 Xem Bill</button>` : '<span style="color:var(--text-muted); font-size:11px;">Không có</span>'}
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  const inHouseAmount = inv.inHouseServiceAmount ?? (inv.serviceAmount - (inv.procurementAmount || 0));
+  const procAmount = inv.procurementAmount ?? 0;
+
   container.innerHTML = `
     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:16px;">
       <div>
@@ -2367,7 +2416,7 @@ function renderDetailContent(b, inv) {
     <div class="invoice-card">
       <div style="font-size:15px; font-weight:800; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
         <span>🧾 Bảng Kê Hóa Đơn & Dịch Vụ Phát Sinh</span>
-        <span style="font-size:12px; font-weight:normal; color:var(--text-muted);">(Chỉ tính dịch vụ đã giao — BR-26)</span>
+        <span style="font-size:12px; font-weight:normal; color:var(--text-muted);">(Chỉ tính dịch vụ đã giao & hóa đơn mua hộ đã duyệt)</span>
       </div>
 
       <div class="invoice-row">
@@ -2375,8 +2424,16 @@ function renderDetailContent(b, inv) {
         <strong style="font-family:var(--font-mono);">${formatMoney(inv.courtAmount)}</strong>
       </div>
       <div class="invoice-row">
-        <span>Tiền dịch vụ phát sinh (Đồ uống, Thuê đồ, Tiệc):</span>
-        <strong style="font-family:var(--font-mono); color:var(--info);">${formatMoney(inv.serviceAmount)}</strong>
+        <span>• Dịch vụ nội bộ cơ sở (Đồ uống, Thuê đồ, Combo):</span>
+        <strong style="font-family:var(--font-mono); color:#10B981;">${formatMoney(inHouseAmount)}</strong>
+      </div>
+      <div class="invoice-row">
+        <span>• Chi phí mua hộ / Đi chợ ngoài theo hóa đơn:</span>
+        <strong style="font-family:var(--font-mono); color:#F59E0B;">${formatMoney(procAmount)}</strong>
+      </div>
+      <div class="invoice-row" style="background:rgba(255,255,255,0.02); padding:6px 8px; border-radius:6px; margin:4px 0;">
+        <span style="font-weight:600;">Tổng tiền dịch vụ & tiệc tùng:</span>
+        <strong style="font-family:var(--font-mono); color:var(--info); font-size:14.5px;">${formatMoney(inv.serviceAmount)}</strong>
       </div>
       <div class="invoice-row total">
         <span>TỔNG CỘNG HÓA ĐƠN (Grand Total):</span>
@@ -2393,11 +2450,14 @@ function renderDetailContent(b, inv) {
       ${inv.unreturnedRentals > 0 ? `<div style="margin-top:8px; padding:6px 10px; background:rgba(239, 68, 68, 0.15); border:1px solid var(--danger); border-radius:6px; font-size:12.5px; color:#FCA5A5;">⚠️ Còn <strong>${inv.unreturnedRentals}</strong> món đồ thuê chưa được trả lại! (BR-28 chặn hoàn thành đơn)</div>` : ''}
     </div>
 
-    <!-- DANH SÁCH CHI TIẾT MÓN DỊCH VỤ -->
+    <!-- DANH SÁCH CHI TIẾT MÓN DỊCH VỤ NỘI BỘ -->
     <div style="margin-top:16px;">
-      <div style="font-size:14px; font-weight:700;">Danh Sách Món Đã Gọi:</div>
+      <div style="font-size:14px; font-weight:700;">Danh Sách Món Nội Bộ Đã Gọi:</div>
       ${serviceOrdersHtml}
     </div>
+
+    <!-- DANH SÁCH HÓA ĐƠN MUA HỘ NGOÀI NẾU CÓ -->
+    ${procurementHtml}
 
     ${actionButtonsHtml}
   `;
@@ -2589,6 +2649,7 @@ async function loadInitialData() {
     else if (currentTab === 'schedule') loadSchedule();
     else if (currentTab === 'bookings') loadBookings();
     else if (currentTab === 'service-orders') loadServiceOrders();
+    else if (currentTab === 'catering') loadProcurementData();
     else if (currentTab === 'inventory') loadInventory();
     else if (currentTab === 'refunds') loadRefunds();
   }, 10000);
@@ -2800,6 +2861,486 @@ async function xemLichSuKho(serviceId = null) {
     openModal('modal-lich-su-kho');
   } catch (err) {
     showToast('Lỗi tải lịch sử biến động kho: ' + err.message, true);
+  }
+}
+
+// ================= 19. TAB DỊCH VỤ TIỆC & HÓA ĐƠN MUA HỘ (2 PHƯƠNG THỨC) =================
+let cachedProcurements = [];
+let currentCateringSubTab = 'external';
+
+async function loadProcurementData() {
+  const costType = document.getElementById('procure-filter-cost-type')?.value || 'ALL';
+  const docType = document.getElementById('procure-filter-doc-type')?.value || '';
+  const status = document.getElementById('procure-filter-status')?.value || 'ALL';
+  const kw = (document.getElementById('procure-search-keyword')?.value || '').trim();
+
+  const params = new URLSearchParams();
+  if (costType && costType !== 'ALL') params.append('loaiChiPhi', costType);
+  if (docType) params.append('loaiChungTu', docType);
+  if (status && status !== 'ALL') params.append('trangThai', status);
+  if (kw) params.append('tuKhoa', kw);
+
+  try {
+    const [resList, resSummary] = await Promise.all([
+      apiFetch(`/staff/procurement-invoices?${params.toString()}`),
+      apiFetch('/staff/procurement-invoices/summary'),
+    ]);
+
+    cachedProcurements = resList.data || [];
+    const sum = resSummary.data || {};
+
+    // Cập nhật 5 thẻ KPI
+    const elCount = document.getElementById('procure-kpi-count');
+    const elSubCount = document.getElementById('procure-kpi-sub-count');
+    const elInvAmt = document.getElementById('procure-kpi-invoice-amount');
+    const elFee = document.getElementById('procure-kpi-service-fee');
+    const elGrand = document.getElementById('procure-kpi-grand-total');
+    const elDocRatio = document.getElementById('procure-kpi-doc-ratio');
+
+    if (elCount) elCount.textContent = sum.totalInvoices || 0;
+    if (elSubCount) elSubCount.textContent = `${sum.billedCount || 0} đã gộp đơn / ${sum.pendingCount || 0} chờ duyệt`;
+    if (elInvAmt) elInvAmt.textContent = formatMoney(sum.totalInvoiceAmount || 0);
+    if (elFee) elFee.textContent = formatMoney(sum.totalServiceFee || 0);
+    if (elGrand) elGrand.textContent = formatMoney(sum.grandProcurementTotal || 0);
+    if (elDocRatio) elDocRatio.textContent = `${sum.electronicCount || 0} E-HD / ${sum.paperCount || 0} Giấy`;
+
+    renderProcurementTable(cachedProcurements);
+
+    // Nếu đang ở tab nội bộ thì nạp menu nội bộ
+    if (currentCateringSubTab === 'inhouse') {
+      renderCateringInhouseMenu();
+    }
+  } catch (err) {
+    showToast('Lỗi tải dữ liệu mua hộ: ' + err.message, true);
+  }
+}
+
+function renderProcurementTable(invoices) {
+  const tbody = document.getElementById('procurement-invoices-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  if (invoices.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="11" style="text-align:center; padding:36px 20px; color:var(--text-muted);">
+          <div style="font-size:36px; margin-bottom:8px;">🧾</div>
+          <strong style="font-size:15px; color:var(--text);">Chưa có hóa đơn mua hộ ngoại vi nào</strong>
+          <p style="font-size:12.5px; margin-top:4px;">Bấm nút <strong>"+ Tiếp Nhận Hóa Đơn Mua Hộ Mới"</strong> để ghi nhận hóa đơn đi chợ hoặc dịch vụ bên ngoài.</p>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  invoices.forEach((item) => {
+    const tr = document.createElement('tr');
+
+    const isElectronic = item.documentType === 'ELECTRONIC';
+    const docBadge = isElectronic
+      ? '<span class="badge" style="background:rgba(16, 185, 129, 0.2); color:#34D399; border:1px solid rgba(16, 185, 129, 0.4);">🟢 HĐ Điện Tử</span>'
+      : '<span class="badge" style="background:rgba(245, 158, 11, 0.2); color:#FBBF24; border:1px solid rgba(245, 158, 11, 0.4);">🟡 HĐ Giấy / Bill</span>';
+
+    let costTypeName = 'Dịch vụ khác';
+    if (item.expenseType === 'GROCERY') costTypeName = '🥩 Đi chợ BBQ, hải sản';
+    else if (item.expenseType === 'CATERING') costTypeName = '🍱 Đặt món nhà hàng';
+    else if (item.expenseType === 'EQUIPMENT') costTypeName = '🔊 Âm thanh, sự kiện';
+
+    let imgPreview = '<span style="color:var(--text-muted); font-size:11px;">Chưa đính kèm</span>';
+    if (item.invoiceImageUrl) {
+      imgPreview = `
+        <div style="display:inline-flex; align-items:center; gap:6px;">
+          <img src="${item.invoiceImageUrl}" style="width:36px; height:36px; object-fit:cover; border-radius:6px; border:1px solid var(--border); cursor:pointer;" onclick="moModalXemAnhChungTu(${item.id})" title="Bấm để phóng to xem ảnh bill" />
+          <button class="btn btn-outline" style="padding:2px 6px; font-size:11px;" onclick="moModalXemAnhChungTu(${item.id})">🔍 Xem</button>
+        </div>
+      `;
+    }
+
+    let statusBadge = '<span class="badge" style="background:rgba(16, 185, 129, 0.2); color:#10B981;">Đã gộp đơn (BILLED)</span>';
+    if (item.status === 'CONFIRMED') {
+      statusBadge = '<span class="badge" style="background:rgba(245, 158, 11, 0.2); color:#FBBF24;">Chờ TT (CONFIRMED)</span>';
+    } else if (item.status === 'CANCELLED') {
+      statusBadge = '<span class="badge" style="background:rgba(239, 68, 68, 0.2); color:#F87171;">Đã hủy</span>';
+    }
+
+    tr.innerHTML = `
+      <td style="font-family:var(--font-mono); font-weight:700;">#${item.id}</td>
+      <td>
+        <span style="font-family:var(--font-mono); font-weight:700; color:var(--primary); cursor:pointer;" onclick="viewDetail(${item.bookingId})">${item.bookingCode}</span>
+        <div style="font-size:11.5px; color:var(--text-muted);">${item.customerName} · ${item.customerPhone}</div>
+        <div style="font-size:11px; color:#60A5FA;">🏟️ ${item.courtName} (${formatDate(item.bookingDate)})</div>
+      </td>
+      <td>
+        <div style="font-weight:700;">${item.title}</div>
+        <div style="font-size:11.5px; color:var(--text-muted);">${costTypeName} · Nơi mua: <strong>${item.supplier || 'Bên ngoài'}</strong></div>
+        ${item.itemsDetail ? `<div style="font-size:11px; color:#A78BFA; font-style:italic; margin-top:2px;">Món: ${item.itemsDetail}</div>` : ''}
+      </td>
+      <td>
+        <div style="font-family:var(--font-mono); font-weight:700;">${item.invoiceNumber || '—'}</div>
+        <div style="font-size:11.5px; color:var(--text-muted);">Ngày: ${formatDate(item.invoiceDate)}</div>
+      </td>
+      <td>${docBadge}</td>
+      <td>${imgPreview}</td>
+      <td style="font-family:var(--font-mono);">${formatMoney(item.invoiceAmount)}</td>
+      <td style="font-family:var(--font-mono); color:#FBBF24;">${item.serviceFee > 0 ? '+' + formatMoney(item.serviceFee) : '0 ₫'}</td>
+      <td style="font-weight:800; font-family:var(--font-mono); color:#34D399; font-size:14px;">${formatMoney(item.totalAmount)}</td>
+      <td>${statusBadge}</td>
+      <td style="text-align:right;">
+        <div style="display:flex; justify-content:flex-end; gap:4px; flex-wrap:wrap;">
+          <button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="doiTrangThaiHoaDonMuaHo(${item.id}, '${item.status}')" title="Đổi trạng thái">🔄 Đổi TT</button>
+          <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="xoaHoaDonMuaHo(${item.id})" title="Xóa khoản chi">🗑️</button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function chuyenTabConTiec(subTab) {
+  currentCateringSubTab = subTab;
+  const btnExt = document.getElementById('btn-catering-tab-external');
+  const btnIn = document.getElementById('btn-catering-tab-inhouse');
+  const viewExt = document.getElementById('catering-view-external');
+  const viewIn = document.getElementById('catering-view-inhouse');
+
+  if (subTab === 'external') {
+    if (btnExt) btnExt.classList.add('active');
+    if (btnIn) btnIn.classList.remove('active');
+    if (viewExt) viewExt.style.display = 'block';
+    if (viewIn) viewIn.style.display = 'none';
+    loadProcurementData();
+  } else {
+    if (btnExt) btnExt.classList.remove('active');
+    if (btnIn) btnIn.classList.add('active');
+    if (viewExt) viewExt.style.display = 'none';
+    if (viewIn) viewIn.style.display = 'block';
+    renderCateringInhouseMenu();
+  }
+}
+
+async function renderCateringInhouseMenu() {
+  const tbody = document.getElementById('catering-inhouse-menu-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-muted);">Đang tải thực đơn nội bộ...</td></tr>';
+
+  try {
+    const res = await apiFetch('/services');
+    const services = res.data || [];
+    tbody.innerHTML = '';
+
+    if (services.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-muted);">Chưa có dịch vụ nội bộ nào</td></tr>';
+      return;
+    }
+
+    services.forEach((s) => {
+      const tr = document.createElement('tr');
+      let catBadge = '';
+      if (s.category === 'DRINK') catBadge = '<span class="badge" style="background:rgba(16, 185, 129, 0.2); color:#34D399;">🥤 Nước uống tủ mát</span>';
+      else if (s.category === 'RENTAL') catBadge = '<span class="badge" style="background:rgba(139, 92, 246, 0.2); color:#C4B5FD;">🏸 Dụng cụ, bàn ghế</span>';
+      else if (s.category === 'PACKAGE') catBadge = '<span class="badge" style="background:rgba(245, 158, 11, 0.2); color:#FCD34D;">📦 Gói combo tiệc</span>';
+      else catBadge = `<span class="badge">${s.category}</span>`;
+
+      tr.innerHTML = `
+        <td style="font-family:var(--font-mono); font-weight:700;">#${s.id}</td>
+        <td style="font-weight:700;">${s.name}<br><span style="font-size:11px; color:var(--text-muted);">${s.description || ''}</span></td>
+        <td>${catBadge}</td>
+        <td>${s.unit || 'món'}</td>
+        <td style="font-family:var(--font-mono); font-weight:700;">${formatMoney(s.price)}</td>
+        <td style="font-weight:700; color:#34D399;">Sẵn có trong kho</td>
+        <td>${s.status === 'ACTIVE' ? '<span style="color:#10B981; font-weight:700;">✅ Sẵn sàng</span>' : '<span style="color:#EF4444; font-weight:700;">Tạm hết</span>'}</td>
+        <td style="text-align:right;">
+          <button class="btn btn-outline" style="padding:4px 10px; font-size:12px; border-color:#10B981; color:#10B981;" onclick="moModalGoiDichVuTiecNoiBo(null, ${s.id})">
+            ➕ Chọn Món Này
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="8" style="color:var(--danger); text-align:center; padding:20px;">Lỗi: ${err.message}</td></tr>`;
+  }
+}
+
+async function moModalThemHoaDonMuaHo(defaultBookingId = null) {
+  const selBooking = document.getElementById('procure-booking-id');
+  selBooking.innerHTML = '<option value="">-- Đang nạp danh sách đơn đặt tiệc... --</option>';
+
+  // Đặt ngày hôm nay mặc định
+  document.getElementById('procure-invoice-date').value = new Date().toISOString().substring(0, 10);
+  document.getElementById('procure-title').value = '';
+  document.getElementById('procure-supplier').value = '';
+  document.getElementById('procure-invoice-code').value = '';
+  document.getElementById('procure-items-detail').value = '';
+  document.getElementById('procure-original-amount').value = '';
+  document.getElementById('procure-service-fee').value = '0';
+  document.getElementById('procure-calc-total').value = '0 ₫';
+  document.getElementById('procure-img-url').value = '';
+  document.getElementById('procure-note').value = '';
+
+  openModal('modal-add-procurement');
+
+  try {
+    const res = await apiFetch('/staff/bookings?limit=50');
+    const bookings = res.data?.items || [];
+
+    selBooking.innerHTML = '<option value="">-- Chọn đơn đặt tiệc / sự kiện --</option>';
+    const validBookings = bookings.filter((b) => b.status !== 'CANCELLED' && b.status !== 'EXPIRED');
+
+    validBookings.forEach((b) => {
+      const isSel = defaultBookingId && b.id === Number(defaultBookingId) ? 'selected' : '';
+      selBooking.innerHTML += `<option value="${b.id}" ${isSel}>${b.bookingCode} · ${b.customerName || 'Khách'} (${b.courtName} - ${formatDate(b.bookingDate)})</option>`;
+    });
+
+    if (defaultBookingId) {
+      selBooking.value = defaultBookingId;
+    }
+  } catch (err) {
+    showToast('Lỗi nạp đơn: ' + err.message, true);
+  }
+}
+
+function tinhTongTienMuaHoForm() {
+  const original = Number(document.getElementById('procure-original-amount')?.value || 0);
+  const fee = Number(document.getElementById('procure-service-fee')?.value || 0);
+  const total = Math.max(0, original + fee);
+  const calcEl = document.getElementById('procure-calc-total');
+  if (calcEl) calcEl.value = formatMoney(total);
+}
+
+function doiLoaiChungTuMau(val) {
+  const codeInput = document.getElementById('procure-invoice-code');
+  if (val === 'ELECTRONIC') {
+    if (!codeInput.value) codeInput.value = 'HD-E-' + Date.now().toString().slice(-6);
+  } else {
+    if (!codeInput.value) codeInput.value = 'BILL-P-' + Date.now().toString().slice(-6);
+  }
+}
+
+function dienAnhMauChungTu() {
+  const docType = document.getElementById('procure-doc-type').value;
+  const input = document.getElementById('procure-img-url');
+  if (docType === 'ELECTRONIC') {
+    input.value = 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=800&q=80';
+  } else {
+    input.value = 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=800&q=80';
+  }
+  showToast('Đã điền link ảnh hóa đơn mẫu thực tế!');
+}
+
+async function handleCreateProcurementSubmit(e) {
+  e.preventDefault();
+  const donDatId = Number(document.getElementById('procure-booking-id').value);
+  const loaiChiPhi = document.getElementById('procure-expense-type').value;
+  const tenKhoanChi = document.getElementById('procure-title').value.trim();
+  const nhaCungCap = document.getElementById('procure-supplier').value.trim();
+  const loaiChungTu = document.getElementById('procure-doc-type').value;
+  const soHoaDon = document.getElementById('procure-invoice-code').value.trim();
+  const ngayHoaDon = document.getElementById('procure-invoice-date').value;
+  const chiTietMon = document.getElementById('procure-items-detail').value.trim();
+  const tienHoaDon = Number(document.getElementById('procure-original-amount').value);
+  const phiPhucVu = Number(document.getElementById('procure-service-fee').value || 0);
+  const hinhAnhChungTu = document.getElementById('procure-img-url').value.trim();
+  const ghiChu = document.getElementById('procure-note').value.trim();
+
+  if (!donDatId) return showToast('Vui lòng chọn đơn đặt sân/tiệc tương ứng', true);
+  if (!tenKhoanChi) return showToast('Vui lòng nhập tên khoản chi hộ', true);
+  if (!tienHoaDon || tienHoaDon <= 0) return showToast('Số tiền hóa đơn phải lớn hơn 0', true);
+
+  try {
+    const res = await apiFetch('/staff/procurement-invoices', {
+      method: 'POST',
+      body: JSON.stringify({
+        donDatId,
+        loaiChiPhi,
+        tenKhoanChi,
+        nhaCungCap,
+        loaiChungTu,
+        soHoaDon,
+        ngayHoaDon,
+        chiTietMon,
+        tienHoaDon,
+        phiPhucVu,
+        hinhAnhChungTu,
+        ghiChu,
+      }),
+    });
+
+    closeModal('modal-add-procurement');
+    showToast(res.message || 'Đã tiếp nhận hóa đơn mua hộ và gộp vào đơn tiệc thành công!');
+    loadProcurementData();
+
+    // Nếu modal chi tiết đơn đang mở, refresh lại
+    if (currentDetailBookingId && currentDetailBookingId === donDatId) {
+      viewDetail(donDatId);
+    }
+  } catch (err) {
+    showToast('Lỗi tạo hóa đơn mua hộ: ' + err.message, true);
+  }
+}
+
+function moModalXemAnhChungTu(id) {
+  const item = cachedProcurements.find((p) => p.id === id);
+  if (!item) return;
+
+  const titleEl = document.getElementById('view-bill-modal-title');
+  const contentEl = document.getElementById('view-bill-modal-content');
+  const metaEl = document.getElementById('view-bill-modal-meta');
+
+  if (titleEl) titleEl.textContent = `🧾 Hóa Đơn #${item.id}: ${item.title}`;
+
+  const isElec = item.documentType === 'ELECTRONIC';
+  const badgeHtml = isElec
+    ? '<span class="badge" style="background:rgba(16, 185, 129, 0.2); color:#34D399;">🟢 HÓA ĐƠN ĐIỆN TỬ</span>'
+    : '<span class="badge" style="background:rgba(245, 158, 11, 0.2); color:#FBBF24;">🟡 HÓA ĐƠN GIẤY / BIÊN NHẬN</span>';
+
+  const imgHtml = item.invoiceImageUrl
+    ? `<img src="${item.invoiceImageUrl}" style="max-width:100%; max-height:450px; border-radius:8px; border:1px solid var(--border); box-shadow:var(--shadow);" alt="Hóa đơn chứng từ" />`
+    : '<div style="padding:40px; color:var(--text-muted); background:var(--surface); border-radius:8px;">Hóa đơn này không có file ảnh đính kèm</div>';
+
+  if (contentEl) {
+    contentEl.innerHTML = `
+      <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+        <div>${badgeHtml}</div>
+        <div style="font-size:13px; font-weight:700; color:#34D399; font-family:var(--font-mono); font-size:16px;">${formatMoney(item.totalAmount)}</div>
+      </div>
+      <div style="background:var(--surface-card); border:1px solid var(--border); border-radius:8px; padding:12px; font-size:12.5px; text-align:left; margin-bottom:12px; line-height:1.6;">
+        <div><strong>Mã đơn tiệc:</strong> <span style="font-family:var(--font-mono); color:var(--primary);">${item.bookingCode}</span> (${item.customerName} - ${item.customerPhone})</div>
+        <div><strong>Nhà cung cấp / Cửa hàng:</strong> ${item.supplier || 'Không xác định'} | <strong>Số HĐ:</strong> ${item.invoiceNumber || '—'}</div>
+        <div><strong>Ngày lập bill:</strong> ${formatDate(item.invoiceDate)} | <strong>Tiền gốc:</strong> ${formatMoney(item.invoiceAmount)} | <strong>Phí công:</strong> ${formatMoney(item.serviceFee)}</div>
+        ${item.itemsDetail ? `<div><strong>Món hàng mua hộ:</strong> ${item.itemsDetail}</div>` : ''}
+        ${item.note ? `<div><strong>Ghi chú:</strong> ${item.note}</div>` : ''}
+      </div>
+      ${imgHtml}
+    `;
+  }
+
+  if (metaEl) {
+    metaEl.textContent = `Người tiếp nhận: ${item.creatorName || 'Nhân viên'} · Thời điểm ghi: ${item.createdAt}`;
+  }
+
+  openModal('modal-view-invoice-img');
+}
+
+function moModalXemAnhChungTuDirect(imgUrlEnc, titleEnc, invoiceNumber, totalFormatted) {
+  const imgUrl = decodeURIComponent(imgUrlEnc);
+  const title = decodeURIComponent(titleEnc);
+
+  const titleEl = document.getElementById('view-bill-modal-title');
+  const contentEl = document.getElementById('view-bill-modal-content');
+  const metaEl = document.getElementById('view-bill-modal-meta');
+
+  if (titleEl) titleEl.textContent = `🧾 Hóa Đơn: ${title}`;
+  if (contentEl) {
+    contentEl.innerHTML = `
+      <div style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-weight:700;">Số HĐ: ${invoiceNumber || '—'}</span>
+        <span style="font-weight:800; color:#34D399; font-family:var(--font-mono); font-size:16px;">${totalFormatted}</span>
+      </div>
+      <img src="${imgUrl}" style="max-width:100%; max-height:450px; border-radius:8px; border:1px solid var(--border);" alt="Hóa đơn" />
+    `;
+  }
+  if (metaEl) metaEl.textContent = 'Chứng từ đối soát khách hàng & kế toán';
+  openModal('modal-view-invoice-img');
+}
+
+async function doiTrangThaiHoaDonMuaHo(id, currentStatus) {
+  const nextStatus = currentStatus === 'BILLED' ? 'CONFIRMED' : 'BILLED';
+  if (!confirm(`Chuyển trạng thái hóa đơn #${id} sang [${nextStatus}]?`)) return;
+
+  try {
+    await apiFetch(`/staff/procurement-invoices/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ trangThai: nextStatus }),
+    });
+    showToast(`Đã cập nhật trạng thái hóa đơn mua hộ sang ${nextStatus}`);
+    loadProcurementData();
+    if (currentDetailBookingId) viewDetail(currentDetailBookingId);
+  } catch (err) {
+    showToast('Lỗi: ' + err.message, true);
+  }
+}
+
+async function xoaHoaDonMuaHo(id) {
+  if (!confirm(`Bạn có chắc chắn muốn XÓA hóa đơn mua hộ #${id}? Tiền dịch vụ của đơn tiệc sẽ được tự động trừ đi.`)) return;
+
+  try {
+    await apiFetch(`/staff/procurement-invoices/${id}`, { method: 'DELETE' });
+    showToast(`Đã xóa hóa đơn mua hộ #${id} thành công!`);
+    loadProcurementData();
+    if (currentDetailBookingId) viewDetail(currentDetailBookingId);
+  } catch (err) {
+    showToast('Lỗi xóa hóa đơn: ' + err.message, true);
+  }
+}
+
+async function moModalGoiDichVuTiecNoiBo(defaultBookingId = null, defaultServiceId = null) {
+  const selBooking = document.getElementById('catering-internal-booking-id');
+  const selService = document.getElementById('catering-internal-service-id');
+
+  selBooking.innerHTML = '<option value="">-- Đang nạp danh sách đơn... --</option>';
+  selService.innerHTML = '<option value="">-- Đang nạp thực đơn nội bộ... --</option>';
+  document.getElementById('catering-internal-qty').value = '1';
+  document.getElementById('catering-internal-note').value = '';
+
+  openModal('modal-catering-internal');
+
+  try {
+    const [resBookings, resServices] = await Promise.all([
+      apiFetch('/staff/bookings?limit=50'),
+      apiFetch('/services'),
+    ]);
+
+    const bookings = (resBookings.data?.items || []).filter((b) => b.status !== 'CANCELLED' && b.status !== 'EXPIRED');
+    const services = (resServices.data || []).filter((s) => s.status === 'ACTIVE');
+
+    selBooking.innerHTML = '<option value="">-- Chọn đơn tiệc / sân --</option>';
+    bookings.forEach((b) => {
+      const isSel = (defaultBookingId && b.id === Number(defaultBookingId)) ? 'selected' : '';
+      selBooking.innerHTML += `<option value="${b.id}" ${isSel}>${b.bookingCode} · ${b.customerName || 'Khách'} (${b.courtName} - ${formatDate(b.bookingDate)})</option>`;
+    });
+
+    selService.innerHTML = '<option value="">-- Chọn món dịch vụ nội bộ --</option>';
+    services.forEach((s) => {
+      const isSel = (defaultServiceId && s.id === Number(defaultServiceId)) ? 'selected' : '';
+      selService.innerHTML += `<option value="${s.id}" ${isSel}>${s.name} (${s.category}) — ${formatMoney(s.price)}/${s.unit}</option>`;
+    });
+
+    if (defaultBookingId) selBooking.value = defaultBookingId;
+    if (defaultServiceId) selService.value = defaultServiceId;
+  } catch (err) {
+    showToast('Lỗi nạp dữ liệu: ' + err.message, true);
+  }
+}
+
+async function handleCateringInternalSubmit(e) {
+  e.preventDefault();
+  const bookingId = Number(document.getElementById('catering-internal-booking-id').value);
+  const serviceId = Number(document.getElementById('catering-internal-service-id').value);
+  const quantity = Number(document.getElementById('catering-internal-qty').value);
+  const note = document.getElementById('catering-internal-note').value.trim();
+
+  if (!bookingId) return showToast('Vui lòng chọn đơn tiệc/sân', true);
+  if (!serviceId) return showToast('Vui lòng chọn món dịch vụ', true);
+  if (quantity <= 0) return showToast('Số lượng phải lớn hơn 0', true);
+
+  try {
+    await apiFetch(`/staff/bookings/${bookingId}/service-orders`, {
+      method: 'POST',
+      body: JSON.stringify({
+        items: [{ serviceId, quantity }],
+        note,
+      }),
+    });
+
+    closeModal('modal-catering-internal');
+    showToast('Đã xuất món nội bộ cho đơn tiệc thành công! (Tự động GIAO & tính vào đơn)');
+    if (currentCateringSubTab === 'inhouse') renderCateringInhouseMenu();
+    if (currentDetailBookingId && currentDetailBookingId === bookingId) {
+      viewDetail(bookingId);
+    }
+  } catch (err) {
+    showToast('Lỗi: ' + err.message, true);
   }
 }
 

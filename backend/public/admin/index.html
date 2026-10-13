@@ -738,6 +738,7 @@
       <button class="nav-btn" onclick="switchTab('bookings')">📋 Danh Sách Đơn Đặt</button>
       <button class="nav-btn" onclick="switchTab('walkin')">⚡ Đặt Sân Tại Quầy</button>
       <button class="nav-btn" onclick="switchTab('service-orders')">🍵 Hàng Đợi Dịch Vụ</button>
+      <button class="nav-btn" onclick="switchTab('catering')">🍽️ Tiệc & Hóa Đơn Mua Hộ</button>
       <button class="nav-btn" onclick="switchTab('inventory')">📦 Quản Lý Tồn Kho</button>
       <button class="nav-btn" onclick="switchTab('refunds')">💸 Xử Lý Hoàn Tiền</button>
       <button class="nav-btn" onclick="switchTab('customers')">🧑‍🤝‍🧑 Khách Hàng</button>
@@ -1559,6 +1560,164 @@
           </table>
         </div>
       </section>
+
+      <!-- TAB CATERING: DỊCH VỤ TIỆC & HÓA ĐƠN MUA HỘ (2 PHƯƠNG THỨC) -->
+      <section id="tab-catering" class="tab-content">
+        <div class="section-header" style="flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+          <div>
+            <h1 class="section-title">🍽️ Dịch Vụ Tiệc, Sự Kiện & Hóa Đơn Mua Hộ Ngoại Vi</h1>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+              Quy trình chuẩn nghiệp vụ thực tế xử lý 2 phương thức: <strong>(1) Sản phẩm & Đồ uống nội bộ cơ sở tự phục vụ</strong> | <strong>(2) Chi hộ & Mua hộ thực phẩm / ẩm thực ngoài theo hóa đơn chứng từ (Hóa đơn điện tử / Giấy)</strong>.
+            </p>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn btn-outline" onclick="loadProcurementData()">🔄 Tải Lại</button>
+            <button class="btn btn-primary" onclick="moModalThemHoaDonMuaHo()" style="background: linear-gradient(135deg, #10B981, #059669); border-color: #059669;">
+              ➕ Tiếp Nhận Hóa Đơn Mua Hộ Mới
+            </button>
+            <button class="btn btn-outline" onclick="moModalGoiDichVuTiecNoiBo()" style="border-color: rgba(59, 130, 246, 0.4); color: var(--accent);">
+              🥘 Gọi Dịch Vụ Tiệc Nội Bộ
+            </button>
+          </div>
+        </div>
+
+        <!-- THẺ THỐNG KÊ KPI HOẠT ĐỘNG TIỆC & MUA HỘ -->
+        <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin-bottom: 20px;">
+          <div class="kpi-card" style="border-left: 4px solid var(--primary);">
+            <span class="kpi-label">Tổng Hóa Đơn Mua Hộ</span>
+            <span class="kpi-value" id="procure-kpi-count" style="color: var(--primary);">0</span>
+            <span class="kpi-sub" id="procure-kpi-sub-count">Hóa đơn chi hộ bên ngoài</span>
+          </div>
+          <div class="kpi-card" style="border-left: 4px solid #3B82F6;">
+            <span class="kpi-label">Tiền Gốc Trên Hóa Đơn</span>
+            <span class="kpi-value" id="procure-kpi-invoice-amount" style="color: #60A5FA;">0 ₫</span>
+            <span class="kpi-sub">Số tiền theo bill gốc từ bên cung cấp</span>
+          </div>
+          <div class="kpi-card" style="border-left: 4px solid #F59E0B;">
+            <span class="kpi-label">Phí Phục Vụ & Công Mua Hộ</span>
+            <span class="kpi-value" id="procure-kpi-service-fee" style="color: #FBBF24;">0 ₫</span>
+            <span class="kpi-sub">Phí dịch vụ cơ sở thu thêm</span>
+          </div>
+          <div class="kpi-card" style="border-left: 4px solid #10B981;">
+            <span class="kpi-label">Tổng Tiền Gộp Vào Đơn Tiệc</span>
+            <span class="kpi-value" id="procure-kpi-grand-total" style="color: #34D399;">0 ₫</span>
+            <span class="kpi-sub">Đã kết chuyển vào hóa đơn đơn đặt</span>
+          </div>
+          <div class="kpi-card" style="border-left: 4px solid #8B5CF6;">
+            <span class="kpi-label">Phân Loại Chứng Từ</span>
+            <span class="kpi-value" id="procure-kpi-doc-ratio" style="color: #C4B5FD; font-size: 18px;">0 E-HD / 0 Giấy</span>
+            <span class="kpi-sub">Điện tử vs Chứng từ giấy / Biên nhận</span>
+          </div>
+        </div>
+
+        <!-- BỘ CHUYỂN ĐỔI 2 PHƯƠNG THỨC PHỤC VỤ (SUB-TAB SWITCHER) -->
+        <div style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+          <div style="display: flex; gap: 8px;">
+            <button class="pill-tab active" id="btn-catering-tab-external" onclick="chuyenTabConTiec('external')">
+              🧾 Cách 2: Chi Hộ, Đi Chợ & Đặt Mua Bên Ngoài (Có Hóa Đơn Chứng Từ)
+            </button>
+            <button class="pill-tab" id="btn-catering-tab-inhouse" onclick="chuyenTabConTiec('inhouse')">
+              🥘 Cách 1: Sản Phẩm & Thực Phẩm Nội Bộ Cơ Sở Tự Phục Vụ
+            </button>
+          </div>
+          <div style="font-size: 12.5px; color: var(--text-muted);">
+            💡 Tiền từ cả 2 cách được tự động cộng dồn minh bạch vào Hóa đơn tổng của đơn đặt
+          </div>
+        </div>
+
+        <!-- SUB-TAB 1: CÁCH 2 - HÓA ĐƠN MUA HỘ NGOÀI & CHỨNG TỪ (ELECTRONIC / PAPER) -->
+        <div id="catering-view-external">
+          <!-- BỘ LỌC VÀ TÌM KIẾM HÓA ĐƠN MUA HỘ -->
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; background: var(--bg-card); padding: 12px 16px; border-radius: var(--radius-md); border: 1px solid var(--border);">
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <select id="procure-filter-cost-type" class="form-select" style="width: 175px; padding: 6px 10px; font-size: 12.5px;" onchange="loadProcurementData()">
+                <option value="ALL">Tất cả khoản chi</option>
+                <option value="GROCERY">🥩 Đi chợ BBQ, hải sản</option>
+                <option value="CATERING">🍱 Đặt món nhà hàng ngoài</option>
+                <option value="EQUIPMENT">🔊 Thuê loa đài / MC ngoài</option>
+                <option value="OTHER">📦 Khoản chi khác</option>
+              </select>
+              <select id="procure-filter-doc-type" class="form-select" style="width: 165px; padding: 6px 10px; font-size: 12.5px;" onchange="loadProcurementData()">
+                <option value="">Tất cả loại chứng từ</option>
+                <option value="ELECTRONIC">🟢 Hóa đơn điện tử</option>
+                <option value="PAPER">🟡 Hóa đơn giấy / Bill</option>
+              </select>
+              <select id="procure-filter-status" class="form-select" style="width: 160px; padding: 6px 10px; font-size: 12.5px;" onchange="loadProcurementData()">
+                <option value="ALL">Tất cả trạng thái</option>
+                <option value="BILLED" selected>Đã gộp vào đơn (BILLED)</option>
+                <option value="CONFIRMED">Chờ thanh toán (CONFIRMED)</option>
+                <option value="CANCELLED">Đã hủy bỏ</option>
+              </select>
+            </div>
+            <div style="display: flex; gap: 8px; flex: 1; max-width: 400px; min-width: 250px;">
+              <input type="text" id="procure-search-keyword" class="form-input" style="padding: 7px 12px; font-size: 13px;" placeholder="🔍 Tìm mã đơn, món mua, nhà cung cấp, số HĐ..." onkeyup="if(event.key==='Enter') loadProcurementData()" />
+              <button class="btn btn-primary" style="padding: 7px 14px;" onclick="loadProcurementData()">Tìm</button>
+            </div>
+          </div>
+
+          <!-- BẢNG DANH SÁCH HÓA ĐƠN MUA HỘ -->
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 60px;">ID</th>
+                  <th>Đơn Tiệc & Khách Hàng</th>
+                  <th>Khoản Chi & Nhà Cung Cấp</th>
+                  <th>Số HĐ / Ngày Lập</th>
+                  <th>Loại Chứng Từ</th>
+                  <th>Ảnh Chứng Từ</th>
+                  <th>Tiền Bill Gốc</th>
+                  <th>Phí Công / PV</th>
+                  <th>Tổng Tiền</th>
+                  <th>Trạng Thái</th>
+                  <th style="text-align: right; width: 140px;">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody id="procurement-invoices-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SUB-TAB 2: CÁCH 1 - SẢN PHẨM & DỊCH VỤ NỘI BỘ PHỤC VỤ TIỆC -->
+        <div id="catering-view-inhouse" style="display: none;">
+          <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <h3 style="font-size: 15px; font-weight: 700; color: #34D399; margin-bottom: 4px;">
+                  🥘 Phương Thức 1: Phục Vụ Từ Thực Đơn & Kho Nội Bộ Của Sân
+                </h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin: 0; line-height: 1.5;">
+                  Các sản phẩm cơ sở đã chuẩn bị sẵn trong kho (Nước ngọt tủ mát, bia lạnh, đá tinh khiết, thuê bếp nướng BBQ, thuê bàn ghế, bóng thể thao). Nhân viên xuất trực tiếp từ quầy và tự động cập nhật trừ tồn kho khả dụng.
+                </p>
+              </div>
+              <button class="btn btn-primary" onclick="moModalGoiDichVuTiecNoiBo()" style="background: #059669; border-color: #059669;">
+                ➕ Xuất Món Nội Bộ Cho Đơn Tiệc
+              </button>
+            </div>
+          </div>
+
+          <div class="section-header" style="margin-top: 10px;">
+            <h2 style="font-size: 16px; font-weight: 700;">Menu Đồ Uống, Combo & Dụng Cụ Tiệc Có Sẵn Tại Cơ Sở</h2>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Mã Món</th>
+                  <th>Tên Dịch Vụ / Đồ Tiệc</th>
+                  <th>Phân Loại</th>
+                  <th>Đơn Vị</th>
+                  <th>Đơn Giá Niêm Yết</th>
+                  <th>Tồn Kho Khả Dụng</th>
+                  <th>Trạng Thái Quầy</th>
+                  <th style="text-align: right;">Gọi Món Nhanh</th>
+                </tr>
+              </thead>
+              <tbody id="catering-inhouse-menu-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -1932,6 +2091,158 @@
       <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
         <button class="btn btn-outline" onclick="closeModal('modal-refund-detail')">Đóng</button>
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL: TIẾP NHẬN HÓA ĐƠN MUA HỘ NGOÀI PHỤC VỤ TIỆC (CÁCH 2) -->
+  <div class="modal-overlay" id="modal-add-procurement">
+    <div class="modal-card modal-card-lg" style="max-width: 680px;">
+      <div class="modal-header">
+        <h3 class="modal-title">🧾 Tiếp Nhận Hóa Đơn Mua Hộ Ngoài (Đi Chợ / Tiệc)</h3>
+        <button class="btn-close" onclick="closeModal('modal-add-procurement')">&times;</button>
+      </div>
+      <form id="form-add-procurement" onsubmit="handleCreateProcurementSubmit(event)">
+        <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 8px; padding: 12px 14px; margin-bottom: 14px; font-size: 12.5px; color: var(--text-muted); line-height: 1.5;">
+          📌 <strong>Nghiệp vụ mua hộ / chi hộ ngoài:</strong> Nhân viên đi chợ mua thực phẩm tươi sống, hải sản BBQ, đặt bánh kem hoặc thuê dịch vụ bên ngoài theo yêu cầu tiệc của khách. Lưu vết hóa đơn chứng từ điện tử hoặc giấy, tiền gốc và phí phục vụ sẽ được tự động gộp vào hóa đơn đơn đặt sân/tiệc.
+        </div>
+
+        <div class="form-row">
+          <div class="form-group" style="flex: 2;">
+            <label class="form-label">Chọn Đơn Đặt Sân / Tiệc Tùng *</label>
+            <select id="procure-booking-id" class="form-select" required></select>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label">Phân Loại Chi Phí *</label>
+            <select id="procure-expense-type" class="form-select" required>
+              <option value="GROCERY">🥩 Đi chợ BBQ, hải sản</option>
+              <option value="CATERING">🍱 Đặt món nhà hàng ngoài</option>
+              <option value="EQUIPMENT">🔊 Thuê loa đài / sự kiện</option>
+              <option value="OTHER">📦 Chi phí dịch vụ khác</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group" style="flex: 2;">
+            <label class="form-label">Tên Khoản Chi Hộ / Mua Hộ *</label>
+            <input type="text" id="procure-title" class="form-input" placeholder="Ví dụ: Mua hải sản tôm cua & bò Úc ướp sẵn cho tiệc BBQ" required />
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label">Nhà Cung Cấp / Nơi Mua</label>
+            <input type="text" id="procure-supplier" class="form-input" placeholder="Ví dụ: Siêu thị Mega Market" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label">Hình Thức Chứng Từ *</label>
+            <select id="procure-doc-type" class="form-select" required onchange="doiLoaiChungTuMau(this.value)">
+              <option value="ELECTRONIC">🟢 Hóa đơn điện tử (E-Invoice, file ảnh / QR)</option>
+              <option value="PAPER">🟡 Hóa đơn giấy (Phiếu thu / Bill bán lẻ / Biên lai)</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label">Số Hóa Đơn / Mã Tra Cứu</label>
+            <input type="text" id="procure-invoice-code" class="form-input" placeholder="Ví dụ: HD-MM-89214 hoặc BL-0923" />
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label">Ngày Trên Hóa Đơn *</label>
+            <input type="date" id="procure-invoice-date" class="form-input" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Chi Tiết Định Lượng Các Món Mua Hộ</label>
+          <textarea id="procure-items-detail" class="form-input" rows="2" placeholder="Ví dụ: 3kg tôm càng xanh (900k), 2kg sườn bò Úc (500k), rau củ quả sốt nướng (100k)"></textarea>
+        </div>
+
+        <div class="form-row" style="background: var(--surface-card); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label">Tiền Gốc Trên Hóa Đơn (₫) *</label>
+            <input type="number" id="procure-original-amount" class="form-input" placeholder="1500000" min="1000" step="1000" required oninput="tinhTongTienMuaHoForm()" />
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label">Phí Công / Phí Phục Vụ (₫)</label>
+            <input type="number" id="procure-service-fee" class="form-input" placeholder="150000" min="0" step="1000" value="0" oninput="tinhTongTienMuaHoForm()" />
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label">Tổng Gộp Đơn Tiệc (₫)</label>
+            <input type="text" id="procure-calc-total" class="form-input" readonly style="font-weight: 800; font-family: var(--font-mono); color: #34D399; font-size: 15px; background: rgba(16, 185, 129, 0.1);" value="0 ₫" />
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 12px;">
+          <label class="form-label">Hình Ảnh Chứng Từ Hóa Đơn (URL ảnh hoặc chọn mẫu sẵn)</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="procure-img-url" class="form-input" placeholder="https://... hoặc bấm nút chọn mẫu bên phải" />
+            <button type="button" class="btn btn-outline" style="white-space: nowrap;" onclick="dienAnhMauChungTu()">📷 Mẫu Bill</button>
+          </div>
+          <span style="font-size: 11.5px; color: var(--text-muted);">Đính kèm ảnh chụp hóa đơn để khách hàng và kế toán đối soát minh bạch khi thanh toán</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Ghi Chú Phục Vụ</label>
+          <input type="text" id="procure-note" class="form-input" placeholder="Khách hẹn 18h mang lên bàn BBQ khu VIP..." />
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 18px;">
+          <button type="button" class="btn btn-outline" style="flex: 1; padding: 11px;" onclick="closeModal('modal-add-procurement')">
+            Hủy Bỏ
+          </button>
+          <button type="submit" class="btn btn-primary" style="flex: 2; justify-content: center; padding: 11px; background: #059669; border-color: #059669;">
+            ✅ Xác Nhận & Gộp Vào Đơn Tiệc
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: XEM ẢNH HÓA ĐƠN CHỨNG TỪ PHÓNG TO -->
+  <div class="modal-overlay" id="modal-view-invoice-img">
+    <div class="modal-card modal-card-lg" style="max-width: 650px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="view-bill-modal-title">🧾 Chứng Từ Hóa Đơn Đối Soát</h3>
+        <button class="btn-close" onclick="closeModal('modal-view-invoice-img')">&times;</button>
+      </div>
+      <div id="view-bill-modal-content" style="text-align: center; padding: 8px 0;"></div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px;">
+        <span id="view-bill-modal-meta" style="font-size: 12.5px; color: var(--text-muted);"></span>
+        <button class="btn btn-outline" onclick="closeModal('modal-view-invoice-img')">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: GỌI NHANH DỊCH VỤ TIỆC NỘI BỘ (CÁCH 1) -->
+  <div class="modal-overlay" id="modal-catering-internal">
+    <div class="modal-card" style="max-width: 540px;">
+      <div class="modal-header">
+        <h3 class="modal-title">🥘 Xuất Dịch Vụ & Món Nội Bộ Cho Đơn Tiệc</h3>
+        <button class="btn-close" onclick="closeModal('modal-catering-internal')">&times;</button>
+      </div>
+      <form id="form-catering-internal" onsubmit="handleCateringInternalSubmit(event)">
+        <div class="form-group">
+          <label class="form-label">Chọn Đơn Tiệc / Sân *</label>
+          <select id="catering-internal-booking-id" class="form-select" required></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Chọn Món / Dịch Vụ Trong Kho Sân *</label>
+          <select id="catering-internal-service-id" class="form-select" required></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Số Lượng *</label>
+          <input type="number" id="catering-internal-qty" class="form-input" value="1" min="1" max="500" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ghi Chú Phục Vụ</label>
+          <input type="text" id="catering-internal-note" class="form-input" placeholder="Ướp lạnh trước khi mang ra sân tiệc..." />
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 16px;">
+          <button type="button" class="btn btn-outline" style="flex: 1;" onclick="closeModal('modal-catering-internal')">Hủy</button>
+          <button type="submit" class="btn btn-primary" style="flex: 2; justify-content: center; background: #059669; border-color: #059669;">
+            🚀 Xuất Kho & Giao Ngay
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 

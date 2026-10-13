@@ -323,3 +323,31 @@ CREATE TABLE bien_dong_kho (
   CONSTRAINT fk_bdk_nguoi_dung FOREIGN KEY (nguoi_thuc_hien_id) REFERENCES nguoi_dung (id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
+-- ===== 16. hoa_don_mua_ho (Chứng từ hóa đơn điện tử / giấy mua hộ & đi chợ ngoài cho khách tiệc) =====
+CREATE TABLE IF NOT EXISTS hoa_don_mua_ho (
+  id                  INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  don_dat_id          INT UNSIGNED NOT NULL,
+  loai_chi_phi        ENUM('GROCERY','CATERING','EQUIPMENT','OTHER') NOT NULL DEFAULT 'GROCERY',
+  ten_khoan_chi       VARCHAR(255) NOT NULL,
+  nha_cung_cap        VARCHAR(150) NULL,
+  so_hoa_don          VARCHAR(100) NULL,
+  loai_chung_tu       ENUM('ELECTRONIC','PAPER') NOT NULL DEFAULT 'PAPER',
+  ngay_hoa_don        DATE NOT NULL,
+  hinh_anh_chung_tu   VARCHAR(500) NULL,
+  tien_hoa_don        INT UNSIGNED NOT NULL,
+  phi_phuc_vu         INT UNSIGNED NOT NULL DEFAULT 0,
+  tong_tien           INT UNSIGNED NOT NULL,
+  chi_tiet_mon        TEXT NULL,
+  ghi_chu             VARCHAR(500) NULL,
+  trang_thai          ENUM('PENDING','CONFIRMED','BILLED','CANCELLED') NOT NULL DEFAULT 'CONFIRMED',
+  nguoi_tao_id        INT UNSIGNED NOT NULL,
+  ngay_tao            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  ngay_cap_nhat       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_hdmh_don_dat (don_dat_id),
+  KEY idx_hdmh_trangthai (trang_thai),
+  KEY idx_hdmh_ngay (ngay_hoa_don),
+  CONSTRAINT fk_hdmh_don_dat FOREIGN KEY (don_dat_id) REFERENCES don_dat (id) ON DELETE CASCADE,
+  CONSTRAINT fk_hdmh_nguoi_tao FOREIGN KEY (nguoi_tao_id) REFERENCES nguoi_dung (id)
+) ENGINE=InnoDB;
+

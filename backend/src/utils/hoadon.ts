@@ -8,14 +8,19 @@ import { LoiApi } from './loi';
 
 export type NguonTruyVan = Pick<PoolConnection, 'execute'>;
 
-/** 7.10 — Cập nhật cache don_dat.tien_dich_vu (chỉ yêu cầu DELIVERED). Gọi trong transaction đã khóa đơn. */
+/** 7.10 — Cập nhật cache don_dat.tien_dich_vu (yêu cầu DELIVERED + hóa đơn mua hộ CONFIRMED/BILLED). Gọi trong transaction hoặc sau thao tác dịch vụ. */
 export async function tinhLaiTienDichVu(ketNoi: NguonTruyVan, donId: number): Promise<void> {
   await ketNoi.execute(
     `UPDATE don_dat dd
-     SET dd.tien_dich_vu = COALESCE((
-       SELECT SUM(ct.so_luong * ct.don_gia)
-       FROM yeu_cau_dich_vu ycdv JOIN chi_tiet_yeu_cau_dich_vu ct ON ct.yeu_cau_dich_vu_id = ycdv.id
-       WHERE ycdv.don_dat_id = dd.id AND ycdv.trang_thai = 'DELIVERED'), 0)
+     SET dd.tien_dich_vu = 
+       COALESCE((
+         SELECT SUM(ct.so_luong * ct.don_gia)
+         FROM yeu_cau_dich_vu ycdv JOIN chi_tiet_yeu_cau_dich_vu ct ON ct.yeu_cau_dich_vu_id = ycdv.id
+         WHERE ycdv.don_dat_id = dd.id AND ycdv.trang_thai = 'DELIVERED'), 0)
+       + COALESCE((
+         SELECT SUM(hdmh.tong_tien)
+         FROM hoa_don_mua_ho hdmh
+         WHERE hdmh.don_dat_id = dd.id AND hdmh.trang_thai IN ('CONFIRMED', 'BILLED')), 0)
      WHERE dd.id = ?`,
     [donId]
   );
@@ -102,6 +107,34 @@ export async function taoHoaDon(ketNoi: NguonTruyVan, donId: number) {
   const serviceAmount = Number(don.tien_dich_vu);
   const grandTotal = courtAmount + serviceAmount;
 
+  // Lấy các hóa đơn mua hộ / chi hộ dịch vụ ngoài
+  const [procurementRows] = await ketNoi.execute<RowDataPacket[]>(
+    `SELECT id, don_dat_id AS booking_id, loai_chi_phi AS cost_type, ten_khoan_chi AS title,
+            nha_cung_cap AS supplier, so_hoa_don AS invoice_number, loai_chung_tu AS doc_type,
+            DATE_FORMAT(ngay_hoa_don, '%Y-%m-%d') AS invoice_date, hinh_anh_chung_tu AS bill_image_url,
+            tien_hoa_don AS invoice_amount, phi_phuc_vu AS service_fee, tong_tien AS total_amount,
+            chi_tiet_mon AS item_details, ghi_chu AS note, trang_thai AS status,
+            DATE_FORMAT(CONVERT_TZ(ngay_tao, '+00:00', '+07:00'), '%Y-%m-%d %H:%i') AS created_at
+     FROM hoa_don_mua_ho WHERE don_dat_id = ? ORDER BY id`,
+    [donId]
+  );
+
+  const procurementInvoices = chuyenCamel<any[]>(procurementRows).map((p) => ({
+    ...p,
+    invoiceAmount: Number(p.invoiceAmount),
+    serviceFee: Number(p.serviceFee || 0),
+    totalAmount: Number(p.totalAmount),
+  }));
+
+  const procurementAmount = procurementInvoices
+    .filter((p) => p.status === 'CONFIRMED' || p.status === 'BILLED')
+    .reduce((sum, p) => sum + p.totalAmount, 0);
+
+  const inHouseOrders = await layYeuCauDichVuCuaDon(ketNoi, donId);
+  const inHouseServiceAmount = inHouseOrders
+    .filter((o) => o.status === 'DELIVERED')
+    .reduce((sum, o) => sum + (o.orderAmount || 0), 0);
+
   const [giaoDich] = await ketNoi.execute<RowDataPacket[]>(
     `SELECT id, loai_giao_dich AS type, muc_dich AS purpose, phuong_thuc AS method,
             so_tien AS amount, trang_thai AS status, ma_giao_dich AS transaction_ref,
@@ -119,7 +152,10 @@ export async function taoHoaDon(ketNoi: NguonTruyVan, donId: number) {
     startTime: (don.gio_bat_dau as string).substring(0, 5),
     endTime: (don.gio_ket_thuc as string).substring(0, 5),
     courtAmount,
-    orders: await layYeuCauDichVuCuaDon(ketNoi, donId),
+    orders: inHouseOrders,
+    inHouseServiceAmount,
+    procurementInvoices,
+    procurementAmount,
     serviceAmount,
     grandTotal,
     paidAmount,
