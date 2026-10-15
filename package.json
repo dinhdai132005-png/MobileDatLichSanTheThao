@@ -8,6 +8,7 @@
     "ios": "expo start --ios",
     "type-check": "tsc --noEmit",
     "dev": "npm --prefix backend run dev",
+    "qr": "node scripts/in-qr.js",
     "server": "npm --prefix backend run dev",
     "db:reset": "npm --prefix backend run db:reset",
     "test": "npm --prefix backend test",
