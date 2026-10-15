@@ -22,6 +22,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { DonDat } from '../types';
 import { donDatService } from '../services/donDatService';
+import { sanService } from '../services/sanService';
 
 interface ChiTietDonDatScreenProps {
   route: {
@@ -529,6 +530,28 @@ export default function ChiTietDonDatScreen({ route, navigation }: ChiTietDonDat
             <Text style={styles.chuNutHuy}>Hủy đơn đặt sân này</Text>
           </TouchableOpacity>
         )}
+
+        {/* NÚT THỬ LẠI / ĐẶT LẠI KHI ĐƠN HẾT HẠN HOẶC HỦY DO CHƯA THANH TOÁN */}
+        {(donDat?.trangThai === 'daHuy' || donDat?.trangThaiGoc === 'EXPIRED') && (
+          <TouchableOpacity
+            style={styles.nutDatLaiSan}
+            onPress={async () => {
+              try {
+                const san = await sanService.getChiTietSan(String(donDat.sanId || 1));
+                if (san) {
+                  navigation.navigate('ChiTietSan', { san });
+                } else {
+                  navigation.navigate('DanhSachSanTab');
+                }
+              } catch {
+                navigation.navigate('DanhSachSanTab');
+              }
+            }}
+          >
+            <Ionicons name="refresh-circle-outline" size={20} color={MAU_SAC.chinh} />
+            <Text style={styles.chuNutDatLai}>Thử thanh toán lại / Đặt lại sân này</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
 
       {/* MODAL ĐÁNH GIÁ SÂN (T29 / CUS-10) */}
@@ -897,6 +920,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: MAU_SAC.nguyHiem,
+  },
+  nutDatLaiSan: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(0, 184, 132, 0.1)',
+    borderWidth: 1,
+    borderColor: '#00B884',
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginBottom: 14,
+  },
+  chuNutDatLai: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#00B884',
   },
   vungDangTai: {
     flex: 1,

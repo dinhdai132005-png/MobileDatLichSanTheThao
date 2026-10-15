@@ -35,6 +35,7 @@ nhanVienRouter.get('/bookings', nhanVienController.layDanhSachDon);
 nhanVienRouter.get('/bookings/:id', nhanVienController.layChiTietDon);
 nhanVienRouter.post('/bookings', kiemTraDuLieu(luocDoNhanVienDatSan), nhanVienController.datSanTaiQuay);
 nhanVienRouter.post('/bookings/:id/payments', kiemTraDuLieu(luocDoGhiNhanThanhToan), nhanVienController.ghiNhanThanhToan);
+nhanVienRouter.post('/bookings/:id/check-in', nhanVienController.xacNhanCheckIn);
 nhanVienRouter.post('/bookings/:id/complete', nhanVienController.hoanThanhDon);
 nhanVienRouter.post('/bookings/:id/no-show', nhanVienController.danhDauNoShow);
 nhanVienRouter.post('/bookings/:id/cancel', kiemTraDuLieu(luocDoNhanVienHuyDon), nhanVienController.huyThayKhach);

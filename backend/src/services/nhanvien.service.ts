@@ -139,9 +139,9 @@ export class NhanVienService {
        FROM khung_gio WHERE hoat_dong = 1 ORDER BY gio_bat_dau ASC`
     );
 
-    // Lấy tất cả sân hoạt động
+    // Lấy tất cả sân hoạt động kèm loại sân
     const [sanRows] = await csdl.execute<RowDataPacket[]>(
-      `SELECT s.id, s.ten AS court_name, ls.ten AS court_type_name, s.trang_thai AS status
+      `SELECT s.id, s.loai_san_id, s.ten AS court_name, ls.ten AS court_type_name, s.trang_thai AS status
        FROM san s
        JOIN loai_san ls ON ls.id = s.loai_san_id
        WHERE s.trang_thai != 'INACTIVE'
@@ -174,15 +174,45 @@ export class NhanVienService {
       });
     }
 
+    // Xác định thứ trong tuần để lấy giá ma trận
+    const ngayDatObj = new Date(`${ngay}T00:00:00+07:00`);
+    const thu = ngayDatObj.getDay();
+    const loaiNgay = thu === 0 || thu === 6 ? 'WEEKEND' : 'WEEKDAY';
+
+    const [giaRows] = await csdl.execute<RowDataPacket[]>(
+      `SELECT loai_san_id, khung_gio_id, gia FROM gia_khung_gio WHERE loai_ngay = ?`,
+      [loaiNgay]
+    );
+    const giaMap = new Map<string, number>();
+    for (const g of giaRows) {
+      giaMap.set(`${g.loai_san_id}_${g.khung_gio_id}`, Number(g.gia));
+    }
+
+    const ngayHienTaiStr = layNgayHomNay();
+    const gioHienTaiStr = layGioHienTai();
+
     const timeSlots = chuyenCamel<any[]>(khungGioRows);
 
     const courts = sanRows.map((san: any) => {
       const slots = timeSlots.map((kg: any) => {
         const key = `${san.id}_${kg.id}`;
         const b = slotMap.get(key);
+
+        let cellStatus: 'AVAILABLE' | 'BOOKED' | 'PAST' | 'MAINTENANCE' = 'AVAILABLE';
+        if (san.status === 'MAINTENANCE') {
+          cellStatus = 'MAINTENANCE';
+        } else if (b) {
+          cellStatus = 'BOOKED';
+        } else if (ngay < ngayHienTaiStr || (ngay === ngayHienTaiStr && kg.endTime <= gioHienTaiStr)) {
+          cellStatus = 'PAST';
+        }
+
+        const price = giaMap.get(`${san.loai_san_id}_${kg.id}`) || 0;
+
         return {
           timeSlotId: kg.id,
-          status: b ? 'BOOKED' : 'AVAILABLE',
+          status: cellStatus,
+          price,
           bookingId: b ? b.id : null,
           bookingCode: b ? b.bookingCode : null,
           customerName: b ? b.customerName : null,
@@ -704,6 +734,45 @@ export class NhanVienService {
         status: trangThaiMoi,
         paymentStatus: 'PAID',
         payments: chuyenCamel<any[]>(payments).map((p) => ({ ...p, amount: Number(p.amount) })),
+      };
+    });
+  }
+
+  /**
+   * UC12.6: Xác nhận khách đến sân (Check-in)
+   */
+  async xacNhanCheckIn(nhanVienId: number, donDatId: number) {
+    return await voiGiaoDich(async (ketNoi) => {
+      const [donRows] = await ketNoi.execute<RowDataPacket[]>(
+        `SELECT id, ma_don_dat, trang_thai, trang_thai_thanh_toan, ngay_dat, gio_bat_dau
+         FROM don_dat WHERE id = ? FOR UPDATE`,
+        [donDatId]
+      );
+
+      if (donRows.length === 0) throw LoiApi.khongTimThay('Không tìm thấy đơn đặt');
+      const don = donRows[0];
+
+      if (don.trang_thai !== 'CONFIRMED') {
+        throw new LoiApi(409, 'INVALID_STATUS', `Chỉ có thể xác nhận khách đến sân cho đơn CONFIRMED (hiện tại: ${don.trang_thai})`);
+      }
+
+      await ketNoi.execute(
+        `UPDATE don_dat SET trang_thai = 'CHECKED_IN' WHERE id = ?`,
+        [donDatId]
+      );
+
+      await ghiNhatKyTrangThai(ketNoi, {
+        donDatId,
+        trangThaiCu: 'CONFIRMED',
+        trangThaiMoi: 'CHECKED_IN',
+        thayDoiBoiId: nhanVienId,
+        ghiChu: 'Nhân viên xác nhận khách đã đến sân nhận chỗ (Check-in)',
+      });
+
+      return {
+        success: true,
+        status: 'CHECKED_IN',
+        message: 'Xác nhận khách đến sân (Check-in) thành công',
       };
     });
   }

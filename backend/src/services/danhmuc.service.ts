@@ -137,6 +137,46 @@ export class DanhMucService {
       paymentMethods: ['CASH', 'BANK_TRANSFER'],
     };
   }
+
+  /** Lấy danh sách sự kiện của sân (tất cả hoặc theo trạng thái) */
+  static async layDanhSachSuKien(trangThai?: string) {
+    let sql = `
+      SELECT sk.id, sk.tieu_de, sk.mo_ta_ngan, sk.noi_dung, sk.hinh_anh,
+             sk.ngay_bat_dau, sk.ngay_ket_thuc, sk.dia_diem, sk.san_id,
+             sk.phi_tham_gia, sk.phan_thuong, sk.trang_thai, sk.hotline_lh,
+             s.ten AS san_ten
+      FROM su_kien sk
+      LEFT JOIN san s ON s.id = sk.san_id
+      WHERE 1=1
+    `;
+    const params: any[] = [];
+    if (trangThai) {
+      sql += ' AND sk.trang_thai = ?';
+      params.push(trangThai);
+    }
+    sql += ' ORDER BY sk.ngay_bat_dau ASC';
+    const [danhSach] = await pool.execute<RowDataPacket[]>(sql, params);
+    return chuyenCamel(danhSach);
+  }
+
+  /** Lấy chi tiết sự kiện theo ID */
+  static async layChiTietSuKien(id: number) {
+    const sql = `
+      SELECT sk.id, sk.tieu_de, sk.mo_ta_ngan, sk.noi_dung, sk.hinh_anh,
+             sk.ngay_bat_dau, sk.ngay_ket_thuc, sk.dia_diem, sk.san_id,
+             sk.phi_tham_gia, sk.phan_thuong, sk.trang_thai, sk.hotline_lh,
+             s.ten AS san_ten
+      FROM su_kien sk
+      LEFT JOIN san s ON s.id = sk.san_id
+      WHERE sk.id = ?
+      LIMIT 1
+    `;
+    const [danhSach] = await pool.execute<RowDataPacket[]>(sql, [id]);
+    if (danhSach.length === 0) {
+      throw LoiApi.khongTimThay('Không tìm thấy thông tin sự kiện');
+    }
+    return chuyenCamel(danhSach[0]);
+  }
 }
 
 export const danhMucService = {
@@ -145,4 +185,7 @@ export const danhMucService = {
   layChiTietSan: (id: number) => DanhMucService.layChiTietSan(id),
   layDanhSachKhungGio: () => DanhMucService.layDanhSachKhungGio(),
   layCauHinhCongKhai: () => DanhMucService.layCauHinhCongKhai(),
+  layDanhSachSuKien: (trangThai?: string) => DanhMucService.layDanhSachSuKien(trangThai),
+  layChiTietSuKien: (id: number) => DanhMucService.layChiTietSuKien(id),
 };
+

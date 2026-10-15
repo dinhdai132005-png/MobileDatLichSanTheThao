@@ -69,6 +69,12 @@ export class NhanVienController {
     phanHoiThanhCong(res, ketQua, 'Ghi nhận thanh toán thành công');
   });
 
+  xacNhanCheckIn = batDongBo(async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    const ketQua = await nhanVienService.xacNhanCheckIn(req.nguoiDung!.id, id);
+    phanHoiThanhCong(res, ketQua, 'Xác nhận khách đến sân (Check-in) thành công');
+  });
+
   hoanThanhDon = batDongBo(async (req: Request, res: Response) => {
     const id = Number(req.params.id);
     const ketQua = await nhanVienService.hoanThanhDon(req.nguoiDung!.id, id);

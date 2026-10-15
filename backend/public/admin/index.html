@@ -8,30 +8,89 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('admin_theme') || 'light';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    })();
+  </script>
   <style>
-    :root {
-      --primary: #10B981;
-      --primary-dark: #059669;
-      --primary-light: #D1FAE5;
-      --accent: #3B82F6;
-      --bg: #0B1329;
-      --surface: #151F38;
-      --surface-card: #1C2849;
-      --surface-hover: #26355E;
-      --border: #2D3D66;
-      --border-focus: #10B981;
-      --text: #F8FAFC;
-      --text-muted: #94A3B8;
-      --danger: #EF4444;
-      --danger-dark: #DC2626;
-      --warning: #F59E0B;
-      --success: #10B981;
-      --info: #38BDF8;
-      --purple: #8B5CF6;
+    /* ============================================================
+       THEME SYSTEM: LIGHT (MẶC ĐỊNH DỄ NHÌN) & DARK (TỐI SANG TRỌNG)
+       Chuẩn WCAG AAA, độ tương phản cao, dịu mắt cho nhân viên
+       ============================================================ */
+    :root, [data-theme="light"] {
+      --primary: #059669;        /* Emerald 600 - Xanh thể thao đậm nét */
+      --primary-dark: #047857;   /* Emerald 700 */
+      --primary-light: #ECFDF5;  /* Emerald 50 - Nền pastel dịu mát */
+      --accent: #2563EB;         /* Blue 600 - Xanh dương rõ ràng */
+      --accent-light: #EFF6FF;   /* Blue 50 */
+      --bg: #F1F5F9;             /* Slate 100 - Nền xám ngọc trai chống chói */
+      --surface: #FFFFFF;        /* Nền thẻ / sidebar trắng tinh tế */
+      --surface-card: #F8FAFC;   /* Card phụ / input background */
+      --surface-hover: #E2E8F0;  /* Slate 200 - Hover rõ rệt */
+      --border: #CBD5E1;         /* Slate 300 - Viền sắc nét, phân tách rõ */
+      --border-focus: #059669;   /* Viền khi chọn */
+      --text: #0F172A;           /* Slate 900 - Chữ đen đậm nét cực kỳ dễ đọc */
+      --text-muted: #475569;     /* Slate 600 - Chữ phụ rõ ràng, không mờ */
+      --text-light: #64748B;     /* Slate 500 */
+      --danger: #DC2626;         /* Red 600 */
+      --danger-light: #FEF2F2;
+      --danger-dark: #B91C1C;
+      --warning: #D97706;        /* Amber 600 */
+      --warning-light: #FFFBEB;
+      --success: #059669;
+      --success-light: #ECFDF5;
+      --info: #0284C7;           /* Sky 600 */
+      --info-light: #F0F9FF;
+      --purple: #7C3AED;         /* Violet 600 */
+      --purple-light: #F5F3FF;
       --radius: 12px;
       --radius-sm: 8px;
-      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+      --shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.06), 0 1px 4px -1px rgba(0, 0, 0, 0.04);
+      --shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.1), 0 4px 8px -2px rgba(0, 0, 0, 0.05);
       --font-mono: 'JetBrains Mono', monospace;
+      --th-bg: #E2E8F0;
+      --header-bg: rgba(255, 255, 255, 0.96);
+      --aside-bg: #FFFFFF;
+      --table-stripe: #F8FAFC;
+    }
+
+    [data-theme="dark"] {
+      --primary: #10B981;
+      --primary-dark: #059669;
+      --primary-light: rgba(16, 185, 129, 0.16);
+      --accent: #3B82F6;
+      --accent-light: rgba(59, 130, 246, 0.16);
+      --bg: #0F172A;             /* Slate 900 - Dịu mắt hơn navy cũ */
+      --surface: #1E293B;        /* Slate 800 */
+      --surface-card: #27354A;   /* Slate 750 */
+      --surface-hover: #334155;  /* Slate 700 */
+      --border: #334155;         /* Viền sáng hơn nền */
+      --border-focus: #10B981;
+      --text: #F8FAFC;           /* Slate 50 */
+      --text-muted: #94A3B8;     /* Slate 400 */
+      --text-light: #64748B;
+      --danger: #EF4444;
+      --danger-light: rgba(239, 68, 68, 0.18);
+      --danger-dark: #DC2626;
+      --warning: #F59E0B;
+      --warning-light: rgba(245, 158, 11, 0.18);
+      --success: #10B981;
+      --success-light: rgba(16, 185, 129, 0.18);
+      --info: #38BDF8;
+      --info-light: rgba(56, 189, 248, 0.18);
+      --purple: #8B5CF6;
+      --purple-light: rgba(139, 92, 246, 0.18);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 20px 30px -10px rgba(0, 0, 0, 0.6);
+      --font-mono: 'JetBrains Mono', monospace;
+      --th-bg: #152238;
+      --header-bg: rgba(30, 41, 59, 0.96);
+      --aside-bg: #1E293B;
+      --table-stripe: rgba(255, 255, 255, 0.02);
     }
 
     * {
@@ -47,11 +106,12 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      transition: background-color 0.2s ease, color 0.2s ease;
     }
 
     /* Header */
     header {
-      background: rgba(21, 31, 56, 0.95);
+      background: var(--header-bg);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
       padding: 12px 24px;
@@ -61,6 +121,7 @@
       position: sticky;
       top: 0;
       z-index: 50;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
     .brand {
       display: flex;
@@ -68,7 +129,7 @@
       gap: 12px;
     }
     .brand-logo {
-      font-size: 26px;
+      font-size: 24px;
       background: linear-gradient(135deg, var(--primary), var(--accent));
       width: 42px;
       height: 42px;
@@ -76,19 +137,16 @@
       align-items: center;
       justify-content: center;
       border-radius: var(--radius-sm);
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+      box-shadow: 0 4px 10px rgba(5, 150, 105, 0.25);
     }
     .brand-title {
       font-size: 16px;
       font-weight: 800;
       letter-spacing: -0.02em;
-      background: linear-gradient(90deg, #FFFFFF, #94A3B8);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: var(--text);
     }
     .brand-subtitle {
-      font-size: 11px;
+      font-size: 11.5px;
       color: var(--text-muted);
       font-weight: 500;
     }
@@ -96,8 +154,32 @@
     .header-actions {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
     }
+
+    /* Nút đổi giao diện Sáng / Tối */
+    .btn-theme-toggle {
+      background: var(--surface-card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 7px 13px;
+      border-radius: 999px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow);
+    }
+    .btn-theme-toggle:hover {
+      background: var(--surface-hover);
+      border-color: var(--primary);
+      color: var(--primary);
+      transform: translateY(-1px);
+    }
+
     .user-pill {
       background: var(--surface-card);
       border: 1px solid var(--border);
@@ -108,32 +190,34 @@
       gap: 8px;
       font-size: 13px;
       font-weight: 600;
+      color: var(--text);
     }
     .role-tag {
       font-size: 10px;
-      padding: 2px 7px;
-      border-radius: 4px;
+      padding: 3px 8px;
+      border-radius: 6px;
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
-    .role-ADMIN { background: rgba(239, 68, 68, 0.2); color: #F87171; border: 1px solid #EF4444; }
-    .role-STAFF { background: rgba(59, 130, 246, 0.2); color: #60A5FA; border: 1px solid #3B82F6; }
+    .role-ADMIN { background: var(--danger-light); color: var(--danger); border: 1px solid var(--danger); }
+    .role-STAFF { background: var(--accent-light); color: var(--accent); border: 1px solid var(--accent); }
 
     .btn-logout {
-      background: transparent;
+      background: var(--surface-card);
       border: 1px solid var(--border);
       color: var(--text-muted);
-      padding: 6px 14px;
+      padding: 7px 14px;
       border-radius: var(--radius-sm);
       font-size: 13px;
       cursor: pointer;
+      font-weight: 600;
       transition: all 0.2s;
     }
     .btn-logout:hover {
-      background: rgba(239, 68, 68, 0.15);
+      background: var(--danger-light);
       border-color: var(--danger);
-      color: #FCA5A5;
+      color: var(--danger);
     }
 
     /* Layout */
@@ -143,13 +227,14 @@
     }
 
     aside {
-      width: 250px;
-      background: var(--surface);
+      width: 255px;
+      background: var(--aside-bg);
       border-right: 1px solid var(--border);
-      padding: 20px 12px;
+      padding: 18px 12px;
       display: flex;
       flex-direction: column;
       gap: 5px;
+      box-shadow: 1px 0 3px rgba(0,0,0,0.03);
     }
     .nav-btn {
       background: transparent;
@@ -163,18 +248,19 @@
       align-items: center;
       gap: 10px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.15s ease;
       text-align: left;
       width: 100%;
     }
     .nav-btn:hover {
       background: var(--surface-hover);
-      color: #FFFFFF;
+      color: var(--text);
     }
     .nav-btn.active {
       background: var(--primary);
-      color: #FFFFFF;
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+      color: #FFFFFF !important;
+      box-shadow: 0 4px 10px rgba(5, 150, 105, 0.3);
+      font-weight: 700;
     }
     .nav-divider {
       height: 1px;
@@ -183,18 +269,18 @@
     }
     .nav-label {
       font-size: 11px;
-      font-weight: 700;
-      color: var(--text-muted);
+      font-weight: 800;
+      color: var(--primary);
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      padding: 6px 12px 2px;
+      letter-spacing: 0.06em;
+      padding: 8px 12px 3px;
     }
 
     main {
       flex: 1;
       padding: 24px 32px;
       overflow-y: auto;
-      max-width: 1500px;
+      max-width: 1560px;
       margin: 0 auto;
       width: 100%;
     }
@@ -221,17 +307,18 @@
       gap: 12px;
     }
     .section-title {
-      font-size: 20px;
+      font-size: 22px;
       font-weight: 800;
       letter-spacing: -0.02em;
+      color: var(--text);
     }
     .btn {
-      padding: 8px 16px;
+      padding: 9px 16px;
       border-radius: var(--radius-sm);
       font-size: 13.5px;
       font-weight: 600;
       cursor: pointer;
-      border: none;
+      border: 1px solid transparent;
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -240,37 +327,54 @@
     .btn-primary {
       background: var(--primary);
       color: #FFFFFF;
+      box-shadow: 0 2px 5px rgba(5, 150, 105, 0.25);
     }
-    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      box-shadow: 0 4px 8px rgba(5, 150, 105, 0.35);
+      transform: translateY(-1px);
+    }
     .btn-outline {
-      background: transparent;
+      background: var(--surface);
       border: 1px solid var(--border);
       color: var(--text);
     }
-    .btn-outline:hover { background: var(--surface-hover); border-color: var(--text-muted); }
+    .btn-outline:hover {
+      background: var(--surface-hover);
+      border-color: var(--text-muted);
+    }
     .btn-danger {
-      background: rgba(239, 68, 68, 0.2);
+      background: var(--danger-light);
       border: 1px solid var(--danger);
-      color: #FCA5A5;
+      color: var(--danger);
     }
-    .btn-danger:hover { background: var(--danger); color: white; }
+    .btn-danger:hover {
+      background: var(--danger);
+      color: #FFFFFF;
+    }
     .btn-warning {
-      background: rgba(245, 158, 11, 0.2);
+      background: var(--warning-light);
       border: 1px solid var(--warning);
-      color: #FCD34D;
+      color: var(--warning);
     }
-    .btn-warning:hover { background: var(--warning); color: #000; }
+    .btn-warning:hover {
+      background: var(--warning);
+      color: #FFFFFF;
+    }
     .btn-purple {
-      background: rgba(139, 92, 246, 0.2);
+      background: var(--purple-light);
       border: 1px solid var(--purple);
-      color: #C4B5FD;
+      color: var(--purple);
     }
-    .btn-purple:hover { background: var(--purple); color: white; }
+    .btn-purple:hover {
+      background: var(--purple);
+      color: #FFFFFF;
+    }
 
     /* KPI Cards */
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
       gap: 16px;
       margin-bottom: 24px;
     }
@@ -285,13 +389,16 @@
       transition: all 0.2s;
       position: relative;
       overflow: hidden;
+      box-shadow: var(--shadow);
+      border-top: 4px solid var(--primary);
     }
     .kpi-card:hover {
-      border-color: rgba(255, 255, 255, 0.2);
+      border-color: var(--primary);
+      box-shadow: var(--shadow-lg);
       transform: translateY(-2px);
     }
     .kpi-label {
-      font-size: 12.5px;
+      font-size: 13px;
       color: var(--text-muted);
       font-weight: 600;
     }
@@ -300,10 +407,71 @@
       font-weight: 800;
       letter-spacing: -0.02em;
       font-family: var(--font-mono);
+      color: var(--text);
     }
     .kpi-sub {
-      font-size: 11px;
+      font-size: 11.5px;
       color: var(--text-muted);
+    }
+
+    /* Hướng dẫn nhanh cho người mới sử dụng */
+    .user-welcome-guide {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 22px;
+      margin-bottom: 22px;
+      box-shadow: var(--shadow);
+      border-left: 5px solid var(--primary);
+    }
+    .guide-header {
+      margin-bottom: 12px;
+    }
+    .guide-title {
+      font-size: 15.5px;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .guide-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .guide-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .guide-card {
+      background: var(--surface-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .guide-card:hover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      transform: translateY(-2px);
+    }
+    .guide-icon {
+      font-size: 22px;
+      line-height: 1;
+    }
+    .guide-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+    .guide-tip {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      line-height: 1.4;
     }
 
     /* Forms */
@@ -314,23 +482,23 @@
       margin-bottom: 14px;
     }
     .form-label {
-      font-size: 12.5px;
-      font-weight: 600;
-      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
     }
     .form-input, .form-select, .form-textarea {
-      background: var(--surface-card);
-      border: 1px solid var(--border);
+      background: var(--surface);
+      border: 1.5px solid var(--border);
       border-radius: var(--radius-sm);
       color: var(--text);
-      padding: 9px 12px;
+      padding: 10px 12px;
       font-size: 13.5px;
       outline: none;
       transition: all 0.2s;
     }
     .form-input:focus, .form-select:focus, .form-textarea:focus {
       border-color: var(--border-focus);
-      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.2);
     }
     .form-row {
       display: grid;
@@ -353,36 +521,37 @@
       font-size: 13.5px;
     }
     th {
-      background: rgba(11, 19, 41, 0.6);
-      color: var(--text-muted);
+      background: var(--th-bg);
+      color: var(--text);
       font-weight: 700;
       font-size: 12px;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border);
+      padding: 13px 16px;
+      border-bottom: 2px solid var(--border);
       white-space: nowrap;
     }
     td {
-      padding: 14px 16px;
-      border-bottom: 1px solid rgba(45, 61, 102, 0.4);
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--border);
       vertical-align: middle;
+      color: var(--text);
     }
     tr:last-child td {
       border-bottom: none;
     }
     tr:hover td {
-      background: rgba(255, 255, 255, 0.02);
+      background: var(--surface-hover);
     }
 
     /* Badges */
     .badge {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
       font-size: 11px;
-      font-weight: 700;
-      padding: 3px 8px;
+      font-weight: 800;
+      padding: 3px 9px;
       border-radius: 6px;
       text-transform: uppercase;
       letter-spacing: 0.04em;
@@ -394,17 +563,63 @@
       background: currentColor;
     }
 
-    /* Schedule Grid */
+    /* Schedule Grid & Legend */
+    .schedule-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+      padding: 12px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      align-items: center;
+    }
+    .legend-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-right: 4px;
+    }
+    .legend-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text);
+      padding: 5px 10px;
+      border-radius: 6px;
+      background: var(--surface-card);
+      border: 1px solid var(--border);
+      font-weight: 600;
+    }
+    .legend-badge {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+    .legend-badge-avail { background: #059669; }
+    .legend-badge-pending { background: #D97706; }
+    .legend-badge-booked { background: #2563EB; }
+    .legend-badge-past { background: #94A3B8; }
+    .legend-badge-maint { background: #DC2626; }
+
     .schedule-wrapper {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       overflow-x: auto;
       max-height: 720px;
+      box-shadow: var(--shadow);
     }
     .schedule-table {
       border-collapse: separate;
       border-spacing: 0;
+      width: 100%;
     }
     .schedule-table th, .schedule-table td {
       border: 1px solid var(--border);
@@ -414,13 +629,15 @@
       position: sticky;
       top: 0;
       z-index: 10;
+      background: var(--th-bg);
+      color: var(--text);
     }
 
     /* Modals */
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(11, 19, 41, 0.8);
+      background: rgba(15, 23, 42, 0.65);
       backdrop-filter: blur(6px);
       display: none;
       align-items: center;
@@ -440,8 +657,9 @@
       max-width: 680px;
       max-height: 90vh;
       overflow-y: auto;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      box-shadow: var(--shadow-lg);
       padding: 24px;
+      color: var(--text);
     }
     .modal-card-lg {
       max-width: 860px;
@@ -457,6 +675,7 @@
     .modal-title {
       font-size: 18px;
       font-weight: 800;
+      color: var(--text);
     }
     .btn-close {
       background: transparent;
@@ -483,22 +702,23 @@
     .login-box {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 36px 32px;
+      border-radius: 16px;
+      padding: 38px 34px;
       width: 100%;
-      max-width: 440px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      max-width: 460px;
+      box-shadow: var(--shadow-lg);
     }
     .login-logo {
-      font-size: 40px;
+      font-size: 42px;
       text-align: center;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
     .login-title {
       font-size: 22px;
       font-weight: 800;
       text-align: center;
       margin-bottom: 6px;
+      color: var(--text);
     }
     .login-desc {
       font-size: 13px;
@@ -508,35 +728,51 @@
     }
     .quick-acc {
       display: flex;
-      gap: 10px;
-      margin-top: 18px;
+      gap: 12px;
+      margin-top: 14px;
     }
     .quick-btn {
       flex: 1;
-      padding: 8px;
+      padding: 12px 14px;
       background: var(--surface-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
       color: var(--text);
-      font-size: 12px;
-      font-weight: 600;
+      font-size: 13px;
+      font-weight: 700;
       cursor: pointer;
       text-align: center;
       transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
     }
-    .quick-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .quick-btn small {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: normal;
+    }
+    .quick-btn:hover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      color: var(--primary);
+      transform: translateY(-2px);
+    }
 
     .toast {
       position: fixed;
       bottom: 24px;
       right: 24px;
-      background: var(--surface-card);
-      border: 1px solid var(--border);
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      color: var(--text);
       padding: 12px 20px;
       border-radius: 10px;
-      box-shadow: var(--shadow);
+      box-shadow: var(--shadow-lg);
       z-index: 999;
       font-size: 13.5px;
+      font-weight: 600;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -607,16 +843,17 @@
       border-radius: var(--radius);
       padding: 18px 20px;
       margin-bottom: 24px;
+      box-shadow: var(--shadow);
     }
     .revenue-bar-container {
       height: 14px;
       width: 100%;
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--surface-hover);
       border-radius: 7px;
       display: flex;
       overflow: hidden;
       margin: 12px 0 16px 0;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--border);
     }
     .revenue-segment {
       height: 100%;
@@ -665,9 +902,10 @@
       color: var(--text);
     }
     .pill-tab.active {
-      background: rgba(16, 185, 129, 0.15);
+      background: var(--primary-light);
       border-color: var(--primary);
       color: var(--primary);
+      font-weight: 700;
     }
     @media print {
       body { background: white !important; color: black !important; }
@@ -686,7 +924,7 @@
     <div class="login-box">
       <div class="login-logo">🏟️</div>
       <h2 class="login-title">Đăng Nhập Quản Trị</h2>
-      <p class="login-desc">Hệ thống Vận Hành Sân Thể Thao (STAFF / ADMIN)</p>
+      <p class="login-desc">Hệ thống Vận Hành Sân Thể Thao 24/7 (STAFF / ADMIN)</p>
       <form id="form-login" onsubmit="handleLogin(event)">
         <div id="login-msg" style="display:none; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 14px;"></div>
         <div class="form-group">
@@ -697,14 +935,24 @@
           <label class="form-label">Mật khẩu</label>
           <input type="password" id="login-password" class="form-input" placeholder="••••••••" required />
         </div>
-        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px;">
-          Đăng Nhập Vào Hệ Thống
+        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 14.5px;">
+          🚀 Đăng Nhập Vào Hệ Thống
         </button>
       </form>
-      <div style="margin-top: 20px; font-size: 12px; color: var(--text-muted); text-align: center;">Bấm để điền nhanh tài khoản:</div>
+      <div style="margin-top: 22px; font-size: 12.5px; color: var(--text-muted); text-align: center; font-weight: 600;">
+        💡 Chọn tài khoản mẫu để đăng nhập nhanh 1 chạm:
+      </div>
       <div class="quick-acc">
-        <button type="button" class="quick-btn" onclick="fillQuickLogin('0900000001', 'admin123456')">👑 Admin</button>
-        <button type="button" class="quick-btn" onclick="fillQuickLogin('0900000002', '123456')">👨‍💼 Nhân Viên</button>
+        <button type="button" class="quick-btn" onclick="fillQuickLogin('0900000001', 'admin123456')">
+          <span style="font-size: 18px;">👑</span>
+          <span>Quản Trị Viên</span>
+          <small>Toàn quyền 13 tab</small>
+        </button>
+        <button type="button" class="quick-btn" onclick="fillQuickLogin('0900000002', '123456')">
+          <span style="font-size: 18px;">👨‍💼</span>
+          <span>Nhân Viên Quầy</span>
+          <small>Lịch sân & Bán hàng</small>
+        </button>
       </div>
     </div>
   </div>
@@ -715,10 +963,16 @@
       <div class="brand-logo">🏸</div>
       <div>
         <div class="brand-title">HỆ THỐNG VẬN HÀNH SÂN THỂ THAO</div>
-        <div class="brand-subtitle">Bộ điều khiển Nhân viên & Quản trị viên (Chuẩn Plant/06-api.md)</div>
+        <div class="brand-subtitle">Bộ điều khiển Vận hành & Quản trị viên (Chuẩn v1.2)</div>
       </div>
     </div>
     <div class="header-actions">
+      <!-- Nút chuyển đổi Giao diện Sáng / Tối -->
+      <button id="theme-toggle-btn" class="btn-theme-toggle" onclick="toggleTheme()" title="Chuyển chế độ Giao diện Sáng / Tối">
+        <span id="theme-icon">☀️</span>
+        <span id="theme-text">Chế độ Sáng</span>
+      </button>
+
       <div class="user-pill">
         <span>👤</span>
         <span id="user-display">Đang tải...</span>
@@ -761,6 +1015,45 @@
           <h1 class="section-title">Tổng Quan Hôm Nay</h1>
           <button class="btn btn-outline" onclick="loadDashboard()">🔄 Tải Lại Dữ Liệu</button>
         </div>
+
+        <!-- Hướng dẫn nhanh cho người mới sử dụng -->
+        <div class="user-welcome-guide">
+          <div class="guide-header">
+            <div class="guide-title">👋 Chào mừng bạn đến với Hệ thống Quản trị & Vận hành Sân Thể Thao!</div>
+            <div class="guide-desc">Giao diện mới được tinh chỉnh sáng sủa, độ tương phản cao, dễ nhìn và thao tác thuận tiện cho người mới:</div>
+          </div>
+          <div class="guide-cards">
+            <div class="guide-card" onclick="switchTab('schedule')">
+              <span class="guide-icon">📅</span>
+              <div>
+                <div class="guide-name">1. Lịch Sân Theo Ngày</div>
+                <div class="guide-tip">Theo dõi ô trống trực quan. Bấm trực tiếp vào ô để đặt sân nhanh cho khách.</div>
+              </div>
+            </div>
+            <div class="guide-card" onclick="switchTab('walkin')">
+              <span class="guide-icon">⚡</span>
+              <div>
+                <div class="guide-name">2. Đặt Sân Tại Quầy</div>
+                <div class="guide-tip">Lên lịch cho khách vãng lai, thu tiền mặt hoặc xác nhận chuyển khoản ngân hàng.</div>
+              </div>
+            </div>
+            <div class="guide-card" onclick="switchTab('service-orders')">
+              <span class="guide-icon">🍵</span>
+              <div>
+                <div class="guide-name">3. Dịch Vụ & Thuê Đồ</div>
+                <div class="guide-tip">Bán nước giải khát, cho thuê vợt/giày và theo dõi thu hồi đồ thuê ra sân.</div>
+              </div>
+            </div>
+            <div class="guide-card" onclick="switchTab('refunds')">
+              <span class="guide-icon">💸</span>
+              <div>
+                <div class="guide-name">4. Xử Lý Hoàn Tiền</div>
+                <div class="guide-tip">Xem số tài khoản khách hủy đơn và xác nhận hoàn tiền cọc minh bạch.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="kpi-grid">
           <div class="kpi-card">
             <span class="kpi-label">Tổng đơn hôm nay</span>
@@ -779,7 +1072,7 @@
           </div>
           <div class="kpi-card">
             <span class="kpi-label">Doanh thu thực hôm nay</span>
-            <span class="kpi-value" id="kpi-revenue" style="color: #34D399;">0 ₫</span>
+            <span class="kpi-value" id="kpi-revenue" style="color: #059669;">0 ₫</span>
             <span class="kpi-sub">Đã trừ các khoản hoàn tiền</span>
           </div>
           <div class="kpi-card" style="border-color: rgba(245, 158, 11, 0.4); cursor:pointer;" onclick="xemDonChoThanhToan()">
@@ -830,14 +1123,28 @@
       <section id="tab-schedule" class="tab-content">
         <div class="section-header">
           <h1 class="section-title">Lịch Lưới Sân Theo Ngày (Sân × Khung Giờ)</h1>
-          <div style="display: flex; gap: 10px; align-items: center;">
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
             <button class="btn btn-outline" onclick="changeScheduleDate(-1)">◀ Lùi 1 ngày</button>
             <input type="date" id="schedule-date" class="form-input" style="width: 160px;" onchange="loadSchedule()" />
             <button class="btn btn-outline" onclick="changeScheduleDate(1)">Tiến 1 ngày ▶</button>
             <button class="btn btn-primary" onclick="setScheduleToday()">Hôm nay</button>
+            <select id="schedule-court-filter" class="form-select" style="width: 180px;" onchange="filterScheduleByCourt()">
+              <option value="">🏟️ Tất cả sân</option>
+            </select>
             <button class="btn btn-outline" onclick="loadSchedule()">🔄 Làm mới</button>
           </div>
         </div>
+
+        <!-- Bảng chú thích màu sắc trực quan cho người mới -->
+        <div class="schedule-legend">
+          <span class="legend-title">📌 Chú thích:</span>
+          <div class="legend-chip"><span class="legend-badge legend-badge-avail"></span> <span>Còn trống (Bấm để đặt)</span></div>
+          <div class="legend-chip"><span class="legend-badge legend-badge-pending"></span> <span>Chờ cọc / Chờ duyệt</span></div>
+          <div class="legend-chip"><span class="legend-badge legend-badge-booked"></span> <span>Đã xác nhận / Đang chơi</span></div>
+          <div class="legend-chip"><span class="legend-badge legend-badge-past"></span> <span>Khung giờ đã qua</span></div>
+          <div class="legend-chip"><span class="legend-badge legend-badge-maint"></span> <span>Đang bảo trì</span></div>
+        </div>
+
         <div class="schedule-wrapper" id="schedule-grid">
           <!-- Render via JS -->
         </div>
@@ -859,6 +1166,7 @@
             <option value="">Tất cả trạng thái</option>
             <option value="PENDING">PENDING (Chờ giữ chỗ)</option>
             <option value="CONFIRMED">CONFIRMED (Đã xác nhận)</option>
+            <option value="CHECKED_IN">CHECKED_IN (Đã nhận sân)</option>
             <option value="COMPLETED">COMPLETED (Hoàn thành)</option>
             <option value="CANCELLED">CANCELLED (Đã hủy)</option>
             <option value="EXPIRED">EXPIRED (Hết hạn)</option>
@@ -1632,10 +1940,10 @@
             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
               <select id="procure-filter-cost-type" class="form-select" style="width: 175px; padding: 6px 10px; font-size: 12.5px;" onchange="loadProcurementData()">
                 <option value="ALL">Tất cả khoản chi</option>
-                <option value="GROCERY">🥩 Đi chợ BBQ, hải sản</option>
-                <option value="CATERING">🍱 Đặt món nhà hàng ngoài</option>
-                <option value="EQUIPMENT">🔊 Thuê loa đài / MC ngoài</option>
-                <option value="OTHER">📦 Khoản chi khác</option>
+                <option value="GROCERY">🥩 Đi chợ BBQ, hải sản (Thực phẩm tươi)</option>
+                <option value="CATERING">🍱 Đặt món nhà hàng ngoài (Cỗ tiệc, Lẩu, Bánh)</option>
+                <option value="EQUIPMENT">🔊 Thuê thiết bị ngoài (Loa kéo, Backdrop, Bàn ghế)</option>
+                <option value="OTHER">🍾 Phụ thu đồ mang đến (Rượu, Bánh, Đồ ăn) / Khác</option>
               </select>
               <select id="procure-filter-doc-type" class="form-select" style="width: 165px; padding: 6px 10px; font-size: 12.5px;" onchange="loadProcurementData()">
                 <option value="">Tất cả loại chứng từ</option>
@@ -2114,10 +2422,10 @@
           <div class="form-group" style="flex: 1;">
             <label class="form-label">Phân Loại Chi Phí *</label>
             <select id="procure-expense-type" class="form-select" required>
-              <option value="GROCERY">🥩 Đi chợ BBQ, hải sản</option>
-              <option value="CATERING">🍱 Đặt món nhà hàng ngoài</option>
-              <option value="EQUIPMENT">🔊 Thuê loa đài / sự kiện</option>
-              <option value="OTHER">📦 Chi phí dịch vụ khác</option>
+              <option value="GROCERY">🥩 Đi chợ BBQ, hải sản (Thực phẩm tươi sống, đá lạnh)</option>
+              <option value="CATERING">🍱 Đặt món nhà hàng ngoài (Cỗ tiệc, Lẩu, Nướng, Bánh kem)</option>
+              <option value="EQUIPMENT">🔊 Thuê thiết bị ngoài (Loa kéo, Backdrop, Bàn ghế tiệc)</option>
+              <option value="OTHER">🍾 Phụ thu đồ mang đến (Rượu ngoại, Đồ ăn riêng) / Dọn dẹp</option>
             </select>
           </div>
         </div>

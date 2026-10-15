@@ -359,6 +359,12 @@ async function main() {
 
   let bookingIdDebt = 0;
   await runStep('6. Công nợ', 'Tạo đơn mới có phát sinh nợ dịch vụ chưa thanh toán', async () => {
+    // Đảm bảo slot kiểm thử trống
+    await csdl.execute(
+      'UPDATE chi_tiet_khung_gio_dat SET dang_khoa = NULL WHERE san_id = ? AND ngay_dat = ? AND khung_gio_id = ?',
+      [testCourtId, ngayThuTu, 5]
+    );
+
     const resBooking = await request(app)
       .post('/api/v1/staff/bookings')
       .set('Authorization', `Bearer ${tokenStaff}`)
@@ -371,6 +377,7 @@ async function main() {
         payNow: true,
         paymentMethod: 'CASH',
       });
+    if (resBooking.status !== 201) throw new Error(`Lỗi tạo đơn đặt: ${resBooking.status} - ${JSON.stringify(resBooking.body)}`);
     bookingIdDebt = resBooking.body.data.id;
 
     // Thêm nước uống chưa trả tiền (10 chai x 10,000₫ = 100,000₫)

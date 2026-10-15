@@ -312,6 +312,96 @@ export default function HoaDonScreen({ route, navigation }: HoaDonScreenProps) {
           })
         )}
 
+        {/* LỊCH SỬ GIAO DỊCH THANH TOÁN (PAYMENT TRANSACTIONS) */}
+        <Text style={styles.tieuDePhan}>Lịch sử giao dịch thanh toán ({hoaDon?.payments?.length || 0})</Text>
+
+        {(!hoaDon?.payments || hoaDon.payments.length === 0) ? (
+          <View style={styles.vungTrong}>
+            <Ionicons name="card-outline" size={36} color="#D1D5DB" />
+            <Text style={styles.chuVungTrong}>Chưa ghi nhận giao dịch thanh toán nào.</Text>
+          </View>
+        ) : (
+          hoaDon.payments.map((gd) => {
+            const isSuccess = gd.status === 'SUCCESS';
+            const isRefund = gd.type === 'REFUND' || gd.purpose === 'REFUND';
+            return (
+              <View key={gd.id} style={styles.theYeuCau}>
+                <View style={styles.hangDauYeuCau}>
+                  <View>
+                    <Text style={styles.maYeuCau}>
+                      {isRefund ? 'Hoàn tiền' : gd.purpose === 'SERVICE' ? 'Thanh toán dịch vụ' : 'Tiền cọc / Tiền sân'} #{gd.id}
+                    </Text>
+                    <Text style={styles.thoiGianYeuCau}>
+                      {gd.createdAt ? new Date(gd.createdAt).toLocaleString('vi-VN') : ''}
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.badgeTrangThai,
+                      {
+                        backgroundColor: isSuccess
+                          ? isRefund
+                            ? '#EDE9FE'
+                            : '#D1FAE5'
+                          : '#FEF3C7',
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.chuBadgeTrangThai,
+                        {
+                          color: isSuccess
+                            ? isRefund
+                              ? '#7C3AED'
+                              : '#059669'
+                            : '#D97706',
+                        },
+                      ]}
+                    >
+                      {isSuccess ? (isRefund ? '✓ Đã hoàn tiền' : '✓ Thành công') : 'Chờ xử lý'}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.danhSachMonTrongYeuCau}>
+                  <View style={styles.dongMon}>
+                    <Text style={styles.tenMon}>Phương thức:</Text>
+                    <Text style={styles.chiTietGia}>
+                      {gd.method === 'BANK_TRANSFER' ? 'Chuyển khoản VietQR' : gd.method === 'MOMO' ? 'Ví MoMo' : 'Tiền mặt'}
+                    </Text>
+                  </View>
+                  <View style={styles.dongMon}>
+                    <Text style={styles.tenMon}>Số tiền:</Text>
+                    <Text
+                      style={[
+                        styles.thanhTienMon,
+                        { color: isRefund ? '#7C3AED' : '#059669' },
+                      ]}
+                    >
+                      {isRefund ? `-${formatTien(gd.amount)}` : `+${formatTien(gd.amount)}`}
+                    </Text>
+                  </View>
+                  {gd.transactionRef ? (
+                    <View style={styles.dongMon}>
+                      <Text style={styles.tenMon}>Mã đối soát:</Text>
+                      <Text style={[styles.chiTietGia, { fontWeight: '700', color: '#3B82F6' }]}>
+                        {gd.transactionRef}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {gd.note ? (
+                    <View style={styles.dongMon}>
+                      <Text style={styles.tenMon}>Ghi chú:</Text>
+                      <Text style={styles.chiTietGia}>{gd.note}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              </View>
+            );
+          })
+        )}
+
         <View style={{ height: 30 }} />
       </ScrollView>
     </SafeAreaView>

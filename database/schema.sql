@@ -126,7 +126,7 @@ CREATE TABLE don_dat (
   tien_san              INT UNSIGNED NOT NULL,           -- Tổng tiền khung giờ sân
   tien_dich_vu          INT UNSIGNED NOT NULL DEFAULT 0, -- Cache tổng dịch vụ ĐÃ GIAO (DELIVERED)
   dong_don_cong_no      TINYINT(1) NOT NULL DEFAULT 0,   -- 1 = ADMIN đóng đơn có công nợ (BR-33)
-  trang_thai            ENUM('PENDING','CONFIRMED','COMPLETED','CANCELLED','EXPIRED','NO_SHOW')
+  trang_thai            ENUM('PENDING','CONFIRMED','CHECKED_IN','COMPLETED','CANCELLED','EXPIRED','NO_SHOW')
                         NOT NULL DEFAULT 'PENDING',
   phuong_thuc_thanh_toan ENUM('CASH','BANK_TRANSFER','VNPAY') NOT NULL,
   trang_thai_thanh_toan ENUM('UNPAID','PAID','REFUNDED') NOT NULL DEFAULT 'UNPAID',
@@ -195,8 +195,8 @@ CREATE TABLE thanh_toan (
 CREATE TABLE nhat_ky_trang_thai_don (
   id                INT UNSIGNED NOT NULL AUTO_INCREMENT,
   don_dat_id        INT UNSIGNED NOT NULL,
-  trang_thai_truoc  ENUM('PENDING','CONFIRMED','COMPLETED','CANCELLED','EXPIRED','NO_SHOW') NULL,
-  trang_thai_sau    ENUM('PENDING','CONFIRMED','COMPLETED','CANCELLED','EXPIRED','NO_SHOW') NOT NULL,
+  trang_thai_truoc  ENUM('PENDING','CONFIRMED','CHECKED_IN','COMPLETED','CANCELLED','EXPIRED','NO_SHOW') NULL,
+  trang_thai_sau    ENUM('PENDING','CONFIRMED','CHECKED_IN','COMPLETED','CANCELLED','EXPIRED','NO_SHOW') NOT NULL,
   nguoi_thuc_hien_id INT UNSIGNED NULL, -- NULL = hệ thống (job tự hết hạn)
   ghi_chu           VARCHAR(500) NULL,
   ngay_tao          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -349,5 +349,27 @@ CREATE TABLE IF NOT EXISTS hoa_don_mua_ho (
   KEY idx_hdmh_ngay (ngay_hoa_don),
   CONSTRAINT fk_hdmh_don_dat FOREIGN KEY (don_dat_id) REFERENCES don_dat (id) ON DELETE CASCADE,
   CONSTRAINT fk_hdmh_nguoi_tao FOREIGN KEY (nguoi_tao_id) REFERENCES nguoi_dung (id)
+) ENGINE=InnoDB;
+
+-- ===== 17. su_kien (Sự kiện & Giải đấu của sân thể thao) =====
+CREATE TABLE IF NOT EXISTS su_kien (
+  id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  tieu_de       VARCHAR(255) NOT NULL,
+  mo_ta_ngan    VARCHAR(500) NOT NULL,
+  noi_dung      TEXT NOT NULL,
+  hinh_anh      VARCHAR(500) NOT NULL,
+  ngay_bat_dau  DATETIME NOT NULL,
+  ngay_ket_thuc DATETIME NOT NULL,
+  dia_diem      VARCHAR(255) NOT NULL,
+  san_id        INT UNSIGNED NULL,
+  phi_tham_gia  INT UNSIGNED NOT NULL DEFAULT 0,
+  phan_thuong   VARCHAR(255) NULL,
+  trang_thai    ENUM('UPCOMING','HAPPENING','FINISHED') NOT NULL DEFAULT 'UPCOMING',
+  hotline_lh    VARCHAR(30) NOT NULL DEFAULT '0900000001',
+  ngay_tao      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_sukien_trangthai (trang_thai),
+  KEY idx_sukien_ngay (ngay_bat_dau),
+  CONSTRAINT fk_sukien_san FOREIGN KEY (san_id) REFERENCES san (id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 

@@ -24,3 +24,5 @@ tmp/
 **/tmp/
 *.bak*
 **/*.bak*
+*.lck
+**/*.lck

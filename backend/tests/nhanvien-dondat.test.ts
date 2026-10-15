@@ -312,4 +312,40 @@ describe('Kiểm thử Đơn đặt & Nghiệp vụ Nhân viên (TC-21 -> TC-27)
     await csdl.execute('DELETE FROM nhat_ky_trang_thai_don WHERE don_dat_id = ?', [donId]);
     await csdl.execute('DELETE FROM don_dat WHERE id = ?', [donId]);
   });
+
+  // TC-64: Xác nhận khách đến sân (Check-in) chuyển trạng thái sang CHECKED_IN
+  it('TC-64: Nhân viên xác nhận khách đến sân (Check-in) thành công và hoàn tất đơn sau đó', async () => {
+    const homNay = '2026-10-15';
+    const [donRes]: any = await csdl.execute(
+      `INSERT INTO don_dat (
+         ma_don_dat, nguoi_dung_id, san_id, ngay_dat, gio_bat_dau, gio_ket_thuc,
+         tien_san, tien_dich_vu, trang_thai, phuong_thuc_thanh_toan, trang_thai_thanh_toan,
+         nguon_don
+       ) VALUES ('BKCHECKIN1', (SELECT id FROM nguoi_dung WHERE so_dien_thoai = ?), ?, ?, '06:00:00', '07:00:00', 100000, 0, 'CONFIRMED', 'CASH', 'PAID', 'APP')`,
+      [sdtKhach, courtId, homNay]
+    );
+    const donId = donRes.insertId;
+
+    // Check-in
+    const resCheckIn = await request(app)
+      .post(`/api/v1/staff/bookings/${donId}/check-in`)
+      .set('Authorization', `Bearer ${tokenStaff}`);
+    expect(resCheckIn.status).toBe(200);
+    expect(resCheckIn.body.data.status).toBe('CHECKED_IN');
+
+    // Xác minh trạng thái trong database
+    const [checkDb]: any = await csdl.execute('SELECT trang_thai FROM don_dat WHERE id = ?', [donId]);
+    expect(checkDb[0].trang_thai).toBe('CHECKED_IN');
+
+    // Hoàn tất đơn ở trạng thái CHECKED_IN
+    const resComp = await request(app)
+      .post(`/api/v1/staff/bookings/${donId}/complete`)
+      .set('Authorization', `Bearer ${tokenStaff}`);
+    expect(resComp.status).toBe(200);
+    expect(resComp.body.data.status).toBe('COMPLETED');
+
+    // Dọn dẹp
+    await csdl.execute('DELETE FROM nhat_ky_trang_thai_don WHERE don_dat_id = ?', [donId]);
+    await csdl.execute('DELETE FROM don_dat WHERE id = ?', [donId]);
+  });
 });

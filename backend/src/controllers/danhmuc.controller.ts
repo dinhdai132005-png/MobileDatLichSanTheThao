@@ -49,6 +49,18 @@ export class DanhMucController {
     const ketQua = await dichVuService.layChiTietDichVu(id);
     phanHoiThanhCong(res, ketQua);
   });
+
+  layDanhSachSuKien = batDongBo(async (req: Request, res: Response) => {
+    const status = req.query.status as string | undefined;
+    const ketQua = await danhMucService.layDanhSachSuKien(status);
+    phanHoiThanhCong(res, ketQua);
+  });
+
+  layChiTietSuKien = batDongBo(async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    const ketQua = await danhMucService.layChiTietSuKien(id);
+    phanHoiThanhCong(res, ketQua);
+  });
 }
 
 export const danhMucController = new DanhMucController();

@@ -19,6 +19,37 @@ let scheduleDate = new Date().toISOString().substring(0, 10);
 let autoRefreshTimer = null;
 
 // ================= 1. TIỆN ÍCH CHUNG =================
+function initTheme() {
+  const saved = localStorage.getItem('admin_theme') || 'light';
+  applyTheme(saved);
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('admin_theme', theme);
+  const icon = document.getElementById('theme-icon');
+  const text = document.getElementById('theme-text');
+  if (icon && text) {
+    if (theme === 'dark') {
+      icon.textContent = '🌙';
+      text.textContent = 'Chế độ Tối';
+    } else {
+      icon.textContent = '☀️';
+      text.textContent = 'Chế độ Sáng';
+    }
+  }
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'light';
+  const next = current === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+  showToast(next === 'dark' ? '🌙 Đã chuyển sang Giao diện Tối' : '☀️ Đã chuyển sang Giao diện Sáng');
+  if (currentTab === 'schedule') {
+    loadSchedule();
+  }
+}
+
 function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -127,8 +158,12 @@ function hideLoginOverlay() {
 }
 
 function fillQuickLogin(phone, password) {
-  document.getElementById('login-phone').value = phone;
-  document.getElementById('login-password').value = password;
+  const phoneEl = document.getElementById('login-phone');
+  const passEl = document.getElementById('login-password');
+  if (phoneEl) phoneEl.value = phone;
+  if (passEl) passEl.value = password;
+  const roleName = phone === '0900000001' ? '👑 Quản Trị Viên (Admin)' : '👨‍💼 Nhân Viên Quầy (Staff)';
+  showToast(`Đã điền tài khoản: ${roleName}. Bấm Đăng Nhập để vào!`);
 }
 
 async function handleLogin(e) {
@@ -353,7 +388,40 @@ function setScheduleToday() {
   loadSchedule();
 }
 
-function renderScheduleGrid(data) {
+let cachedScheduleData = null;
+
+function filterScheduleByCourt() {
+  if (!cachedScheduleData) return;
+  const courtId = document.getElementById('schedule-court-filter')?.value;
+  if (!courtId) {
+    renderScheduleGrid(cachedScheduleData, false);
+  } else {
+    const filteredCourts = (cachedScheduleData.courts || []).filter(
+      (c) => String(c.id || c.courtId) === String(courtId)
+    );
+    renderScheduleGrid({ ...cachedScheduleData, courts: filteredCourts }, false);
+  }
+}
+
+function renderScheduleGrid(data, updateFilter = true) {
+  if (updateFilter) {
+    cachedScheduleData = data;
+    const courtFilterSelect = document.getElementById('schedule-court-filter');
+    if (courtFilterSelect) {
+      const currentVal = courtFilterSelect.value;
+      let optionsHtml = '<option value="">🏟️ Tất cả sân</option>';
+      (data.courts || []).forEach((c) => {
+        const id = c.id || c.courtId;
+        const name = c.name || c.courtName;
+        optionsHtml += `<option value="${id}">${name} (${c.courtTypeName || ''})</option>`;
+      });
+      courtFilterSelect.innerHTML = optionsHtml;
+      if (currentVal && (data.courts || []).some((c) => String(c.id || c.courtId) === String(currentVal))) {
+        courtFilterSelect.value = currentVal;
+      }
+    }
+  }
+
   const courts = data.courts || [];
   const timeSlots = data.timeSlots || [];
 
@@ -365,13 +433,13 @@ function renderScheduleGrid(data) {
   table.style.width = '100%';
 
   const thead = document.createElement('thead');
-  let headerHtml = '<tr><th style="width:120px; position:sticky; left:0; z-index:11; background:var(--surface);">Khung Giờ</th>';
+  let headerHtml = '<tr><th style="width:125px; position:sticky; left:0; z-index:11; background:var(--th-bg); color:var(--text); border:1px solid var(--border);">Khung Giờ</th>';
   courts.forEach((c) => {
-    const statusTag = c.status === 'MAINTENANCE' ? ' <span style="font-size:10px; color:#EF4444;">(Bảo trì)</span>' : '';
+    const statusTag = c.status === 'MAINTENANCE' ? ' <span style="font-size:11px; font-weight:800; color:var(--danger);">(Bảo trì)</span>' : '';
     const capTag = c.capacity ? ` · Sức chứa ${c.capacity} người` : '';
     const cName = c.name || c.courtName || '';
     const cTypeName = c.courtTypeName || '';
-    headerHtml += `<th>${cName}${statusTag}<br><span style="font-size:11px; font-weight:normal; color:var(--text-muted);">${cTypeName}${capTag}</span></th>`;
+    headerHtml += `<th style="background:var(--th-bg); color:var(--text); border:1px solid var(--border);">${cName}${statusTag}<br><span style="font-size:11px; font-weight:600; color:var(--text-muted);">${cTypeName}${capTag}</span></th>`;
   });
   headerHtml += '</tr>';
   thead.innerHTML = headerHtml;
@@ -381,7 +449,7 @@ function renderScheduleGrid(data) {
   timeSlots.forEach((slot) => {
     const tr = document.createElement('tr');
     const timeLabel = `${slot.startTime.substring(0, 5)} - ${slot.endTime.substring(0, 5)}`;
-    let rowHtml = `<td style="position:sticky; left:0; z-index:5; background:var(--surface); font-weight:700; font-size:12px; font-family:var(--font-mono);">${timeLabel}</td>`;
+    let rowHtml = `<td style="position:sticky; left:0; z-index:5; background:var(--th-bg); color:var(--text); font-weight:800; font-size:12.5px; font-family:var(--font-mono); border:1px solid var(--border); text-align:center;">${timeLabel}</td>`;
 
     courts.forEach((c) => {
       const cell = c.slots?.find((s) => s.timeSlotId === slot.id) || { status: 'AVAILABLE' };
@@ -394,21 +462,22 @@ function renderScheduleGrid(data) {
         const b = cell.booking || cell;
         const isPending = (cell.bookingStatus || b.status) === 'PENDING';
         bgStyle = isPending
-          ? 'background: rgba(245, 158, 11, 0.15); border-left: 3px solid var(--warning); cursor: pointer;'
-          : 'background: rgba(16, 185, 129, 0.15); border-left: 3px solid var(--primary); cursor: pointer;';
+          ? 'background: var(--warning-light); border-left: 4px solid var(--warning); cursor: pointer;'
+          : 'background: var(--accent-light); border-left: 4px solid var(--accent); cursor: pointer;';
         content = `
-          <div style="font-weight:700; font-size:11.5px; color:${isPending ? '#FBBF24' : '#34D399'}; font-family:var(--font-mono);">${cell.bookingCode || b.bookingCode || 'ĐÃ ĐẶT'}</div>
-          <div style="font-size:11px; color:var(--text-muted);">${cell.customerName || b.customerName || ''}</div>
+          <div style="font-weight:800; font-size:12px; color:${isPending ? 'var(--warning)' : 'var(--accent)'}; font-family:var(--font-mono);">${cell.bookingCode || b.bookingCode || 'ĐÃ ĐẶT'}</div>
+          <div style="font-size:11.5px; font-weight:700; color:var(--text); margin-top:2px;">${cell.customerName || b.customerName || ''}</div>
         `;
       } else if (cell.status === 'MAINTENANCE' || c.status === 'MAINTENANCE') {
-        bgStyle = 'background: rgba(107, 114, 128, 0.15); color:#64748B;';
-        content = '<span style="font-size:11px;">🔧 Bảo trì</span>';
+        bgStyle = 'background: var(--danger-light); color:var(--danger);';
+        content = '<span style="font-size:11.5px; font-weight:800;">🔧 Bảo trì</span>';
       } else if (cell.status === 'PAST') {
-        bgStyle = 'background: rgba(15, 23, 42, 0.4); color:#475569;';
-        content = '<span style="font-size:11px;">Đã qua</span>';
+        bgStyle = 'background: var(--surface-card); color:var(--text-muted); opacity:0.75;';
+        content = '<span style="font-size:11.5px; font-weight:600;">⏳ Đã qua</span>';
       } else {
-        bgStyle = 'background: rgba(16, 185, 129, 0.05); color:var(--primary); cursor: pointer;';
-        content = `<span style="font-size:11px; font-weight:600;">${formatMoney(cell.price)}</span>`;
+        bgStyle = 'background: var(--primary-light); color:var(--primary); cursor: pointer; transition: all 0.15s ease;';
+        content = `<div style="font-size:12.5px; font-weight:800; color:var(--primary);">${formatMoney(cell.price)}</div>
+                   <div style="font-size:10px; color:var(--text-muted); font-weight:700; margin-top:2px;">⚡ Bấm đặt</div>`;
       }
 
       const bookingId = cell.bookingId || cell.booking?.id;
@@ -418,7 +487,7 @@ function renderScheduleGrid(data) {
         ? `onclick="quickBookWalkin(${c.id || c.courtId}, '${scheduleDate}', ${slot.id})"`
         : '';
 
-      rowHtml += `<td style="${bgStyle} height:52px; vertical-align:middle; text-align:center;" ${clickAttr}>${content}</td>`;
+      rowHtml += `<td style="${bgStyle} height:54px; vertical-align:middle; text-align:center; border:1px solid var(--border);" ${clickAttr}>${content}</td>`;
     });
 
     tr.innerHTML = rowHtml;
@@ -2308,6 +2377,11 @@ function renderDetailContent(b, inv) {
     actionButtonsHtml += `<button class="btn btn-outline" style="border-color:#10B981; color:#10B981;" onclick="moModalThemHoaDonMuaHo(${b.id})">🧾 + Hóa Đơn Mua Hộ Ngoài</button>`;
   }
 
+  // 1.5. Nút Xác nhận khách đến sân (Check-in) cho đơn CONFIRMED
+  if (b.status === 'CONFIRMED') {
+    actionButtonsHtml += `<button class="btn btn-primary" style="background:#059669; border-color:#10B981;" onclick="xacNhanCheckIn(${b.id})">📍 Xác Nhận Khách Đến Sân (Check-in)</button>`;
+  }
+
   // 2. Nút thu tiền dịch vụ (nếu còn nợ dịch vụ)
   if (inv.serviceBalance > 0 && ['CONFIRMED', 'CHECKED_IN'].includes(b.status)) {
     actionButtonsHtml += `<button class="btn btn-warning" onclick="openPayServiceModal(${b.id}, ${inv.serviceBalance})">💵 Thu Tiền Dịch Vụ (${formatMoney(inv.serviceBalance)})</button>`;
@@ -2477,6 +2551,18 @@ async function ghiNhanThanhToanTienSan(bookingId) {
     viewDetail(bookingId);
   } catch (err) {
     showToast('Lỗi thanh toán: ' + err.message, true);
+  }
+}
+
+async function xacNhanCheckIn(bookingId) {
+  if (!confirm('Xác nhận khách hàng đã có mặt tại sân và nhận sân thi đấu?')) return;
+  try {
+    const res = await apiFetch(`/staff/bookings/${bookingId}/check-in`, { method: 'POST' });
+    showToast(res.message || 'Xác nhận khách đến sân (Check-in) thành công!');
+    viewDetail(bookingId);
+    if (typeof loadBookings === 'function') loadBookings(bookingPage);
+  } catch (err) {
+    showToast('Lỗi check-in: ' + err.message, true);
   }
 }
 
@@ -2941,10 +3027,11 @@ function renderProcurementTable(invoices) {
       ? '<span class="badge" style="background:rgba(16, 185, 129, 0.2); color:#34D399; border:1px solid rgba(16, 185, 129, 0.4);">🟢 HĐ Điện Tử</span>'
       : '<span class="badge" style="background:rgba(245, 158, 11, 0.2); color:#FBBF24; border:1px solid rgba(245, 158, 11, 0.4);">🟡 HĐ Giấy / Bill</span>';
 
-    let costTypeName = 'Dịch vụ khác';
+    let costTypeName = '📦 Chi phí khác';
     if (item.expenseType === 'GROCERY') costTypeName = '🥩 Đi chợ BBQ, hải sản';
-    else if (item.expenseType === 'CATERING') costTypeName = '🍱 Đặt món nhà hàng';
-    else if (item.expenseType === 'EQUIPMENT') costTypeName = '🔊 Âm thanh, sự kiện';
+    else if (item.expenseType === 'CATERING') costTypeName = '🍱 Đặt món nhà hàng ngoài';
+    else if (item.expenseType === 'EQUIPMENT') costTypeName = '🔊 Thuê thiết bị ngoài';
+    else if (item.expenseType === 'OTHER') costTypeName = '🍾 Phụ thu đồ mang đến / Khác';
 
     let imgPreview = '<span style="color:var(--text-muted); font-size:11px;">Chưa đính kèm</span>';
     if (item.invoiceImageUrl) {
@@ -3345,6 +3432,7 @@ async function handleCateringInternalSubmit(e) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  initTheme();
   const isAuth = checkAuthOnLoad();
   if (isAuth) {
     loadInitialData();

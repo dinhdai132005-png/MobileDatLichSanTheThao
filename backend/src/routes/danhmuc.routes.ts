@@ -24,5 +24,10 @@ danhMucRouter.get('/time-slots', danhMucController.layKhungGio);
 danhMucRouter.get('/services', danhMucController.layDanhSachDichVu);
 danhMucRouter.get('/services/:id', danhMucController.layChiTietDichVu);
 
+// Sự kiện & Giải đấu thể thao của sân
+danhMucRouter.get('/events', danhMucController.layDanhSachSuKien);
+danhMucRouter.get('/events/:id', danhMucController.layChiTietSuKien);
+
 // Cấu hình công khai
 danhMucRouter.get('/config/public', danhMucController.layCauHinhCongKhai);
+

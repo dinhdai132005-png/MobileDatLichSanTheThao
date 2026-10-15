@@ -158,6 +158,20 @@ export interface YeuCauDichVu {
   items: DongChiTietYeuCau[];
 }
 
+/** Giao dịch thanh toán của đơn đặt */
+export interface GiaoDichThanhToan {
+  id: number;
+  type: string;
+  purpose: string;
+  method: string;
+  amount: number;
+  status: string;
+  transactionRef?: string | null;
+  note?: string | null;
+  processedAt?: string | null;
+  createdAt: string;
+}
+
 /** Hóa đơn tổng hợp của đơn đặt */
 export interface HoaDonDonDat {
   bookingId: number;
@@ -173,6 +187,7 @@ export interface HoaDonDonDat {
   canOrderService: boolean;
   serviceOrders: YeuCauDichVu[];
   unreturnedRentalsCount: number;
+  payments?: GiaoDichThanhToan[];
 }
 
 /** Thông tin tài khoản người dùng */
@@ -231,3 +246,38 @@ export interface ApiResponse<T> {
   message?: string;
   errorCode?: string;
 }
+
+/** Sự kiện và giải đấu của cụm sân */
+export interface SuKienSan {
+  id: number;
+  tieuDe: string;
+  moTaNgan: string;
+  noiDung: string;
+  hinhAnh: string;
+  ngayBatDau: string;
+  ngayKetThuc: string;
+  diaDiem: string;
+  sanId?: number | null;
+  sanTen?: string | null;
+  phiThamGia: number;
+  phanThuong?: string | null;
+  trangThai: 'UPCOMING' | 'HAPPENING' | 'FINISHED';
+  hotlineLh: string;
+}
+
+/** Gói tiệc trọn gói & sự kiện của sân */
+export interface GoiTiecSuKien {
+  id: number;
+  name: string;
+  type: 'PACKAGE';
+  unit: string;
+  price: number;
+  description?: string;
+  imageUrl?: string | null;
+  status: 'ACTIVE' | 'OUT_OF_STOCK' | 'INACTIVE';
+  isAvailable: boolean;
+  sucChua?: string;
+  thucDon?: string[];
+  tienIch?: string[];
+}
+
